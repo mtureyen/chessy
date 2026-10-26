@@ -1,34 +1,30 @@
 {
   "name": "chessy",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
+  "packageManager": "bun@1.4.4",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc -b",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "e2e": "turbo run e2e",
     "lint": "oxlint",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
-  },
-  "dependencies": {
-    "chessground": "^9.2.1",
-    "chessops": "^0.15.1",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "format:check": "prettier --check .",
+    "check:boundaries": "bun --bun depcruise apps packages --config .dependency-cruiser.cjs",
+    "check": "bun run lint && bun run format:check && bun run check:boundaries && turbo run typecheck test build"
   },
   "devDependencies": {
-    "@types/node": "^24.19.2",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
+    "dependency-cruiser": "^18.7.0",
     "oxlint": "^1.88.0",
     "prettier": "^3.9.10",
+    "turbo": "^2.11.10",
     "typescript": "~6.0.3",
-    "vite": "^8.3.4",
     "vitest": "^5.0.5"
   }
 }

@@ -1,0 +1,27 @@
+{
+  "name": "@chessy/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./rpc": "./src/rpc.ts"
+  },
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts",
+    "build": "bun build src/main.ts --target=bun --outdir=dist",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@chessy/contracts": "workspace:*",
+    "@hono/zod-openapi": "^1.6.3",
+    "@scalar/hono-api-reference": "^0.12.14",
+    "hono": "^4.13.14",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@chessy/config": "workspace:*",
+    "@types/bun": "^1.4.4"
+  }
+}
