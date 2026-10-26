@@ -30,3 +30,6 @@ coverage
 # Playwright
 test-results
 playwright-report
+
+# Downloaded at dev/build time (apps/web/scripts/fetch-engine.ts)
+apps/web/public/engine/

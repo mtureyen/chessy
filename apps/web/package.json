@@ -4,14 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "bun run engine:fetch && vite",
+    "build": "bun run engine:fetch && vite build",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests --dir src",
     "typecheck": "tsc -b",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "engine:fetch": "bun scripts/fetch-engine.ts"
   },
   "dependencies": {
+    "@chessy/analysis": "workspace:*",
     "@chessy/chess": "workspace:*",
     "@tanstack/react-query": "^5.105.0",
     "@tanstack/react-router": "^1.170.46",
