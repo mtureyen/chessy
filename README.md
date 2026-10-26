@@ -38,6 +38,10 @@ bun run check:boundaries   # architecture rules
 
 API docs: http://localhost:3000/api/v1/docs (OpenAPI: `/api/v1/openapi.json`)
 
+## Contributing
+
+Branch, commit and PR conventions: [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
 Chessy builds on GPL-3.0 libraries (chessops, chessground, Stockfish). If it is published, it will be licensed accordingly.
