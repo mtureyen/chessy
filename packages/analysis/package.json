@@ -1,0 +1,19 @@
+{
+  "name": "@chessy/analysis",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@chessy/chess": "workspace:*"
+  },
+  "devDependencies": {
+    "@chessy/config": "workspace:*"
+  }
+}
