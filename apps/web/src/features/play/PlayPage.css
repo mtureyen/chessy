@@ -1,0 +1,148 @@
+.layout {
+  --board-size: min(calc(100vh - 6rem), calc(100vw - 24rem - 3rem), 760px);
+  display: grid;
+  grid-template-columns: var(--board-size) 22rem;
+  gap: 1.5rem;
+  justify-content: center;
+  align-items: start;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.board-column {
+  width: var(--board-size);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: var(--board-size);
+  min-height: 28rem;
+  background: var(--surface);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.25);
+}
+
+.status {
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-checkmate,
+.status-draw {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.moves {
+  flex: 1;
+  min-height: 6rem;
+  overflow-y: auto;
+}
+
+.controls {
+  border-top: 1px solid var(--border);
+}
+
+.nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.nav button {
+  padding: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--border);
+}
+
+.panel button {
+  border: 0;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+}
+
+.panel button:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.panel button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.io {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.io-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.io-row {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.io-row button {
+  border-radius: 4px;
+}
+
+.fen,
+.io textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: 0.8rem/1.4 var(--mono);
+}
+
+.io textarea {
+  resize: vertical;
+}
+
+.message {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.message-error {
+  color: var(--danger);
+}
+
+.message-info {
+  color: var(--text-muted);
+}
+
+@media (max-width: 860px) {
+  .layout {
+    --board-size: min(calc(100vw - 2rem), 760px);
+    grid-template-columns: var(--board-size);
+  }
+
+  .panel {
+    height: auto;
+  }
+
+  .moves {
+    max-height: 14rem;
+  }
+}

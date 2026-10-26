@@ -1,0 +1,12 @@
+{
+  "//": "Only used by dependency-cruiser to resolve path aliases across the monorepo.",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "paths": { "@/*": ["./apps/web/src/*"] }
+  },
+  "include": ["apps", "packages"]
+}
