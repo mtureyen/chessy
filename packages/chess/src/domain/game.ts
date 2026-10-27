@@ -18,6 +18,7 @@ import {
   type GameStatus,
   type Move,
   type MoveNode,
+  type NodeAnnotations,
   type PlayedMove,
   type PromotionRole,
   type SquareName,
@@ -71,6 +72,9 @@ export interface GameState {
   /** Deletes the node and everything after it. A cursor inside that branch moves to the node's parent. */
   delete(node: MoveNode): boolean
 
+  /** Sets comments and/or clock on a node. Only the given fields change. */
+  annotate(node: MoveNode, annotations: NodeAnnotations): void
+
   /** Moves from the start up to `current`, followed by the main continuation after it. */
   line(): MoveNode[]
 }
@@ -92,6 +96,8 @@ function positionFromFen(fen: string): Chess {
 interface Node extends MoveNode {
   parent: Node | undefined
   children: Node[]
+  comments: string[]
+  clock: number | undefined
   pos: Chess
   /** FEN without move clocks; equal keys count as the same position for repetitions. */
   repetitionKey: string
@@ -241,6 +247,12 @@ class ChessopsGame implements GameState {
     for (let n = this.own(node); n.parent; n = n.parent) moveToFront(n.parent, n)
   }
 
+  annotate(node: MoveNode, annotations: NodeAnnotations): void {
+    const n = this.own(node)
+    if (annotations.comments) n.comments = [...annotations.comments]
+    if ('clock' in annotations) n.clock = annotations.clock
+  }
+
   delete(node: MoveNode): boolean {
     const n = this.own(node)
     const parent = n.parent
@@ -271,6 +283,8 @@ class ChessopsGame implements GameState {
       ply: parent ? parent.ply + 1 : 0,
       fen: makeFen(setup),
       move,
+      comments: [],
+      clock: undefined,
       pos,
       repetitionKey: makeFen(setup, { epd: true }),
     }
