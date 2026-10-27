@@ -1,0 +1,142 @@
+.engine {
+  border-bottom: 1px solid var(--border);
+}
+
+.engine-header {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.engine-switch {
+  position: relative;
+  display: inline-block;
+  width: 2.2rem;
+  height: 1.25rem;
+  cursor: pointer;
+}
+
+.engine-switch input {
+  position: absolute;
+  z-index: 1; /* above the decorative track, so it receives the click */
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.engine-switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 150ms;
+}
+
+.engine-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 150ms;
+}
+
+.engine-switch input:checked + .engine-switch-track {
+  background: var(--accent);
+}
+
+.engine-switch input:checked + .engine-switch-track::after {
+  transform: translateX(0.95rem);
+}
+
+.engine-switch input:focus-visible + .engine-switch-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.engine-eval {
+  min-width: 3.5rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.engine-meta {
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.engine-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.engine-status {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.engine-multipv {
+  padding: 0.2rem 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.engine-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.engine-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.3rem 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.engine-line-score {
+  flex: none;
+  min-width: 3.2rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  background: var(--surface-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.engine-line-moves {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel .engine-line-move {
+  padding: 0.05rem 0.15rem;
+  border-radius: 3px;
+  background: none;
+  color: inherit;
+}
+
+.panel .engine-line-move:hover {
+  background: var(--hover);
+}

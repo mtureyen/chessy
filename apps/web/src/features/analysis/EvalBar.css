@@ -1,0 +1,58 @@
+.eval-bar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #403d39;
+}
+
+.eval-bar-white {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #f4f4f4;
+  transition: height 0.45s ease-out;
+}
+
+.eval-bar-flipped .eval-bar-white {
+  top: 0;
+  bottom: auto;
+}
+
+.eval-bar-mid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 2px solid rgb(214 79 0 / 0.6);
+}
+
+.eval-bar-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+/* The label sits at the leading side's end of the bar. */
+.eval-bar-label-white {
+  bottom: 0.3rem;
+  color: #403d39;
+}
+.eval-bar-label-black {
+  top: 0.3rem;
+  color: #f4f4f4;
+}
+.eval-bar-flipped .eval-bar-label-white {
+  top: 0.3rem;
+  bottom: auto;
+}
+.eval-bar-flipped .eval-bar-label-black {
+  bottom: 0.3rem;
+  top: auto;
+}

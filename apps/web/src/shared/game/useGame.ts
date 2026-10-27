@@ -1,4 +1,3 @@
-import { useCallback, useState } from 'react'
 import {
   createGame,
   type Color,
@@ -7,6 +6,7 @@ import {
   type MoveNode,
   type SquareName,
 } from '@chessy/chess'
+import { useCallback, useState } from 'react'
 
 /** Everything the UI renders from a game, captured once per change. */
 export interface GameView {
@@ -14,16 +14,25 @@ export interface GameView {
   turn: Color
   check: boolean
   status: GameStatus
-  /** Empty once the game is over, which freezes the board for local play. */
+  /** Legal destinations; empty when the game is over and `freezeWhenOver` is set. */
   dests: Map<SquareName, SquareName[]>
   lastMove: [SquareName, SquareName] | undefined
   line: MoveNode[]
+  /** Same object across updates (the tree is mutated in place); re-read it on every render. */
+  root: MoveNode
   current: MoveNode
   atStart: boolean
   atEnd: boolean
+  isMainline: boolean
 }
 
-function viewOf(game: GameState): GameView {
+export interface UseGameOptions {
+  /** Local play stops at mate/draw; analysis keeps exploring. */
+  freezeWhenOver?: boolean
+  initial?: () => GameState
+}
+
+function viewOf(game: GameState, freezeWhenOver: boolean): GameView {
   const status = game.status()
   const move = game.current.move
   return {
@@ -31,12 +40,14 @@ function viewOf(game: GameState): GameView {
     turn: game.turn(),
     check: game.isCheck(),
     status,
-    dests: status.kind === 'ongoing' ? game.dests() : new Map(),
+    dests: freezeWhenOver && status.kind !== 'ongoing' ? new Map() : game.dests(),
     lastMove: move ? [move.from, move.to] : undefined,
     line: game.line(),
+    root: game.root,
     current: game.current,
     atStart: game.current === game.root,
     atEnd: game.current.children.length === 0,
+    isMainline: game.isMainline(game.current),
   }
 }
 
@@ -44,21 +55,24 @@ function viewOf(game: GameState): GameView {
  * Holds a mutable GameState. Every change goes through `update` (or `replace`),
  * which re-snapshots the view so React re-renders.
  */
-export function useGame() {
+export function useGame({ freezeWhenOver = false, initial = createGame }: UseGameOptions = {}) {
   const [state, setState] = useState(() => {
-    const game = createGame()
-    return { game, view: viewOf(game) }
+    const game = initial()
+    return { game, view: viewOf(game, freezeWhenOver) }
   })
 
   const update = useCallback(
     (change: (game: GameState) => unknown) => {
       change(state.game)
-      setState({ game: state.game, view: viewOf(state.game) })
+      setState({ game: state.game, view: viewOf(state.game, freezeWhenOver) })
     },
-    [state.game],
+    [state.game, freezeWhenOver],
   )
 
-  const replace = useCallback((game: GameState) => setState({ game, view: viewOf(game) }), [])
+  const replace = useCallback(
+    (game: GameState) => setState({ game, view: viewOf(game, freezeWhenOver) }),
+    [freezeWhenOver],
+  )
 
   return { game: state.game, view: state.view, update, replace }
 }
