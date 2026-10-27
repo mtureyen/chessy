@@ -32,9 +32,9 @@ export async function boardDriver(page: Page) {
       await page.mouse.move(b.x, b.y, { steps: 8 })
       await page.mouse.up()
     },
-    /** Drags each move and waits until the move list shows it before the next one. */
+    /** Drags each move and waits until the move tree shows it (main line or variation). */
     async play(...moves: [string, string][]) {
-      const played = page.locator('.move-list button.move')
+      const played = page.locator('.move-tree [data-san]')
       for (const [from, to] of moves) {
         const before = await played.count()
         await this.drag(from, to)

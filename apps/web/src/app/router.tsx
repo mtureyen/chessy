@@ -1,4 +1,6 @@
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router'
+import { AnalysisRoute } from '@/features/analysis/AnalysisRoute'
+import { parseAnalysisSearch } from '@/features/analysis/search'
 import { PlayPage } from '@/features/play/PlayPage'
 import { RootLayout } from './RootLayout'
 
@@ -10,7 +12,14 @@ const playRoute = createRoute({
   component: PlayPage,
 })
 
-const routeTree = rootRoute.addChildren([playRoute])
+const analysisRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/analysis',
+  validateSearch: parseAnalysisSearch,
+  component: AnalysisRoute,
+})
+
+const routeTree = rootRoute.addChildren([playRoute, analysisRoute])
 
 export const router = createRouter({ routeTree, defaultPreload: 'intent' })
 

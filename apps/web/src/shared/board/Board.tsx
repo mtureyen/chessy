@@ -4,6 +4,7 @@ import 'chessground/assets/chessground.base.css'
 import 'chessground/assets/chessground.brown.css'
 import 'chessground/assets/chessground.cburnett.css'
 import type { Config } from 'chessground/config'
+import type { DrawShape } from 'chessground/draw'
 import type { Key } from 'chessground/types'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Color, Move, SquareName } from '@chessy/chess'
@@ -20,6 +21,14 @@ export interface BoardProps {
   check: boolean
   isPromotion: (from: SquareName, to: SquareName) => boolean
   onMove: (move: Move) => void
+  /** Arrows drawn by the app (engine suggestions). Separate from arrows the user draws. */
+  arrows?: BoardArrow[]
+}
+
+export interface BoardArrow {
+  from: SquareName
+  to: SquareName
+  kind: 'best' | 'alternative'
 }
 
 /**
@@ -69,6 +78,12 @@ export function Board(props: BoardProps) {
     api.current?.set(toConfig(latest.current))
   }, [fen, orientation, turnColor, dests, check, lastMove])
 
+  const arrowsKey = (props.arrows ?? []).map((a) => `${a.kind}:${a.from}${a.to}`).join(',')
+  useEffect(() => {
+    // setAutoShapes leaves the user's own drawings alone (cg.set with a fen would clear them).
+    api.current?.setAutoShapes((latest.current.arrows ?? []).map(toShape))
+  }, [arrowsKey])
+
   const cancelPromotion = () => {
     setPromotion(undefined)
     api.current?.set(toConfig(latest.current))
@@ -91,6 +106,12 @@ export function Board(props: BoardProps) {
       )}
     </div>
   )
+}
+
+function toShape(arrow: BoardArrow): DrawShape {
+  return arrow.kind === 'best'
+    ? { orig: arrow.from, dest: arrow.to, brush: 'paleBlue' }
+    : { orig: arrow.from, dest: arrow.to, brush: 'paleGrey', modifiers: { lineWidth: 7 } }
 }
 
 function toConfig(props: BoardProps): Config {

@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 const status = (page: import('@playwright/test').Page) => page.locator('.status')
 const fen = (page: import('@playwright/test').Page) => page.locator('#fen')
-const moves = (page: import('@playwright/test').Page) => page.locator('.move-list')
+const moves = (page: import('@playwright/test').Page) => page.locator('.move-tree')
 
 async function load(page: import('@playwright/test').Page, text: string) {
   await page.fill('#import', text)
@@ -68,7 +68,10 @@ test('imports PGN with variations onto the main line, reports bad input', async 
   await load(page, '1. e4 (1. d4 d5) e5 2. Nf3 Nc6 3. Bb5 a6 *')
   await expect(page.locator('.message')).toHaveText('Game loaded')
   await expect(moves(page)).toContainText('Bb5')
-  await expect(moves(page)).not.toContainText('d4')
+  // The side line is shown as a variation block, the main line stays in the rows.
+  await expect(page.locator('.variations')).toHaveText('1. d4 d5')
+  await expect(page.locator('.move-row')).not.toContainText(['d4'])
+  await expect(page.locator('.move-current')).toHaveText('a6')
 
   await load(page, 'garbage that is not chess')
   await expect(page.locator('.message')).toHaveText('No game found in PGN')

@@ -57,8 +57,13 @@
 
 .actions {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
   border-top: 1px solid var(--border);
+}
+
+.actions button {
+  white-space: nowrap;
+  padding-inline: 0.4rem;
 }
 
 .panel button {
