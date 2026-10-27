@@ -1,7 +1,6 @@
 # Contributing
 
-Planning (vision, phases, decisions) lives in the Obsidian vault next to this repo (`../chessy-vault`).
-Architecture: see the vault note `04 Architecture/Architecture.md` and the rules in `.dependency-cruiser.cjs`.
+Architecture overview: [README](README.md#architecture). The layer and boundary rules are enforced by `.dependency-cruiser.cjs`.
 
 ## Workflow
 

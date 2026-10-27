@@ -1,5 +1,6 @@
 /**
- * Downloads the pinned Stockfish build into public/engine/ (D-007: lite, single-threaded).
+ * Downloads the pinned Stockfish build (lite, single-threaded: small and needs no
+ * cross-origin isolation headers) into public/engine/.
  * Skips files that are already present with the right checksum; fails on any mismatch.
  */
 import { createHash } from 'node:crypto'

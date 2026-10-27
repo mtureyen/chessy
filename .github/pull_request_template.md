@@ -4,7 +4,7 @@
 
 ## Context
 
-<!-- Phase / milestone and related decisions from the vault, e.g. "Phase 1A · D-007" -->
+<!-- Related issues or earlier PRs, and why this change is needed now -->
 
 ## Changes
 
