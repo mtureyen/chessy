@@ -1,3 +1,4 @@
+import type { EvalCache, PositionEval } from '@chessy/analysis'
 import type {
   GameRepository,
   LibrarySettings,
@@ -6,7 +7,7 @@ import type {
   SourceId,
 } from '@chessy/library'
 
-type Storage = { games: GameRepository; settings: SettingsStore }
+type Storage = { games: GameRepository; settings: SettingsStore; evals: EvalCache }
 
 /**
  * Storage ports whose IndexedDB implementation (Dexie, ~1/5 of the app's code) is only
@@ -28,5 +29,9 @@ export function createLazyStorage(load: () => Promise<Storage>): Storage {
     load: async () => (await get()).settings.load(),
     save: async (value: LibrarySettings) => (await get()).settings.save(value),
   }
-  return { games, settings }
+  const evals: EvalCache = {
+    get: async (key: string) => (await get()).evals.get(key),
+    put: async (key: string, value: PositionEval) => (await get()).evals.put(key, value),
+  }
+  return { games, settings, evals }
 }

@@ -1,5 +1,5 @@
 import type { MoveNode } from '@chessy/chess'
-import { Fragment, useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 import { moveTreeItems, type VariationToken } from './moveTreeLayout'
 import './MoveTree.css'
 
@@ -7,10 +7,12 @@ interface MoveTreeProps {
   root: MoveNode
   current: MoveNode
   onSelect: (node: MoveNode) => void
+  /** Extra content after a move's SAN, e.g. a review badge. */
+  renderSuffix?: (node: MoveNode) => ReactNode
 }
 
 /** The whole game: main line in two columns, side lines as indented blocks (click any move to jump). */
-export function MoveTree({ root, current, onSelect }: MoveTreeProps) {
+export function MoveTree({ root, current, onSelect, renderSuffix }: MoveTreeProps) {
   const active = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export function MoveTree({ root, current, onSelect }: MoveTreeProps) {
       >
         {label && <span className="variation-number">{label} </span>}
         {node.move!.san}
+        {renderSuffix?.(node)}
       </button>
     )
   }
