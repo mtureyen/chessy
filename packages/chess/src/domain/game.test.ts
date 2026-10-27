@@ -268,3 +268,68 @@ describe('move tree & navigation', () => {
     expect(() => createGame().goTo(other.root)).toThrow()
   })
 })
+
+describe('variations', () => {
+  /** 1. e4 e5 2. Nf3 (2. Bc4 Nf6 (2... Bc5)) (2. d4) */
+  function tree() {
+    const game = createGame()
+    playAll(game, 'e4 e5 Nf3')
+    const main = game.current
+    game.back()
+    playAll(game, 'Bc4 Nf6')
+    const deep = game.current
+    game.back()
+    playAll(game, 'Bc5')
+    const nested = game.current
+    game.back()
+    game.back()
+    playAll(game, 'd4')
+    const second = game.current
+    return { game, main, deep, nested, second, branch: deep.parent! }
+  }
+  const sans = (nodes: readonly { move?: { san: string } | undefined }[]) =>
+    nodes.map((n) => n.move?.san)
+
+  it('knows which nodes are on the main line', () => {
+    const { game, main, deep, second } = tree()
+    expect(game.isMainline(main)).toBe(true)
+    expect(game.isMainline(game.root)).toBe(true)
+    expect(game.isMainline(deep)).toBe(false)
+    expect(game.isMainline(second)).toBe(false)
+  })
+
+  it('promote() moves a variation up one level', () => {
+    const { game, nested, branch } = tree()
+    game.promote(nested)
+    expect(sans(branch.children)).toEqual(['Bc5', 'Nf6'])
+    expect(game.isMainline(nested)).toBe(false)
+    game.promote(nested)
+    expect(sans(branch.parent!.children)).toEqual(['Bc4', 'Nf3', 'd4'])
+    expect(game.isMainline(nested)).toBe(true)
+  })
+
+  it('makeMainline() promotes the whole path at once', () => {
+    const { game, nested } = tree()
+    game.makeMainline(nested)
+    expect(game.isMainline(nested)).toBe(true)
+    game.toStart()
+    game.toEnd()
+    expect(game.current).toBe(nested)
+  })
+
+  it('delete() removes a branch and rescues the cursor', () => {
+    const { game, deep, branch } = tree()
+    game.goTo(deep)
+    expect(game.delete(branch)).toBe(true)
+    expect(game.current).toBe(branch.parent)
+    expect(sans(branch.parent!.children)).toEqual(['Nf3', 'd4'])
+    expect(game.delete(game.root)).toBe(false)
+  })
+
+  it('delete() leaves a cursor outside the branch alone', () => {
+    const { game, main, second } = tree()
+    game.goTo(main)
+    game.delete(second)
+    expect(game.current).toBe(main)
+  })
+})

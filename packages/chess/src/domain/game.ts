@@ -62,6 +62,15 @@ export interface GameState {
   /** Removes the current node (and everything after it) and steps back to its parent. */
   takeback(): boolean
 
+  /** True if every step from the root to the node takes the first child. */
+  isMainline(node: MoveNode): boolean
+  /** Moves the node's variation up one level: it replaces the line it branched from. */
+  promote(node: MoveNode): void
+  /** Makes the path to the node the main line, all the way up to the root. */
+  makeMainline(node: MoveNode): void
+  /** Deletes the node and everything after it. A cursor inside that branch moves to the node's parent. */
+  delete(node: MoveNode): boolean
+
   /** Moves from the start up to `current`, followed by the main continuation after it. */
   line(): MoveNode[]
 }
@@ -209,10 +218,40 @@ class ChessopsGame implements GameState {
   }
 
   takeback(): boolean {
-    const parent = this.cur.parent
+    return this.delete(this.cur)
+  }
+
+  isMainline(node: MoveNode): boolean {
+    for (let n = this.own(node); n.parent; n = n.parent) {
+      if (n.parent.children[0] !== n) return false
+    }
+    return true
+  }
+
+  promote(node: MoveNode): void {
+    for (let n = this.own(node); n.parent; n = n.parent) {
+      if (n.parent.children[0] !== n) {
+        moveToFront(n.parent, n)
+        return
+      }
+    }
+  }
+
+  makeMainline(node: MoveNode): void {
+    for (let n = this.own(node); n.parent; n = n.parent) moveToFront(n.parent, n)
+  }
+
+  delete(node: MoveNode): boolean {
+    const n = this.own(node)
+    const parent = n.parent
     if (!parent) return false
-    parent.children = parent.children.filter((child) => child !== this.cur)
-    this.cur = parent
+    parent.children = parent.children.filter((child) => child !== n)
+    for (let c: Node | undefined = this.cur; c; c = c.parent) {
+      if (c === n) {
+        this.cur = parent
+        break
+      }
+    }
     return true
   }
 
@@ -243,6 +282,10 @@ class ChessopsGame implements GameState {
     if (n !== this.root) throw new Error('Node does not belong to this game')
     return node as Node
   }
+}
+
+function moveToFront(parent: Node, child: Node): void {
+  parent.children = [child, ...parent.children.filter((c) => c !== child)]
 }
 
 /** How often the node's position occurred on the path leading to it (itself included). */
