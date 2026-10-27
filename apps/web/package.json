@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run engine:fetch && vite",
-    "build": "bun run engine:fetch && vite build",
+    "dev": "bun run engine:fetch && bun run openings:build && vite",
+    "build": "bun run engine:fetch && bun run openings:build && vite build",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests --dir src",
     "typecheck": "tsc -b",
     "e2e": "playwright test",
-    "engine:fetch": "bun scripts/fetch-engine.ts"
+    "engine:fetch": "bun scripts/fetch-engine.ts",
+    "openings:build": "bun scripts/build-openings.ts"
   },
   "dependencies": {
     "@chessy/analysis": "workspace:*",

@@ -23,6 +23,14 @@ export interface BoardProps {
   onMove: (move: Move) => void
   /** Arrows drawn by the app (engine suggestions). Separate from arrows the user draws. */
   arrows?: BoardArrow[]
+  /** A small round badge in a square's corner, e.g. a move classification. */
+  badge?: BoardBadge
+}
+
+export interface BoardBadge {
+  square: SquareName
+  glyph: string
+  color: string
 }
 
 export interface BoardArrow {
@@ -78,11 +86,16 @@ export function Board(props: BoardProps) {
     api.current?.set(toConfig(latest.current))
   }, [fen, orientation, turnColor, dests, check, lastMove])
 
-  const arrowsKey = (props.arrows ?? []).map((a) => `${a.kind}:${a.from}${a.to}`).join(',')
+  const { badge } = props
+  const shapesKey = [
+    ...(props.arrows ?? []).map((a) => `${a.kind}:${a.from}${a.to}`),
+    badge ? `badge:${badge.square}${badge.glyph}${badge.color}` : '',
+  ].join(',')
   useEffect(() => {
     // setAutoShapes leaves the user's own drawings alone (cg.set with a fen would clear them).
-    api.current?.setAutoShapes((latest.current.arrows ?? []).map(toShape))
-  }, [arrowsKey])
+    const { arrows = [], badge } = latest.current
+    api.current?.setAutoShapes([...arrows.map(toShape), ...(badge ? [badgeShape(badge)] : [])])
+  }, [shapesKey])
 
   const cancelPromotion = () => {
     setPromotion(undefined)
@@ -106,6 +119,17 @@ export function Board(props: BoardProps) {
       )}
     </div>
   )
+}
+
+/** Drawn in a 100×100 box whose origin is the square's top-left corner; the badge sits top-right. */
+function badgeShape({ square, glyph, color }: BoardBadge): DrawShape {
+  const text = glyph.replace(/[<>&"]/g, '')
+  return {
+    orig: square,
+    customSvg: {
+      html: `<g transform="translate(86 14)"><circle r="19" fill="${color}" stroke="#fff" stroke-width="3"/><text text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-weight="800" font-size="${text.length > 1 ? 20 : 24}" fill="#fff">${text}</text></g>`,
+    },
+  }
 }
 
 function toShape(arrow: BoardArrow): DrawShape {
