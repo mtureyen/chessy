@@ -83,3 +83,55 @@ describe('PGN import', () => {
     expect(game.current).toBe(game.root)
   })
 })
+
+describe('PGN comments and clocks', () => {
+  const PGN = [
+    '[White "A"]',
+    '[Black "B"]',
+    '',
+    '{ Blitz game } 1. e4 { [%clk 0:02:59.1] } 1... e5 { Solid. [%clk 0:02:58] [%eval 0.2] }',
+    '2. Nf3 { [%clk 1:00:05] } *',
+  ].join('\n')
+
+  it('reads clock times in seconds and comment text without commands', () => {
+    const { game } = importPgn(PGN)
+    const [e4, e5, nf3] = game.line()
+    expect(game.root.comments).toEqual(['Blitz game'])
+    expect(e4).toMatchObject({ clock: 179.1, comments: [] })
+    expect(e5).toMatchObject({ clock: 178, comments: ['Solid.'] })
+    expect(nf3?.clock).toBe(3605)
+  })
+
+  it('writes them back on export and survives a round trip', () => {
+    const { game } = importPgn(PGN)
+    const pgn = exportPgn(game)
+    expect(pgn).toContain('{ Blitz game }')
+    expect(pgn).toContain('e4 { [%clk 0:02:59.1] }')
+    expect(pgn).toContain('e5 { Solid. [%clk 0:02:58] }')
+    const again = importPgn(pgn).game
+    expect(again.line().map((n) => [n.clock, n.comments])).toEqual(
+      game.line().map((n) => [n.clock, n.comments]),
+    )
+  })
+
+  it('leaves moves without annotations untouched', () => {
+    const { game } = importPgn('1. e4 e5 *')
+    expect(game.line().map((n) => [n.clock, n.comments.length])).toEqual([
+      [undefined, 0],
+      [undefined, 0],
+    ])
+    expect(exportPgn(game)).toContain('1. e4 e5 *')
+  })
+})
+
+describe('annotate', () => {
+  it('sets only the given fields', () => {
+    const game = createGame()
+    const node = game.play('e4')!
+    game.annotate(node, { comments: ['Best by test'] })
+    game.annotate(node, { clock: 60 })
+    expect(node).toMatchObject({ comments: ['Best by test'], clock: 60 })
+    game.annotate(node, { clock: undefined })
+    expect(node.clock).toBeUndefined()
+  })
+})

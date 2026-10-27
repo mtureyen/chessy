@@ -42,4 +42,13 @@ export interface MoveNode {
   readonly ply: number
   readonly fen: string
   readonly move: PlayedMove | undefined
+  /** Comment text (PGN `{ … }`) without embedded commands like `[%clk …]`. On the root: game comments. */
+  readonly comments: readonly string[]
+  /** Remaining clock of the side that just moved, in seconds (PGN `[%clk …]`). */
+  readonly clock: number | undefined
+}
+
+export interface NodeAnnotations {
+  comments?: string[]
+  clock?: number | undefined
 }

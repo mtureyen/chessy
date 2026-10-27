@@ -4,8 +4,10 @@ import {
   defaultGame,
   defaultHeaders,
   emptyHeaders,
+  makeComment,
   makeOutcome,
   makePgn,
+  parseComment,
   parsePgn,
   startingPosition,
   type Node as PgnNode,
@@ -35,6 +37,7 @@ export function importPgn(pgn: string): ImportedGame {
     throw new PgnImportError(`Unsupported variant: ${start.value.rules}`)
 
   const game = createGame(makeFen(start.value.toSetup()))
+  game.annotate(game.root, readComments(parsed.comments))
   addVariations(game, game.root, parsed.moves)
   game.toStart()
   game.toEnd()
@@ -47,6 +50,7 @@ function addVariations(game: GameState, from: MoveNode, source: PgnNode<PgnNodeD
     const node = game.play(child.data.san)
     if (!node)
       throw new PgnImportError(`Illegal move in PGN at ply ${from.ply + 1}: ${child.data.san}`)
+    game.annotate(node, readComments(child.data.comments))
     addVariations(game, node, child)
   }
 }
@@ -65,16 +69,39 @@ export function exportPgn(game: GameState, headers: PgnHeaders = {}): string {
   const result = resultOf(game.status(mainlineEnd(game.root)))
   if (result) out.headers.set('Result', result)
 
+  const gameComment = writeComment(game.root)
+  if (gameComment) out.comments = [gameComment]
   copyTree(game.root, out.moves)
   return makePgn(out)
 }
 
 function copyTree(from: MoveNode, to: PgnNode<PgnNodeData>): void {
   for (const child of from.children) {
-    const node = new ChildNode<PgnNodeData>({ san: child.move!.san })
+    const comment = writeComment(child)
+    const node = new ChildNode<PgnNodeData>(
+      comment ? { san: child.move!.san, comments: [comment] } : { san: child.move!.san },
+    )
     to.children.push(node)
     copyTree(child, node)
   }
+}
+
+/** Splits raw PGN comments into readable text and the `[%clk]` value. */
+function readComments(raw: string[] | undefined): { comments: string[]; clock?: number } {
+  const comments: string[] = []
+  let clock: number | undefined
+  for (const parsed of (raw ?? []).map(parseComment)) {
+    if (parsed.text) comments.push(parsed.text)
+    if (parsed.clock !== undefined) clock = parsed.clock
+  }
+  return clock === undefined ? { comments } : { comments, clock }
+}
+
+function writeComment(node: MoveNode): string | undefined {
+  const text = node.comments.join(' ')
+  if (!text && node.clock === undefined) return undefined
+  // makeComment puts a space before commands even without text; trim it.
+  return makeComment(node.clock === undefined ? { text } : { text, clock: node.clock }).trim()
 }
 
 function mainlineEnd(root: MoveNode): MoveNode {
