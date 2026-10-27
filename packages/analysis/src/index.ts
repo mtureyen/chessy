@@ -1,5 +1,6 @@
 /** Analysis context: engine port, UCI protocol, evaluations. */
 export type { AnalysisEnd, AnalysisRequest, AnalysisSnapshot, EngineLine } from './domain/analysis'
+export { formatSanLine, toSanLine, type LineMove } from './domain/line'
 export {
   compareScores,
   formatScore,
