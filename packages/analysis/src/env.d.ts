@@ -5,6 +5,7 @@
 declare global {
   function setTimeout(handler: () => void, timeout?: number): unknown
   function clearTimeout(id: unknown): void
+  function structuredClone<T>(value: T): T
 }
 
 export {}

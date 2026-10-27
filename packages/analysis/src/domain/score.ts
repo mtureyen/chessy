@@ -21,13 +21,18 @@ export function toWhitePov(score: RelativeScore, sideToMove: Color): Score {
   return { type: 'mate', winner, moves: Math.abs(score.value) }
 }
 
+/** lichess' winning-chances curve: centipawns → [-1, +1]. https://lichess.org/page/accuracy */
+export function winningChances(cp: number): number {
+  return 2 / (1 + Math.exp(-0.00368208 * cp)) - 1
+}
+
 /**
- * Probability-like winning chance for White in percent (0–100), lichess formula:
- * https://lichess.org/page/accuracy
+ * Winning chance for White in percent (0–100), for display (eval bar): mates are 100 / 0,
+ * centipawns are not capped. Reviews use `winPercent` instead.
  */
 export function whiteWinChance(score: Score): number {
   if (score.type === 'mate') return score.winner === 'white' ? 100 : 0
-  return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * score.value)) - 1)
+  return 50 + 50 * winningChances(score.value)
 }
 
 /** Human-readable score: `+0.35`, `-1.20`, `#3` (White mates), `#-2` (Black mates). */

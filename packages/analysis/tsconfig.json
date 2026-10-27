@@ -1,4 +1,7 @@
 {
   "extends": "@chessy/config/tsconfig.base.json",
-  "include": ["src"]
+  "include": ["src"],
+  "compilerOptions": {
+    "resolveJsonModule": true
+  }
 }
