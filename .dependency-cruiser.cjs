@@ -61,19 +61,20 @@ module.exports = {
     {
       name: 'contexts-only-via-public-api',
       severity: 'error',
-      comment: 'Use another package only through its src/index.ts, never its internals.',
+      comment:
+        'Use another package only through its src/index.ts (or src/testing.ts), never its internals.',
       from: { path: '^packages/([^/]+)/' },
       to: {
         path: '^packages/[^/]+/src/',
-        pathNot: ['^packages/$1/', '^packages/[^/]+/src/index\\.ts$'],
+        pathNot: ['^packages/$1/', '^packages/[^/]+/src/(index|testing)\\.ts$'],
       },
     },
     {
       name: 'apps-only-via-public-api',
       severity: 'error',
-      comment: 'Apps use packages only through their src/index.ts.',
+      comment: 'Apps use packages only through their src/index.ts (and src/testing.ts in tests).',
       from: { path: '^apps/' },
-      to: { path: '^packages/[^/]+/src/', pathNot: '^packages/[^/]+/src/index\\.ts$' },
+      to: { path: '^packages/[^/]+/src/', pathNot: '^packages/[^/]+/src/(index|testing)\\.ts$' },
     },
     {
       name: 'not-to-unresolvable',

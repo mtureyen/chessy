@@ -1,0 +1,189 @@
+.library {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 1.25rem 2rem;
+}
+
+.library-import {
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.library-import h1 {
+  margin: 0 0 1rem;
+  font-size: 1.4rem;
+}
+
+.import-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.import-form button,
+.game-actions button,
+.game-actions .button {
+  padding: 0.5rem 0.9rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.import-form button:hover:not(:disabled),
+.game-actions button:hover,
+.game-actions .button:hover {
+  background: var(--hover);
+}
+
+.source-toggle {
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.source-toggle button {
+  border-radius: 0;
+}
+
+.import-form .source-toggle button.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.import-username {
+  flex: 1;
+  min-width: 10rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.import-form .import-submit {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.import-form .import-submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.library-import .message {
+  margin: 0.75rem 0 0;
+}
+
+.game-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.game-row {
+  display: grid;
+  grid-template-columns: 4rem 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.game-row + .game-row {
+  border-top: 1px solid var(--border);
+}
+
+.game-outcome {
+  padding: 0.2rem 0;
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.game-outcome-win {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.game-outcome-loss {
+  background: var(--danger);
+  color: #fff;
+}
+
+.game-main {
+  min-width: 0;
+}
+
+.game-players {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.game-players:hover .game-player {
+  text-decoration: underline;
+}
+
+.game-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.game-player-me {
+  color: var(--accent);
+}
+
+.game-rating,
+.game-vs {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.game-meta {
+  margin-top: 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.game-list-empty {
+  padding: 2rem;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .game-row {
+    grid-template-columns: 3.5rem 1fr;
+  }
+
+  .game-actions {
+    grid-column: 2;
+  }
+}

@@ -2,6 +2,11 @@ import { defineConfig, devices } from '@playwright/test'
 
 const CI = !!process.env.CI
 
+// E2E runs its own servers on separate ports, so it never talks to a `bun dev` session (live
+// lichess/chess.com data). The API answers from recorded responses instead.
+const API_PORT = 3100
+const WEB_PORT = 5174
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -9,7 +14,7 @@ export default defineConfig({
   retries: CI ? 2 : 0,
   reporter: CI ? 'github' : 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: `http://localhost:${WEB_PORT}`,
     trace: 'on-first-retry',
   },
   projects: [
@@ -23,12 +28,14 @@ export default defineConfig({
     {
       command: 'bun run start',
       cwd: '../api',
-      url: 'http://localhost:3000/api/v1/health',
+      env: { PORT: String(API_PORT), CHESSY_SOURCES: 'recorded' },
+      url: `http://localhost:${API_PORT}/api/v1/health`,
       reuseExistingServer: !CI,
     },
     {
-      command: 'bun run dev',
-      url: 'http://localhost:5173',
+      command: `bun run dev --port ${WEB_PORT}`,
+      env: { API_URL: `http://localhost:${API_PORT}` },
+      url: `http://localhost:${WEB_PORT}`,
       reuseExistingServer: !CI,
     },
   ],

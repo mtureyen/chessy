@@ -1,12 +1,15 @@
-/** URL search params of /analysis: a position (`fen`) or a whole game (`pgn`) to open. */
+/** URL search params of /analysis: a library game (`game`), a whole PGN (`pgn`) or a position (`fen`). */
 export interface AnalysisSearch {
+  game?: string
   fen?: string
   pgn?: string
 }
 
 export function parseAnalysisSearch(search: Record<string, unknown>): AnalysisSearch {
   const result: AnalysisSearch = {}
-  if (typeof search.fen === 'string' && search.fen.trim()) result.fen = search.fen
-  if (typeof search.pgn === 'string' && search.pgn.trim()) result.pgn = search.pgn
+  for (const key of ['game', 'fen', 'pgn'] as const) {
+    const value = search[key]
+    if (typeof value === 'string' && value.trim()) result[key] = value
+  }
   return result
 }

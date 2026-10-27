@@ -2,10 +2,13 @@ import type { Problem } from '@chessy/contracts'
 import type { Context } from 'hono'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 
-/** Responds with an RFC 7807 problem document. */
-export function problem(
+/**
+ * Responds with an RFC 7807 problem document. Generic over the status so typed routes
+ * can check it against the error responses their contract declares.
+ */
+export function problem<S extends ContentfulStatusCode>(
   c: Context,
-  status: ContentfulStatusCode,
+  status: S,
   title: string,
   extra: Omit<Problem, 'type' | 'title' | 'status'> = {},
 ) {
