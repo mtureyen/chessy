@@ -1,5 +1,6 @@
 /** Shared core: chess rules, move tree and PGN/FEN. Pure, no I/O. */
 export * from './domain/types'
+export { materialBalance } from './domain/material'
 export { createGame, InvalidPositionError, type GameState } from './domain/game'
 export {
   exportPgn,
