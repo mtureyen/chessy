@@ -11,10 +11,12 @@
     "start": "bun src/main.ts",
     "build": "bun build src/main.ts --target=bun --outdir=dist",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "dev:recorded": "CHESSY_SOURCES=recorded bun --watch src/main.ts"
   },
   "dependencies": {
     "@chessy/contracts": "workspace:*",
+    "@chessy/library": "workspace:*",
     "@hono/zod-openapi": "^1.6.3",
     "@scalar/hono-api-reference": "^0.12.14",
     "hono": "^4.13.14",

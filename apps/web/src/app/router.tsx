@@ -1,5 +1,9 @@
-import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router'
-import { AnalysisRoute } from '@/features/analysis/AnalysisRoute'
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  lazyRouteComponent,
+} from '@tanstack/react-router'
 import { parseAnalysisSearch } from '@/features/analysis/search'
 import { PlayPage } from '@/features/play/PlayPage'
 import { RootLayout } from './RootLayout'
@@ -16,10 +20,17 @@ const analysisRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/analysis',
   validateSearch: parseAnalysisSearch,
-  component: AnalysisRoute,
+  // Pages other than the start page load on first visit (route-based code splitting).
+  component: lazyRouteComponent(() => import('@/features/analysis/AnalysisRoute'), 'AnalysisRoute'),
 })
 
-const routeTree = rootRoute.addChildren([playRoute, analysisRoute])
+const gamesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/games',
+  component: lazyRouteComponent(() => import('@/features/library/LibraryPage'), 'LibraryPage'),
+})
+
+const routeTree = rootRoute.addChildren([playRoute, analysisRoute, gamesRoute])
 
 export const router = createRouter({ routeTree, defaultPreload: 'intent' })
 

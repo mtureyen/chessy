@@ -18,6 +18,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@chessy/contracts": "workspace:*",
+        "@chessy/library": "workspace:*",
         "@hono/zod-openapi": "^1.6.3",
         "@scalar/hono-api-reference": "^0.12.14",
         "hono": "^4.13.14",
@@ -34,9 +35,11 @@
       "dependencies": {
         "@chessy/analysis": "workspace:*",
         "@chessy/chess": "workspace:*",
+        "@chessy/library": "workspace:*",
         "@tanstack/react-query": "^5.105.0",
         "@tanstack/react-router": "^1.170.46",
         "chessground": "^9.2.1",
+        "dexie": "^4.4.7",
         "hono": "^4.13.14",
         "react": "^19.3.1",
         "react-dom": "^19.3.1",
@@ -49,7 +52,9 @@
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
         "@vitejs/plugin-react": "^6.1.2",
+        "fake-indexeddb": "^6.2.6",
         "vite": "^8.3.4",
+        "vitest": "^5.0.5",
       },
     },
     "packages/analysis": {
@@ -80,11 +85,20 @@
       "name": "@chessy/contracts",
       "version": "0.0.0",
       "dependencies": {
+        "@chessy/library": "workspace:*",
         "@hono/zod-openapi": "^1.6.3",
         "zod": "^4.6.7",
       },
       "devDependencies": {
         "@chessy/config": "workspace:*",
+      },
+    },
+    "packages/library": {
+      "name": "@chessy/library",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@chessy/config": "workspace:*",
+        "vitest": "^5.0.5",
       },
     },
   },
@@ -102,6 +116,8 @@
     "@chessy/config": ["@chessy/config@workspace:packages/config"],
 
     "@chessy/contracts": ["@chessy/contracts@workspace:packages/contracts"],
+
+    "@chessy/library": ["@chessy/library@workspace:packages/library"],
 
     "@chessy/web": ["@chessy/web@workspace:apps/web"],
 
@@ -285,6 +301,8 @@
 
     "detect-libc": ["detect-libc@2.1.2", "", {}, "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="],
 
+    "dexie": ["dexie@4.4.7", "", {}, "sha512-wemFiCl3DTCnfzyqepUTX1ugbYbkTrw3aEZOG7YjAOUoEQB5g5PrEywPzk5JpbX/SxqQ9IvjUpxCDIEjoOWEfA=="],
+
     "enhanced-resolve": ["enhanced-resolve@5.26.0", "", { "dependencies": { "graceful-fs": "^4.2.4", "tapable": "^2.3.3" } }, "sha512-9vhedylFonb2YGogzUKX6+Ja72gOJbN1QHAqdrvqLwhdl/QWbKopzoUC9EbQNVsAns/bx/4uyqalrQAoy1IByw=="],
 
     "es-errors": ["es-errors@1.3.0", "", {}, "sha512-Zf5H2Kxt2xjTvbJvP2ZWLEICxA6j+hAmMzIlypy4xcBg1vKVnx89Wy0GbS+kf5cwCVFFzdCFh2XSCFNULS6csw=="],
@@ -294,6 +312,8 @@
     "estree-walker": ["estree-walker@3.0.3", "", { "dependencies": { "@types/estree": "^1.0.0" } }, "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g=="],
 
     "expect-type": ["expect-type@1.4.0", "", {}, "sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA=="],
+
+    "fake-indexeddb": ["fake-indexeddb@6.2.6", "", {}, "sha512-ihhmr0KoET51jT8R4YhbUYuLLvr1qqO6INISygtN16i8loR8kAxtAUr4+EKHTSMjL+lggaAn4OC7DRqzrNgnuQ=="],
 
     "fdir": ["fdir@6.5.0", "", { "peerDependencies": { "picomatch": "^3 || ^4" }, "optionalPeers": ["picomatch"] }, "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg=="],
 

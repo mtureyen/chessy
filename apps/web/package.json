@@ -15,9 +15,11 @@
   "dependencies": {
     "@chessy/analysis": "workspace:*",
     "@chessy/chess": "workspace:*",
+    "@chessy/library": "workspace:*",
     "@tanstack/react-query": "^5.105.0",
     "@tanstack/react-router": "^1.170.46",
     "chessground": "^9.2.1",
+    "dexie": "^4.4.7",
     "hono": "^4.13.14",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
@@ -30,6 +32,8 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "vite": "^8.3.4"
+    "fake-indexeddb": "^6.2.6",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
   }
 }

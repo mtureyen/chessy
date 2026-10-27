@@ -5,11 +5,12 @@ import { GameStatusBar } from '@/shared/game/GameStatusBar'
 import { MoveTree } from '@/shared/game/MoveTree'
 import { NavigationControls } from '@/shared/game/NavigationControls'
 import { PgnPanel } from '@/shared/game/PgnPanel'
-import { useGame } from '@/shared/game/useGame'
+import { useGame, type GameView } from '@/shared/game/useGame'
+import { clockAt } from '@/shared/game/clock'
 import { useGameKeyboard } from '@/shared/game/useGameKeyboard'
 import { EnginePanel } from './EnginePanel'
 import { EvalBar } from './EvalBar'
-import type { AnalysisSearch } from './search'
+import { PlayerBar, type PlayerBarProps } from './PlayerBar'
 import { useEngineAnalysis } from './useEngineAnalysis'
 import '@/shared/game/GamePanel.css'
 import './AnalysisPage.css'
@@ -17,7 +18,14 @@ import './AnalysisPage.css'
 const MAX_DEPTH = 22
 
 /** Free analysis board: engine with eval bar and best lines, explore any variation. */
-export function AnalysisPage({ initial }: { initial: AnalysisSearch }) {
+/** What to open: a PGN or a FEN, or an error to show (e.g. a library game that is gone). */
+export interface AnalysisInitial {
+  pgn?: string
+  fen?: string
+  error?: string
+}
+
+export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   const [boot] = useState(() => openInitial(initial))
   const { game, view, update, replace } = useGame({ initial: () => boot.game })
   const [headers, setHeaders] = useState<PgnHeaders>(boot.headers)
@@ -42,6 +50,8 @@ export function AnalysisPage({ initial }: { initial: AnalysisSearch }) {
       })
     : []
 
+  const players = playersFromHeaders(headers, view)
+
   const flip = () => setOrientation((o) => (o === 'white' ? 'black' : 'white'))
   useGameKeyboard(
     update,
@@ -49,7 +59,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisSearch }) {
   )
 
   return (
-    <div className="layout layout-analysis">
+    <div className={`layout layout-analysis${players ? ' has-players' : ''}`}>
       <div className="eval-column">
         <EvalBar
           score={engineEnabled ? lines[0]?.score : undefined}
@@ -59,6 +69,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisSearch }) {
       </div>
 
       <section className="board-column">
+        {players && <PlayerBar {...players[orientation === 'white' ? 'black' : 'white']} />}
         <Board
           fen={view.fen}
           orientation={orientation}
@@ -70,6 +81,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisSearch }) {
           isPromotion={(from, to) => game.isPromotion(from, to)}
           onMove={(move) => update((g) => g.play(move))}
         />
+        {players && <PlayerBar {...players[orientation]} />}
       </section>
 
       <aside className="panel">
@@ -151,17 +163,36 @@ export function AnalysisPage({ initial }: { initial: AnalysisSearch }) {
 }
 
 /** Opens the game or position from the URL; falls back to the start position with an error. */
-function openInitial(search: AnalysisSearch): {
+/** Player bars from the PGN headers (names, ratings, titles) and the clocks in the tree. */
+function playersFromHeaders(
+  headers: PgnHeaders,
+  view: GameView,
+): Record<Color, PlayerBarProps> | undefined {
+  const known = (tag: string | undefined) => (tag && tag !== '?' ? tag : undefined) // PGN uses "?" for unknown
+  if (!known(headers.White) && !known(headers.Black)) return undefined
+  const player = (color: Color, tag: 'White' | 'Black'): PlayerBarProps => ({
+    color,
+    name: known(headers[tag]) ?? '?',
+    rating: known(headers[`${tag}Elo`]),
+    title: known(headers[`${tag}Title`]),
+    clock: clockAt(view.current, color),
+    active: view.turn === color && view.status.kind === 'ongoing',
+  })
+  return { white: player('white', 'White'), black: player('black', 'Black') }
+}
+
+function openInitial(initial: AnalysisInitial): {
   game: GameState
   headers: PgnHeaders
   error?: string
 } {
+  if (initial.error) return { game: createGame(), headers: {}, error: initial.error }
   try {
-    if (search.pgn) {
-      const { game, headers } = importPgn(search.pgn)
+    if (initial.pgn) {
+      const { game, headers } = importPgn(initial.pgn)
       return { game, headers }
     }
-    if (search.fen) return { game: createGame(search.fen), headers: {} }
+    if (initial.fen) return { game: createGame(initial.fen), headers: {} }
   } catch (err) {
     return {
       game: createGame(),

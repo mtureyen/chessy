@@ -16,6 +16,9 @@ export function RootLayout() {
           <Link to="/analysis" activeProps={{ className: 'active' }}>
             Analysis
           </Link>
+          <Link to="/games" activeProps={{ className: 'active' }}>
+            Games
+          </Link>
         </nav>
         <ApiStatus />
       </header>
