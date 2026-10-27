@@ -1,6 +1,6 @@
 import { UciEngine, type EngineProvider, type UciTransport } from '@chessy/analysis'
 
-/** Served from public/engine/, downloaded by scripts/fetch-engine.ts (D-007). */
+/** Served from public/engine/, downloaded by scripts/fetch-engine.ts. */
 export const STOCKFISH_URL = '/engine/stockfish-19-lite-single.js'
 
 /** UciTransport over a classic Web Worker running Stockfish.js; UCI lines travel via postMessage. */

@@ -1,5 +1,5 @@
 /**
- * Architecture rules (see the vault: 04 Architecture/Architecture.md, D-010).
+ * Architecture rules (overview in README.md#architecture).
  * Run with `bun run check:boundaries`; CI fails on any violation.
  */
 const FRAMEWORKS = 'node_modules/(react|react-dom|hono|@hono|@scalar|dexie|chessground|@tanstack)/'
