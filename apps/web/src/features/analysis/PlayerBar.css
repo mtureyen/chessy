@@ -7,21 +7,6 @@
   font-size: 0.9rem;
 }
 
-.player-dot {
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 50%;
-  border: 1px solid var(--text-muted);
-}
-
-.player-dot-white {
-  background: #f4f4f4;
-}
-
-.player-dot-black {
-  background: #222;
-}
-
 .player-title {
   padding: 0 0.25rem;
   border-radius: 3px;

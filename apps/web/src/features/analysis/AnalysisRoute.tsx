@@ -6,11 +6,11 @@ import { AnalysisPage } from './AnalysisPage'
 /** Remounts the page when the URL points at a different game or position. */
 export function AnalysisRoute() {
   const search = useSearch({ from: '/analysis' })
-  if (search.game) return <LibraryGameAnalysis id={search.game} />
+  if (search.game) return <LibraryGameAnalysis id={search.game} review={search.review} />
   return <AnalysisPage key={`${search.fen ?? ''}\n${search.pgn ?? ''}`} initial={search} />
 }
 
-function LibraryGameAnalysis({ id }: { id: string }) {
+function LibraryGameAnalysis({ id, review }: { id: string; review: boolean | undefined }) {
   const { library } = useServices()
   const game = useQuery({
     queryKey: ['games', id],
@@ -22,5 +22,5 @@ function LibraryGameAnalysis({ id }: { id: string }) {
       <AnalysisPage key={`missing:${id}`} initial={{ error: 'This game is not in your library' }} />
     )
   }
-  return <AnalysisPage key={id} initial={{ pgn: game.data.pgn }} />
+  return <AnalysisPage key={id} initial={{ pgn: game.data.pgn, ...(review && { review }) }} />
 }

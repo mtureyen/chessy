@@ -13,6 +13,9 @@ export function RootLayout() {
           <Link to="/" activeProps={{ className: 'active' }} activeOptions={{ exact: true }}>
             Play
           </Link>
+          <Link to="/bot" activeProps={{ className: 'active' }}>
+            vs Bot
+          </Link>
           <Link to="/analysis" activeProps={{ className: 'active' }}>
             Analysis
           </Link>

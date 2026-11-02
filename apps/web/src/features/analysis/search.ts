@@ -3,6 +3,8 @@ export interface AnalysisSearch {
   game?: string
   fen?: string
   pgn?: string
+  /** Start a review of the opened game right away (e.g. straight after a bot game). */
+  review?: boolean
 }
 
 export function parseAnalysisSearch(search: Record<string, unknown>): AnalysisSearch {
@@ -11,5 +13,7 @@ export function parseAnalysisSearch(search: Record<string, unknown>): AnalysisSe
     const value = search[key]
     if (typeof value === 'string' && value.trim()) result[key] = value
   }
+  if (search.review === true || search.review === 'true' || search.review === '1')
+    result.review = true
   return result
 }

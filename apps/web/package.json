@@ -18,6 +18,7 @@
     "@chessy/chess": "workspace:*",
     "@chessy/contracts": "workspace:*",
     "@chessy/library": "workspace:*",
+    "@chessy/play": "workspace:*",
     "@tanstack/react-query": "^5.105.0",
     "@tanstack/react-router": "^1.170.46",
     "chessground": "^9.2.1",

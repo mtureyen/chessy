@@ -2,7 +2,7 @@
 
 A free, AI-assisted chess platform: play, analyze, learn.
 
-**Status:** local play, analysis board with Stockfish, game import from lichess and chess.com, and game review with accuracy and move classification.
+**Status:** local play, bots in eight levels, analysis board with Stockfish, game import from lichess and chess.com, and game review with accuracy and move classification.
 
 ## Architecture
 
@@ -14,6 +14,9 @@ apps/
   api/          Hono on Bun: HTTP API under /api/v1 + server adapters
 packages/
   chess/        shared core: rules, move tree, PGN/FEN (pure)
+  analysis/     engine port (UCI), evaluations, game review (accuracy, move classes)
+  library/      the user's games: import from lichess / chess.com, storage port
+  play/         games against bots: levels, move choice, saving finished games
   contracts/    API contract (zod + OpenAPI), shared by api and web
   config/       shared TypeScript config
 ```
