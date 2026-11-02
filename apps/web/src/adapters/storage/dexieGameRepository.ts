@@ -3,7 +3,7 @@ import {
   type GameRepository,
   type LibraryGame,
   type ListGamesOptions,
-  type SourceId,
+  type GameOrigin,
 } from '@chessy/library'
 import type { ChessyDb } from './db'
 
@@ -30,7 +30,7 @@ export class DexieGameRepository implements GameRepository {
     return this.db.games.get(id)
   }
 
-  findByExternalId(source: SourceId, externalId: string): Promise<LibraryGame | undefined> {
+  findByExternalId(source: GameOrigin, externalId: string): Promise<LibraryGame | undefined> {
     return this.db.games.where('[source+externalId]').equals([source, externalId]).first()
   }
 

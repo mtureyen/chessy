@@ -4,17 +4,15 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { DuplicateGameError } from './domain/errors'
-import type { LibraryGame } from './domain/game'
+import type { LibraryGame, SourceGame } from './domain/game'
 import type { GameRepository } from './ports/gameRepository'
 
 let counter = 0
 
-/** A complete, valid library game; override what the test cares about. */
-export function sampleGame(overrides: Partial<LibraryGame> = {}): LibraryGame {
+/** A complete, valid game as a platform reports it; override what the test cares about. */
+export function sampleSourceGame(overrides: Partial<SourceGame> = {}): SourceGame {
   counter++
   return {
-    id: `game-${counter}`,
-    importedAt: '2026-10-27T10:00:00.000Z',
     source: 'lichess',
     externalId: `ext${counter}`,
     url: `https://lichess.org/ext${counter}`,
@@ -27,6 +25,16 @@ export function sampleGame(overrides: Partial<LibraryGame> = {}): LibraryGame {
     rated: true,
     playedAt: '2026-10-20T18:00:00.000Z',
     opening: { eco: 'C20', name: "King's Pawn Game" },
+    ...overrides,
+  }
+}
+
+/** A complete, valid library game; override what the test cares about. */
+export function sampleGame(overrides: Partial<LibraryGame> = {}): LibraryGame {
+  return {
+    ...sampleSourceGame(),
+    id: `game-${counter}`,
+    importedAt: '2026-10-27T10:00:00.000Z',
     ...overrides,
   }
 }
@@ -67,6 +75,14 @@ export function gameRepositoryContract(
       await repo.saveAll([lichess, chesscom])
       expect((await repo.findByExternalId('lichess', 'same'))?.id).toBe(lichess.id)
       expect((await repo.findByExternalId('chesscom', 'same'))?.id).toBe(chesscom.id)
+    })
+
+    it('stores games played in Chessy, which have no platform link', async () => {
+      const { url: _url, ...game } = sampleGame({ source: 'chessy', speed: 'unlimited' })
+      await repo.saveAll([game])
+      expect(await repo.get(game.id)).toEqual(game)
+      expect((await repo.findByExternalId('chessy', game.externalId))?.id).toBe(game.id)
+      expect((await repo.list({ source: 'chessy' })).map((g) => g.id)).toEqual([game.id])
     })
 
     it('rejects the same platform game under a second id', async () => {

@@ -3,12 +3,11 @@ import { InMemoryGameRepository } from '../adapters/inMemoryGameRepository'
 import { InvalidUsernameError, UserNotFoundError } from '../domain/errors'
 import type { SourceGame } from '../domain/game'
 import type { GameSource } from '../ports/gameSource'
-import { sampleGame } from '../testing'
+import { sampleGame, sampleSourceGame } from '../testing'
 import { importRecentGames } from './importRecentGames'
 
 function sourceGame(externalId: string, playedAt: string): SourceGame {
-  const { id: _id, importedAt: _importedAt, ...game } = sampleGame({ externalId, playedAt })
-  return game
+  return sampleSourceGame({ externalId, playedAt })
 }
 
 function setup(games: SourceGame[] | Error) {

@@ -8,10 +8,13 @@ export {
   sourceName,
 } from './domain/errors'
 export {
+  LOCAL_PLAYER_NAME,
   SOURCE_IDS,
   isValidUsername,
   outcomeFor,
+  type GameOrigin,
   type GameResult,
+  type GameSpeed,
   type LibraryGame,
   type Outcome,
   type PlayerInfo,

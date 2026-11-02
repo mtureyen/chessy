@@ -1,4 +1,4 @@
-import type { SourceId } from './game'
+import type { GameOrigin, SourceId } from './game'
 
 export class UserNotFoundError extends Error {
   readonly source: SourceId
@@ -35,12 +35,18 @@ export class InvalidUsernameError extends Error {
 
 /** Two different library ids for the same platform game. */
 export class DuplicateGameError extends Error {
-  constructor(source: SourceId, externalId: string) {
+  constructor(source: GameOrigin, externalId: string) {
     super(`Game ${source}:${externalId} is already stored under another id`)
     this.name = 'DuplicateGameError'
   }
 }
 
-export function sourceName(source: SourceId): string {
-  return source === 'lichess' ? 'lichess' : 'chess.com'
+const ORIGIN_NAMES: Record<GameOrigin, string> = {
+  lichess: 'lichess',
+  chesscom: 'chess.com',
+  chessy: 'Chessy',
+}
+
+export function sourceName(source: GameOrigin): string {
+  return ORIGIN_NAMES[source]
 }
