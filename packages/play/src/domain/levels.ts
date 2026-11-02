@@ -18,86 +18,105 @@ export interface BotLevel {
   maxLoss: number
   /** Forced mates up to this many moves are always played; longer ones only by chance. */
   seesMateIn: number
+  /**
+   * Estimated rating from engine matches (`bun run bots:calibrate`): anchored to Stockfish's
+   * UCI_Elo, so a rough guide to human ratings rather than a measurement of them.
+   */
+  rating?: number
 }
 
 /**
- * Levels 1–8, weakest first. A first guess: matches between the levels set the final values and
- * an approximate rating per level.
+ * Levels 1–8, weakest first. Parameters and ratings come from engine matches on the browser's
+ * engine (`bun run bots:calibrate`, Nov 2026): 520 games between the levels, 60 against
+ * Stockfish at UCI_Elo 1400/1800/2200. Standard errors are ±35–60.
  */
 export const BOT_LEVELS: readonly BotLevel[] = [
   {
     level: 1,
     name: 'Beginner',
-    nodes: 5_000,
-    candidates: 10,
-    temperature: 20,
-    maxLoss: 70,
+    nodes: 1500,
+    candidates: 16,
+    temperature: 36,
+    maxLoss: 100,
     seesMateIn: 1,
+    rating: 474,
   },
   {
     level: 2,
     name: 'Novice',
-    nodes: 10_000,
-    candidates: 8,
-    temperature: 14,
-    maxLoss: 50,
+    nodes: 3000,
+    candidates: 12,
+    temperature: 26,
+    maxLoss: 85,
     seesMateIn: 1,
+    rating: 680,
   },
   {
     level: 3,
     name: 'Casual',
-    nodes: 20_000,
-    candidates: 8,
-    temperature: 9,
-    maxLoss: 35,
-    seesMateIn: 2,
+    nodes: 6000,
+    candidates: 9,
+    temperature: 18,
+    maxLoss: 65,
+    seesMateIn: 1,
+    rating: 1054,
   },
   {
     level: 4,
     name: 'Club',
-    nodes: 40_000,
-    candidates: 6,
-    temperature: 6,
-    maxLoss: 25,
+    nodes: 13_000,
+    candidates: 8,
+    temperature: 12,
+    maxLoss: 45,
     seesMateIn: 2,
+    rating: 1355,
   },
   {
     level: 5,
     name: 'Intermediate',
-    nodes: 80_000,
-    candidates: 5,
-    temperature: 4,
-    maxLoss: 15,
-    seesMateIn: 3,
+    nodes: 22_000,
+    candidates: 7,
+    temperature: 9,
+    maxLoss: 35,
+    seesMateIn: 2,
+    rating: 1692,
   },
   {
     level: 6,
     name: 'Advanced',
-    nodes: 150_000,
-    candidates: 4,
-    temperature: 2.5,
-    maxLoss: 10,
-    seesMateIn: 4,
+    nodes: 37_000,
+    candidates: 6,
+    temperature: 6.8,
+    maxLoss: 27,
+    seesMateIn: 3,
+    rating: 1898,
   },
   {
     level: 7,
     name: 'Expert',
-    nodes: 300_000,
-    candidates: 3,
-    temperature: 1.2,
-    maxLoss: 6,
-    seesMateIn: 6,
+    nodes: 56_000,
+    candidates: 6,
+    temperature: 5.2,
+    maxLoss: 20,
+    seesMateIn: 4,
+    rating: 2133,
   },
   {
     level: 8,
     name: 'Master',
-    nodes: 1_000_000,
-    candidates: 2,
-    temperature: 0.4,
-    maxLoss: 3,
-    seesMateIn: 99,
+    nodes: 70_000,
+    candidates: 5,
+    temperature: 4.5,
+    maxLoss: 17,
+    seesMateIn: 5,
+    rating: 2308,
   },
 ]
+
+/** "~1400" for a level with a measured rating. */
+export function approximateRating(level: BotLevel): string | undefined {
+  return level.rating === undefined ? undefined : `~${Math.round(level.rating / 50) * 50}`
+}
 
 /** The level with that number; throws for an unknown one. */
 export function botLevel(level: number): BotLevel {

@@ -10,7 +10,7 @@ export {
   type ClockState,
   type TimeControl,
 } from './domain/clock'
-export { BOT_LEVELS, botLevel, type BotLevel } from './domain/levels'
+export { approximateRating, BOT_LEVELS, botLevel, type BotLevel } from './domain/levels'
 export { MATCH_OPENINGS } from './domain/openings'
 export {
   estimateRatings,
