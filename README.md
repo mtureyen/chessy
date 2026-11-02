@@ -54,6 +54,14 @@ Or point `STOCKFISH_PATH` at any Stockfish binary (e.g. from Homebrew). `ENGINE_
 the number of parallel processes (default: cores − 2, at most 8). Without a native engine the
 API reports so and the browser reviews on its own.
 
+### Bot calibration
+
+`bun run bots:calibrate` plays the bot levels against each other and against Stockfish set to
+fixed `UCI_Elo` values, then estimates a rating per level (shown as "~1400" when picking a bot).
+The bots run on the browser's engine under Node, the reference engine natively, so it needs
+`node` and `bun run engine:native`. A full run takes about half an hour; see the script for
+options.
+
 ## Contributing
 
 Branch, commit and PR conventions: [CONTRIBUTING.md](CONTRIBUTING.md).

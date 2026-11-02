@@ -14,6 +14,7 @@
     "typecheck": "turbo run typecheck",
     "e2e": "turbo run e2e",
     "engine:native": "bun run --cwd apps/api engine:native",
+    "bots:calibrate": "bun run --cwd apps/api bots:calibrate",
     "lint": "oxlint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

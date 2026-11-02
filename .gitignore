@@ -37,3 +37,5 @@ apps/web/public/openings/
 
 # Native Stockfish, installed with `bun run engine:native` (apps/api/scripts/fetch-stockfish.ts)
 apps/api/.engine/
+# Bot calibration results (bun run bots:calibrate)
+calibration*.json
