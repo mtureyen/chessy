@@ -63,6 +63,21 @@ function setup(transport = new FakeTransport()) {
 const settle = () => new Promise<void>((resolve) => setTimeout(() => resolve(), 0))
 
 describe('UciEngine', () => {
+  it('sets further options while loading', async () => {
+    const transport = new FakeTransport()
+    const engine = new UciEngine(() => transport, {
+      setOptions: { UCI_LimitStrength: true, UCI_Elo: 1500 },
+    })
+    await engine.init()
+    expect(transport.sent).toEqual([
+      'uci',
+      'setoption name Hash value 16',
+      'setoption name UCI_LimitStrength value true',
+      'setoption name UCI_Elo value 1500',
+      'isready',
+    ])
+  })
+
   it('loads lazily, then starts the search', async () => {
     const { engine, transport } = setup()
     expect(transport.sent).toEqual([])
