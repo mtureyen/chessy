@@ -54,6 +54,17 @@
   font-size: 0.85rem;
 }
 
+.bot-level-rating {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bot-setup button[aria-pressed='true'] .bot-level-rating {
+  color: inherit;
+}
+
 /* Also while hovered: the panel's hover background would hide the selection. */
 .bot-setup button[aria-pressed='true'],
 .bot-setup button[aria-pressed='true']:hover:not(:disabled) {

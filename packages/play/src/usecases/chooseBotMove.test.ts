@@ -60,7 +60,7 @@ describe('chooseBotMove', () => {
     })
     const choice = await chooseBotMove({ engine }, request)
     expect(choice.move).toBe('e2e4')
-    expect(requests).toEqual([{ fen: START, nodes: 80_000, multiPv: 5, fresh: true }])
+    expect(requests).toEqual([{ fen: START, nodes: 22_000, multiPv: 7, fresh: true }])
   })
 
   it('searches less when the bot is low on time', async () => {

@@ -1,6 +1,6 @@
 import type { EngineLine, Score } from '@chessy/analysis'
 import { describe, expect, it } from 'vitest'
-import { BOT_LEVELS, botLevel, type BotLevel } from './levels'
+import { approximateRating, BOT_LEVELS, botLevel, type BotLevel } from './levels'
 import { seededRandom } from './random'
 import { selectMove } from './selection'
 
@@ -46,17 +46,20 @@ describe('selectMove', () => {
     expect(choice.candidates.every((c) => c.loss <= level.maxLoss)).toBe(true)
   })
 
+  // How far apart the levels play comes mostly from search depth and the number of candidates,
+  // which engine matches measure (bun run bots:calibrate); this only checks the ordering.
   it('makes weaker levels play second-best and worse moves more often', () => {
     const best = BOT_LEVELS.map((level) => frequencies(level)('e2e4'))
     for (let i = 1; i < best.length; i++) expect(best[i]).toBeGreaterThanOrEqual(best[i - 1]!)
     expect(best[0]).toBeLessThan(0.5)
-    expect(best.at(-1)).toBeGreaterThan(0.95)
+    expect(best.at(-1)).toBeGreaterThan(best[0]!)
   })
 
   it('lets only the weakest levels hang a queen, and rarely', () => {
     expect(frequencies(botLevel(1))('d1h5')).toBeGreaterThan(0)
     expect(frequencies(botLevel(1))('d1h5')).toBeLessThan(0.15)
-    expect(frequencies(botLevel(3))('d1h5')).toBe(0)
+    expect(frequencies(botLevel(3))('d1h5')).toBeLessThan(frequencies(botLevel(1))('d1h5'))
+    expect(frequencies(botLevel(4))('d1h5')).toBe(0)
   })
 
   it('always plays a short enough forced mate', () => {
@@ -110,7 +113,13 @@ describe('BOT_LEVELS', () => {
       expect(level.temperature).toBeLessThan(previous.temperature)
       expect(level.maxLoss).toBeLessThan(previous.maxLoss)
       expect(level.seesMateIn).toBeGreaterThanOrEqual(previous.seesMateIn)
+      expect(level.rating).toBeGreaterThan(previous.rating!)
     }
     expect(() => botLevel(9)).toThrow(RangeError)
+  })
+
+  it('show a measured rating rounded to 50', () => {
+    expect(approximateRating({ ...botLevel(1), rating: 1437 })).toBe('~1450')
+    expect(approximateRating({ ...botLevel(1), rating: undefined })).toBeUndefined()
   })
 })

@@ -1,5 +1,6 @@
 import type { Color } from '@chessy/chess'
 import {
+  approximateRating,
   BOT_LEVELS,
   botLevel,
   botName,
@@ -88,6 +89,9 @@ export function BotPage() {
             >
               <span className="bot-level-number">{l.level}</span>
               <span className="bot-level-name">{l.name}</span>
+              {approximateRating(l) && (
+                <span className="bot-level-rating">{approximateRating(l)}</span>
+              )}
             </button>
           ))}
         </fieldset>
@@ -175,7 +179,9 @@ function BotGame({ setup, seed, onRematch, onNewGame }: BotGameProps) {
         <div className="bot-opponent">
           <span className={`player-dot player-dot-${opposite(setup.color)}`} aria-hidden />
           <span className="bot-opponent-name">{botName(setup.level)}</span>
-          <span className="bot-opponent-level">{setup.level.name}</span>
+          <span className="bot-opponent-level">
+            {[setup.level.name, approximateRating(setup.level)].filter(Boolean).join(' · ')}
+          </span>
           {bot.botThinking && (
             <span className="bot-thinking" role="status">
               thinking…
