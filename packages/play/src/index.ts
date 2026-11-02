@@ -1,4 +1,5 @@
 /** Play context: games against bots, from choosing a move to saving the finished game. */
+export { ADJUDICATION, adjudicate, type Adjudication } from './domain/adjudication'
 export { botBudget, type BotBudget } from './domain/budget'
 export {
   createClock,
@@ -10,6 +11,13 @@ export {
   type TimeControl,
 } from './domain/clock'
 export { BOT_LEVELS, botLevel, type BotLevel } from './domain/levels'
+export { MATCH_OPENINGS } from './domain/openings'
+export {
+  estimateRatings,
+  expectedScore,
+  type RatedGame,
+  type RatingEstimate,
+} from './domain/rating'
 export { pickWeighted, seededRandom, type Random } from './domain/random'
 export { selectMove, type BotChoice, type Candidate } from './domain/selection'
 export {
@@ -40,3 +48,10 @@ export {
   type FinishedBotGame,
   type RecordBotGameDeps,
 } from './usecases/recordBotGame'
+export {
+  botPlayer,
+  enginePlayer,
+  playBotMatch,
+  type MatchGame,
+  type MatchPlayer,
+} from './usecases/playBotMatch'
