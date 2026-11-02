@@ -21,11 +21,14 @@ class FakeTransport implements UciTransport {
     this.respondToHandshake = respondToHandshake
   }
 
+  /** Answer `isready` immediately (set to false to hold the engine in "preparing"). */
+  answerReady = true
+
   send(command: string): void {
     this.sent.push(command)
     if (!this.respondToHandshake) return
     if (command === 'uci') this.emit('id name FakeFish 1', 'uciok')
-    if (command === 'isready') this.emit('readyok')
+    if (command === 'isready' && this.answerReady) this.emit('readyok')
   }
   emit(...lines: string[]): void {
     for (const line of lines) for (const listener of this.lineListeners) listener(line)
@@ -207,5 +210,38 @@ describe('UciEngine', () => {
     const { engine, transport } = setup()
     expect(() => engine.analyze({ fen: 'not a fen' })).toThrow(InvalidPositionError)
     expect(transport.sent).toEqual([])
+  })
+})
+
+describe('UciEngine fresh searches', () => {
+  it('clears the hash and waits for readyok before searching', async () => {
+    const { engine, transport } = setup()
+    const handle = engine.analyze({ fen: START, nodes: 1000, fresh: true })
+    await settle()
+    expect(transport.searchCommands).toEqual([
+      'ucinewgame',
+      'setoption name MultiPV value 1',
+      `position fen ${START}`,
+      'go nodes 1000',
+    ])
+    transport.emit('info depth 5 score cp 10 pv e2e4', 'bestmove e2e4')
+    expect(await handle.result).toMatchObject({ end: 'limit', bestMove: 'e2e4' })
+  })
+
+  it('ends a search stopped while the hash is being cleared, without hanging', async () => {
+    const { engine, transport } = setup()
+    await engine.init()
+    transport.answerReady = false
+    const first = engine.analyze({ fen: START, fresh: true })
+    await settle()
+    const second = engine.analyze({ fen: AFTER_E4, depth: 2 })
+    expect(await first.result).toMatchObject({ end: 'superseded' })
+    expect(transport.searchCommands.filter((c) => c === 'stop')).toHaveLength(0)
+    transport.answerReady = true
+    transport.emit('readyok')
+    await settle()
+    expect(transport.searchCommands.at(-1)).toBe('go depth 2')
+    transport.emit('bestmove e7e5')
+    expect(await second.result).toMatchObject({ end: 'limit', fen: AFTER_E4 })
   })
 })

@@ -5,6 +5,11 @@ export interface AnalysisRequest extends SearchLimits {
   fen: string
   /** Number of best lines to compute (UCI MultiPV). Defaults to 1. */
   multiPv?: number
+  /**
+   * Start from an empty hash table (`ucinewgame`), so the result does not depend on earlier
+   * searches. With a node limit and one thread this makes the result reproducible.
+   */
+  fresh?: boolean
 }
 
 /** One candidate line, best first (`rank` 1). */

@@ -1,6 +1,7 @@
-import { ReviewCancelledError, type GameReview } from '@chessy/analysis'
+import { EvaluationCancelledError, type GameReview } from '@chessy/analysis'
 import type { MoveNode } from '@chessy/chess'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { ReviewEngine } from '@/app/services'
 import { useServices } from '@/app/servicesContext'
 import { mainline } from './mapping'
 
@@ -24,7 +25,7 @@ export function useGameReview(root: MoveNode) {
   useEffect(() => () => running.current?.abort(), [root])
 
   const start = useCallback(
-    (nodes: number) => {
+    (nodes: number, engine: ReviewEngine) => {
       running.current?.abort()
       const controller = new AbortController()
       running.current = controller
@@ -35,6 +36,7 @@ export function useGameReview(root: MoveNode) {
         .run(
           { startFen: root.fen, moves },
           {
+            engine,
             nodes,
             signal: controller.signal,
             onProgress: (done, total) => set({ status: 'running', done, total }),
@@ -42,7 +44,7 @@ export function useGameReview(root: MoveNode) {
         )
         .then((review) => set({ status: 'done', review }))
         .catch((error: unknown) => {
-          if (error instanceof ReviewCancelledError) return
+          if (error instanceof EvaluationCancelledError) return
           set({ status: 'error', message: error instanceof Error ? error.message : String(error) })
         })
     },

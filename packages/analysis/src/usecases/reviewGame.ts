@@ -8,22 +8,17 @@ import { classifyMove, expectedPointsLost, type MoveFacts } from '../domain/revi
 import { evalCacheKey } from '../domain/review/keys'
 import type { GameReview, PositionEval, ReviewedMove } from '../domain/review/types'
 import { winPercent } from '../domain/review/winPercent'
-import type { EngineProvider } from '../ports/engine'
 import type { EvalCache } from '../ports/evalCache'
+import {
+  EvaluationCancelledError,
+  type CancelSignal,
+  type PositionEvaluator,
+} from '../ports/evaluator'
 
 export interface ReviewDeps {
-  engine: EngineProvider
-  /** Engine name incl. version; part of the cache key. */
-  engineName: string
+  evaluator: PositionEvaluator
   cache?: EvalCache
   book?: OpeningBook
-}
-
-/** The part of AbortSignal we use; browsers, Bun and Node signals all fit. */
-export interface CancelSignal {
-  readonly aborted: boolean
-  addEventListener(type: 'abort', listener: () => void, options?: { once?: boolean }): void
-  removeEventListener(type: 'abort', listener: () => void): void
 }
 
 export interface ReviewOptions {
@@ -39,20 +34,6 @@ export interface ReviewInput {
   moves: readonly string[]
 }
 
-export class ReviewCancelledError extends Error {
-  constructor() {
-    super('Review cancelled')
-    this.name = 'ReviewCancelledError'
-  }
-}
-
-export class ReviewEngineError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'ReviewEngineError'
-  }
-}
-
 /** Two lines: the second one tells whether the best move was the only good one ("great"). */
 const REVIEW_MULTI_PV = 2
 
@@ -65,8 +46,9 @@ interface Position {
 }
 
 /**
- * Reviews a game: evaluates every position (cache first, then the engine), then classifies each
- * move chess.com-style and computes accuracy the lichess way.
+ * Reviews a game: evaluates every position (cache first, the rest in one batch by the
+ * evaluator), then classifies each move chess.com-style and computes accuracy the lichess way.
+ * Throws EvaluationCancelledError or EngineFailedError.
  */
 export async function reviewGame(
   deps: ReviewDeps,
@@ -74,12 +56,8 @@ export async function reviewGame(
   options: ReviewOptions,
 ): Promise<GameReview> {
   const { positions, played } = replay(input)
-  const evals: PositionEval[] = []
-  for (const [i, position] of positions.entries()) {
-    if (options.signal?.aborted) throw new ReviewCancelledError()
-    evals.push(await evaluate(deps, position, options))
-    options.onProgress?.(i + 1, positions.length)
-  }
+  const { name: engine } = await deps.evaluator.describe()
+  const evals = await evaluateAll(deps, engine, positions, options)
 
   const scores = positions.map((p, i) => bestScore(p, evals[i]!))
   const moves: ReviewedMove[] = []
@@ -139,7 +117,7 @@ export async function reviewGame(
       positions[0]!.turn,
     ),
     counts,
-    settings: { engine: deps.engineName, nodes: options.nodes },
+    settings: { engine, nodes: options.nodes },
   }
 }
 
@@ -168,43 +146,52 @@ function replay(input: ReviewInput) {
   return { positions, played }
 }
 
-async function evaluate(
+/** Cached evaluations first; the rest in one batch, so the evaluator can parallelise. */
+async function evaluateAll(
   deps: ReviewDeps,
-  position: Position,
+  engine: string,
+  positions: readonly Position[],
   options: ReviewOptions,
-): Promise<PositionEval> {
-  if (position.legalMoves === 0) return { lines: [], depth: 0 }
+): Promise<PositionEval[]> {
+  const evals: (PositionEval | undefined)[] = new Array(positions.length)
+  const keys = positions.map((p) =>
+    evalCacheKey({ engine, nodes: options.nodes, multiPv: REVIEW_MULTI_PV, fen: p.fen }),
+  )
+  let done = 0
+  const report = () => options.onProgress?.(++done, positions.length)
 
-  const key = evalCacheKey({
-    engine: deps.engineName,
-    nodes: options.nodes,
-    multiPv: REVIEW_MULTI_PV,
-    fen: position.fen,
-  })
-  const cached = await deps.cache?.get(key)
-  if (cached) return cached
+  const missing: number[] = []
+  for (const [i, position] of positions.entries()) {
+    if (options.signal?.aborted) throw new EvaluationCancelledError()
+    const known =
+      position.legalMoves === 0 ? { lines: [], depth: 0 } : await deps.cache?.get(keys[i]!)
+    if (known) {
+      evals[i] = known
+      report()
+    } else {
+      missing.push(i)
+    }
+  }
 
-  if (options.signal?.aborted) throw new ReviewCancelledError()
-  const handle = deps.engine.analyze({
-    fen: position.fen,
-    nodes: options.nodes,
-    multiPv: REVIEW_MULTI_PV,
-  })
-  const onAbort = () => handle.stop()
-  options.signal?.addEventListener('abort', onAbort, { once: true })
-  // The signal may have fired while we were awaiting the cache; listeners added later never run.
-  if (options.signal?.aborted) handle.stop()
-  const result = await handle.result
-  options.signal?.removeEventListener('abort', onAbort)
-
-  if (options.signal?.aborted) throw new ReviewCancelledError()
-  if (result.end === 'error') throw new ReviewEngineError(result.error ?? 'Engine failed')
-  if (result.end === 'superseded')
-    throw new ReviewEngineError('The engine was taken over by another analysis')
-
-  const value: PositionEval = { lines: result.lines, depth: result.depth }
-  await deps.cache?.put(key, value)
-  return value
+  if (missing.length > 0) {
+    const evaluated = await deps.evaluator.evaluate(
+      {
+        fens: missing.map((i) => positions[i]!.fen),
+        nodes: options.nodes,
+        multiPv: REVIEW_MULTI_PV,
+      },
+      {
+        ...(options.signal ? { signal: options.signal } : {}),
+        onEvaluated: (j, value) => {
+          report()
+          // A failing cache only costs speed next time; it must not break the review.
+          deps.cache?.put(keys[missing[j]!]!, value).catch(() => undefined)
+        },
+      },
+    )
+    evaluated.forEach((value, j) => (evals[missing[j]!] = value))
+  }
+  return evals.map((value) => value ?? { lines: [], depth: 0 })
 }
 
 /** The position's value with best play; game-over positions are scored by their result. */

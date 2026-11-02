@@ -5,12 +5,9 @@ import type { AnalysisRequest, AnalysisSnapshot, EngineLine } from '../domain/an
 import { buildBookData, createOpeningBook } from '../domain/review/book'
 import { positionKey } from '../domain/review/keys'
 import type { EngineProvider } from '../ports/engine'
-import {
-  reviewGame,
-  ReviewCancelledError,
-  ReviewEngineError,
-  type CancelSignal,
-} from './reviewGame'
+import { EnginePoolEvaluator } from '../adapters/enginePoolEvaluator'
+import { EngineFailedError, EvaluationCancelledError, type CancelSignal } from '../ports/evaluator'
+import { reviewGame } from './reviewGame'
 
 /** Minimal AbortController (this package's tests run without DOM/Node typings). */
 function cancellable() {
@@ -83,12 +80,12 @@ describe('reviewGame', () => {
     const { engine, requests } = fakeEngine()
     const progress: number[] = []
     const review = await reviewGame(
-      { engine, engineName: 'Fake' },
+      { evaluator: new EnginePoolEvaluator([engine]) },
       { startFen: START, moves: ['e2e4', 'e7e5'] },
       { nodes: 1234, onProgress: (done) => progress.push(done) },
     )
     expect(requests).toHaveLength(3)
-    expect(requests.every((r) => r.nodes === 1234 && r.multiPv === 2)).toBe(true)
+    expect(requests.every((r) => r.nodes === 1234 && r.multiPv === 2 && r.fresh)).toBe(true)
     expect(progress).toEqual([1, 2, 3])
     expect(review.positions).toHaveLength(3)
     expect(review.moves.map((m) => [m.ply, m.san, m.color])).toEqual([
@@ -106,7 +103,7 @@ describe('reviewGame', () => {
       [after('e4', 'f6')]: [{ cp: 600, pv: ['d2d4'] }],
     })
     const review = await reviewGame(
-      { engine, engineName: 'Fake' },
+      { evaluator: new EnginePoolEvaluator([engine]) },
       { startFen: START, moves: ['e2e4', 'f7f6'] },
       { nodes: 1 },
     )
@@ -122,7 +119,7 @@ describe('reviewGame', () => {
   it('scores checkmate without asking the engine', async () => {
     const { engine, requests } = fakeEngine()
     const review = await reviewGame(
-      { engine, engineName: 'Fake' },
+      { evaluator: new EnginePoolEvaluator([engine]) },
       { startFen: START, moves: ['f2f3', 'e7e5', 'g2g4', 'd8h4'] },
       { nodes: 1 },
     )
@@ -137,7 +134,7 @@ describe('reviewGame', () => {
     )
     const { engine } = fakeEngine()
     const review = await reviewGame(
-      { engine, engineName: 'Fake', book },
+      { evaluator: new EnginePoolEvaluator([engine]), book },
       { startFen: START, moves: ['e2e4', 'e7e5', 'g1f3', 'a7a6', 'f1b5'] },
       { nodes: 1 },
     )
@@ -163,7 +160,7 @@ describe('reviewGame', () => {
       [positionKey(sac.fen())]: [{ cp: 140, pv: ['g8h7', 'f3g5'] }],
     })
     const review = await reviewGame(
-      { engine, engineName: 'Fake' },
+      { evaluator: new EnginePoolEvaluator([engine]) },
       { startFen: fen, moves: ['d3h7'] },
       { nodes: 1 },
     )
@@ -174,13 +171,13 @@ describe('reviewGame', () => {
     const cache = new InMemoryEvalCache()
     const first = fakeEngine()
     await reviewGame(
-      { engine: first.engine, engineName: 'Fake', cache },
+      { evaluator: new EnginePoolEvaluator([first.engine]), cache },
       { startFen: START, moves: ['e2e4'] },
       { nodes: 5 },
     )
     const second = fakeEngine()
     await reviewGame(
-      { engine: second.engine, engineName: 'Fake', cache },
+      { evaluator: new EnginePoolEvaluator([second.engine]), cache },
       { startFen: START, moves: ['e2e4'] },
       { nodes: 5 },
     )
@@ -188,7 +185,7 @@ describe('reviewGame', () => {
 
     const deeper = fakeEngine()
     await reviewGame(
-      { engine: deeper.engine, engineName: 'Fake', cache },
+      { evaluator: new EnginePoolEvaluator([deeper.engine]), cache },
       { startFen: START, moves: ['e2e4'] },
       { nodes: 50 },
     )
@@ -199,7 +196,7 @@ describe('reviewGame', () => {
     const { engine } = fakeEngine({}, { hang: true })
     const controller = cancellable()
     const running = reviewGame(
-      { engine, engineName: 'Fake' },
+      { evaluator: new EnginePoolEvaluator([engine]) },
       { startFen: START, moves: ['e2e4'] },
       {
         nodes: 1,
@@ -207,17 +204,17 @@ describe('reviewGame', () => {
       },
     )
     controller.abort()
-    await expect(running).rejects.toBeInstanceOf(ReviewCancelledError)
+    await expect(running).rejects.toBeInstanceOf(EvaluationCancelledError)
   })
 
   it('reports engine failures', async () => {
     const { engine } = fakeEngine({}, { fail: 'wasm crashed' })
     await expect(
       reviewGame(
-        { engine, engineName: 'Fake' },
+        { evaluator: new EnginePoolEvaluator([engine]) },
         { startFen: START, moves: ['e2e4'] },
         { nodes: 1 },
       ),
-    ).rejects.toThrow(ReviewEngineError)
+    ).rejects.toThrow(EngineFailedError)
   })
 })

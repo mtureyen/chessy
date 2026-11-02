@@ -2,6 +2,11 @@
  * Architecture rules (overview in README.md#architecture).
  * Run with `bun run check:boundaries`; CI fails on any violation.
  */
+// depcruise reports Node built-ins without the `node:` prefix ("node:fs" → "fs").
+const NODE_BUILTINS = `^(${require('node:module')
+  .builtinModules.map((name) => name.replace(/[/]/g, '\\/'))
+  .join('|')})$`
+
 const FRAMEWORKS = 'node_modules/(react|react-dom|hono|@hono|@scalar|dexie|chessground|@tanstack)/'
 
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -28,6 +33,14 @@ module.exports = {
         'Apps are independent deployables. Only type-only imports are allowed (typed API client).',
       from: { path: '^apps/([^/]+)/' },
       to: { path: '^apps/', pathNot: '^apps/$1/', dependencyTypesNot: ['type-only'] },
+    },
+    {
+      name: 'api-types-are-runtime-neutral',
+      severity: 'error',
+      comment:
+        'apps/web compiles the API types (typed client); nothing they reach may import Node built-ins.',
+      from: { path: '^apps/api/src/rpc\\.ts$' },
+      to: { path: NODE_BUILTINS, reachable: true },
     },
     {
       name: 'domain-is-pure',

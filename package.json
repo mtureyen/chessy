@@ -13,6 +13,7 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "e2e": "turbo run e2e",
+    "engine:native": "bun run --cwd apps/api engine:native",
     "lint": "oxlint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

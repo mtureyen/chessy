@@ -6,6 +6,7 @@ import {
 } from '@chessy/library'
 import { sampleGame } from '@chessy/library/testing'
 import { describe, expect, it } from 'vitest'
+import type { EngineService, EngineStatus } from './adapters/engine/service'
 import { createApp } from './app'
 
 function fakeSource(
@@ -20,7 +21,22 @@ const games: SourceGame[] = [sampleGame(), sampleGame()].map(
 )
 const requests: { username: string; max: number }[] = []
 
+let engineStatus: EngineStatus = { available: true, name: 'FakeFish 1', parallelism: 3 }
+const engineRequests: unknown[] = []
+const engine: EngineService = {
+  status: async () => engineStatus,
+  async evaluate(request, options) {
+    engineRequests.push(request)
+    if (request.nodes === 13_000) throw new Error('engine crashed')
+    const evals = request.fens.map(() => ({ depth: 9, lines: [] }))
+    // Report out of order, like a pool does.
+    for (const i of [...evals.keys()].reverse()) options?.onEvaluated?.(i, evals[i]!)
+    return evals
+  },
+}
+
 const app = createApp({
+  engine,
   version: '9.9.9',
   startedAt: 1_000,
   now: () => 61_000,
@@ -52,7 +68,12 @@ describe('api', () => {
     const res = await app.request('/api/v1/openapi.json')
     const doc = (await res.json()) as { paths: Record<string, unknown>; servers: { url: string }[] }
     expect(doc.servers[0]?.url).toBe('/api/v1')
-    expect(Object.keys(doc.paths)).toEqual(['/health', '/sources/{source}/users/{username}/games'])
+    expect(Object.keys(doc.paths).sort()).toEqual([
+      '/engine',
+      '/engine/evaluations',
+      '/health',
+      '/sources/{source}/users/{username}/games',
+    ])
   })
 
   it('serves API docs', async () => {
@@ -111,5 +132,64 @@ describe('GET /api/v1/sources/{source}/users/{username}/games', () => {
     expect(busy.headers.get('Retry-After')).toBe('60')
 
     expect((await get('lichess/users/down/games')).status).toBe(502)
+  })
+})
+
+describe('engine routes', () => {
+  const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+  const post = (body: unknown) =>
+    app.request('/api/v1/engine/evaluations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  const events = async (res: Response) =>
+    (await res.text())
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line) as { type: string; index?: number })
+
+  it('GET /api/v1/engine reports the native engine', async () => {
+    const res = await app.request('/api/v1/engine')
+    expect(await res.json()).toEqual({ available: true, name: 'FakeFish 1', parallelism: 3 })
+  })
+
+  it('streams one event per position, then done', async () => {
+    const res = await post({ fens: [START, START], nodes: 100_000, multiPv: 2 })
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('application/x-ndjson')
+    expect(await events(res)).toEqual([
+      { type: 'evaluated', index: 1, eval: { depth: 9, lines: [] } },
+      { type: 'evaluated', index: 0, eval: { depth: 9, lines: [] } },
+      { type: 'done' },
+    ])
+    expect(engineRequests.at(-1)).toEqual({ fens: [START, START], nodes: 100_000, multiPv: 2 })
+  })
+
+  it('ends the stream with an error event when the engine fails', async () => {
+    const res = await post({ fens: [START], nodes: 13_000, multiPv: 1 })
+    expect((await events(res)).at(-1)).toEqual({ type: 'error', message: 'engine crashed' })
+  })
+
+  it('rejects invalid requests and positions', async () => {
+    const tooMany = await post({ fens: [START], nodes: 10_000_000, multiPv: 1 })
+    expect(tooMany.status).toBe(400)
+    expect(tooMany.headers.get('content-type')).toContain('application/problem+json')
+    const badFen = await post({ fens: [START, 'nonsense'], nodes: 10_000, multiPv: 1 })
+    expect(badFen.status).toBe(400)
+    expect(await badFen.json()).toMatchObject({
+      title: 'Invalid position',
+      detail: expect.stringContaining('fens[1]'),
+    })
+    const notJson = await app.request('/api/v1/engine/evaluations', { method: 'POST', body: 'x' })
+    expect(notJson.status).toBe(400)
+  })
+
+  it('answers 503 without a native engine', async () => {
+    engineStatus = { available: false, reason: 'no binary' }
+    const res = await post({ fens: [START], nodes: 10_000, multiPv: 1 })
+    expect(res.status).toBe(503)
+    expect(await res.json()).toMatchObject({ title: 'Engine unavailable', detail: 'no binary' })
+    engineStatus = { available: true, name: 'FakeFish 1', parallelism: 3 }
   })
 })

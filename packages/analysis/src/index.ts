@@ -51,11 +51,18 @@ export { CP_CEILING, cappedCentipawns, winPercent } from './domain/review/winPer
 export type { EvalCache } from './ports/evalCache'
 export { InMemoryEvalCache } from './adapters/inMemoryEvalCache'
 export {
-  ReviewCancelledError,
-  ReviewEngineError,
+  EngineFailedError,
+  EvaluationCancelledError,
+  type CancelSignal,
+  type EvaluateOptions,
+  type EvaluationRequest,
+  type EvaluatorInfo,
+  type PositionEvaluator,
+} from './ports/evaluator'
+export { EnginePoolEvaluator } from './adapters/enginePoolEvaluator'
+export {
   describeBest,
   reviewGame,
-  type CancelSignal,
   type ReviewDeps,
   type ReviewInput,
   type ReviewOptions,

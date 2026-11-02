@@ -2,7 +2,7 @@
 
 A free, AI-assisted chess platform: play, analyze, learn.
 
-**Status:** Phase 0 done (rule-correct board, local play). Phase 1 (engine, analysis, import, review) in progress.
+**Status:** local play, analysis board with Stockfish, game import from lichess and chess.com, and game review with accuracy and move classification.
 
 ## Architecture
 
@@ -37,6 +37,19 @@ bun run check:boundaries   # architecture rules
 ```
 
 API docs: http://localhost:3000/api/v1/docs (OpenAPI: `/api/v1/openapi.json`)
+
+### Native engine (optional, much faster reviews)
+
+Game reviews run on Stockfish in the browser (WASM) by default. With a native Stockfish on the
+API server they run on all cores instead (several single-threaded processes in parallel):
+
+```sh
+bun run engine:native   # downloads the official Stockfish build (pinned, checksum-verified)
+```
+
+Or point `STOCKFISH_PATH` at any Stockfish binary (e.g. from Homebrew). `ENGINE_POOL_SIZE` sets
+the number of parallel processes (default: cores − 2, at most 8). Without a native engine the
+API reports so and the browser reviews on its own.
 
 ## Contributing
 
