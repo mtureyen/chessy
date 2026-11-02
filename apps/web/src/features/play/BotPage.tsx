@@ -6,8 +6,10 @@ import {
   opposite,
   resolveColor,
   seededRandom,
+  TIME_CONTROLS,
   type BotGameSetup,
   type ColorChoice,
+  type Termination,
 } from '@chessy/play'
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
@@ -16,6 +18,7 @@ import { GameStatusBar } from '@/shared/game/GameStatusBar'
 import { MoveTree } from '@/shared/game/MoveTree'
 import { NavigationControls } from '@/shared/game/NavigationControls'
 import { useGameKeyboard } from '@/shared/game/useGameKeyboard'
+import { ClockFace } from './ClockFace'
 import { useBotGame } from './useBotGame'
 import '@/shared/game/GamePanel.css'
 import './BotPage.css'
@@ -34,12 +37,14 @@ interface Match {
 export function BotPage() {
   const [level, setLevel] = useState(3)
   const [color, setColor] = useState<ColorChoice>('white')
+  /** Index into TIME_CONTROLS; -1 for no clock. */
+  const [clockChoice, setClockChoice] = useState(-1)
   const [match, setMatch] = useState<Match>()
 
-  const start = (setup: Omit<BotGameSetup, 'color'> & { color: ColorChoice }) => {
+  const start = ({ color, ...setup }: Omit<BotGameSetup, 'color'> & { color: ColorChoice }) => {
     const seed = Math.floor(Math.random() * 2 ** 32)
     setMatch((previous) => ({
-      setup: { level: setup.level, color: resolveColor(setup.color, seededRandom(seed)) },
+      setup: { ...setup, color: resolveColor(color, seededRandom(seed)) },
       seed,
       id: (previous?.id ?? 0) + 1,
     }))
@@ -51,7 +56,7 @@ export function BotPage() {
         key={match.id}
         setup={match.setup}
         seed={match.seed}
-        onRematch={() => start({ level: match.setup.level, color: opposite(match.setup.color) })}
+        onRematch={() => start({ ...match.setup, color: opposite(match.setup.color) })}
         onNewGame={() => setMatch(undefined)}
       />
     )
@@ -94,10 +99,33 @@ export function BotPage() {
             </button>
           ))}
         </fieldset>
+        <fieldset className="bot-time-controls">
+          <legend>Clock</legend>
+          <button
+            type="button"
+            aria-pressed={clockChoice === -1}
+            onClick={() => setClockChoice(-1)}
+          >
+            None
+          </button>
+          {TIME_CONTROLS.map((preset, index) => (
+            <button
+              key={preset.label}
+              type="button"
+              aria-pressed={clockChoice === index}
+              onClick={() => setClockChoice(index)}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </fieldset>
         <button
           type="button"
           className="bot-play"
-          onClick={() => start({ level: botLevel(level), color })}
+          onClick={() => {
+            const timeControl = TIME_CONTROLS[clockChoice]?.control
+            start({ level: botLevel(level), color, ...(timeControl && { timeControl }) })
+          }}
         >
           Play
         </button>
@@ -139,7 +167,7 @@ function BotGame({ setup, seed, onRematch, onNewGame }: BotGameProps) {
           lastMove={view.lastMove}
           check={view.check}
           isPromotion={(from, to) => game.isPromotion(from, to)}
-          onMove={(move) => update((g) => g.play(move))}
+          onMove={bot.move}
         />
       </section>
 
@@ -153,11 +181,10 @@ function BotGame({ setup, seed, onRematch, onNewGame }: BotGameProps) {
               thinking…
             </span>
           )}
+          {bot.clock && <ClockFace clock={bot.clock} color={opposite(setup.color)} />}
         </div>
-        {bot.resigned ? (
-          <div className="status status-checkmate">
-            You resigned · {capitalize(opposite(bot.resigned))} wins
-          </div>
+        {bot.termination ? (
+          <div className="status status-checkmate">{describeEnd(bot.termination)}</div>
         ) : (
           <GameStatusBar status={view.status} turn={view.turn} check={view.check} />
         )}
@@ -198,6 +225,14 @@ function BotGame({ setup, seed, onRematch, onNewGame }: BotGameProps) {
           </div>
         )}
 
+        {bot.drawDeclined && <p className="bot-note">{botName(setup.level)} declines the draw.</p>}
+
+        <div className="bot-you">
+          <span className={`player-dot player-dot-${setup.color}`} aria-hidden />
+          <span className="bot-opponent-name">You</span>
+          {bot.clock && <ClockFace clock={bot.clock} color={setup.color} />}
+        </div>
+
         <div className="controls">
           <NavigationControls view={view} update={update} />
           <div className="actions">
@@ -212,8 +247,17 @@ function BotGame({ setup, seed, onRematch, onNewGame }: BotGameProps) {
               </>
             ) : (
               <>
-                <button type="button" disabled={!bot.canTakeback} onClick={bot.takeback}>
-                  Takeback
+                {!bot.clock && (
+                  <button type="button" disabled={!bot.canTakeback} onClick={bot.takeback}>
+                    Takeback
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={bot.drawDeclined || view.line.length < 2}
+                  onClick={bot.offerDraw}
+                >
+                  Offer draw
                 </button>
                 <button type="button" onClick={bot.resign}>
                   Resign
@@ -230,6 +274,20 @@ function BotGame({ setup, seed, onRematch, onNewGame }: BotGameProps) {
   )
 }
 
-function capitalize(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1)
+/** How the game ended, when not on the board (the status bar covers mate and draws). */
+function describeEnd(termination: Termination): string {
+  switch (termination.reason) {
+    case 'agreement':
+      return 'Draw by agreement'
+    case 'resignation': // only the user resigns
+      return `You resigned · ${winner(termination.loser)} wins`
+    case 'timeout':
+      return termination.draw
+        ? 'Time out · draw (insufficient material)'
+        : `Time out · ${winner(termination.loser)} wins`
+  }
+}
+
+function winner(loser: Color): string {
+  return loser === 'white' ? 'Black' : 'White'
 }

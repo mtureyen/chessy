@@ -30,6 +30,10 @@
   grid-template-columns: repeat(3, 1fr);
 }
 
+.bot-time-controls {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 .bot-setup button {
   border-radius: 4px;
 }
@@ -76,7 +80,8 @@
   filter: brightness(1.1);
 }
 
-.bot-opponent {
+.bot-opponent,
+.bot-you {
   display: flex;
   gap: 0.5rem;
   align-items: center;
@@ -85,10 +90,15 @@
 }
 
 .bot-opponent-name {
+  flex-shrink: 0;
   font-weight: 700;
 }
 
 .bot-opponent-level {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--text-muted);
   font-size: 0.85rem;
 }
@@ -132,4 +142,49 @@
   color: var(--text-muted);
   font-size: 0.8rem;
   text-align: center;
+}
+
+.bot-opponent .bot-clock,
+.bot-you .bot-clock {
+  margin-left: auto;
+}
+
+.bot-thinking + .bot-clock {
+  margin-left: 0.5rem;
+}
+
+.bot-you {
+  border-top: 1px solid var(--border);
+}
+
+.bot-clock {
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bot-clock-running {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.bot-clock-low {
+  color: var(--danger);
+}
+
+.bot-clock-running.bot-clock-low {
+  background: var(--danger);
+  color: #fff;
+}
+
+.bot-note {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
