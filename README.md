@@ -2,7 +2,7 @@
 
 A free, AI-assisted chess platform: play, analyze, learn.
 
-**Status:** local play, bots in eight levels, analysis board with Stockfish, game import from lichess and chess.com, and game review with accuracy and move classification.
+**Status:** local play, bots in eight levels (with clocks), analysis board with Stockfish, game import from lichess and chess.com, and game review with accuracy and move classification.
 
 ## Architecture
 

@@ -1,10 +1,14 @@
 import { expect, test, type Page } from '@playwright/test'
 import { boardDriver } from './board'
 
-async function startBotGame(page: Page, level: string, side: 'White' | 'Black') {
+async function startBotGame(page: Page, level: string, side: 'White' | 'Black', clock = 'None') {
   await page.goto('/bot')
-  await page.getByRole('button', { name: new RegExp(`^${level}\\b`) }).click()
-  await page.getByRole('button', { name: side, exact: true }).click()
+  const group = (name: string) => page.getByRole('group', { name })
+  await group('Level')
+    .getByRole('button', { name: new RegExp(`^${level}\\b`) })
+    .click()
+  await group('You play').getByRole('button', { name: side, exact: true }).click()
+  await group('Clock').getByRole('button', { name: clock, exact: true }).click()
   await page.getByRole('button', { name: 'Play', exact: true }).click()
 }
 
@@ -55,4 +59,43 @@ test('a resigned game is saved and opens straight into its review', async ({ pag
   await expect(row).toContainText('Lost')
   await expect(row).toContainText('Chessy')
   await expect(row.getByTitle(/Open on/)).toHaveCount(0)
+})
+
+test('on a clock: the clocks start after both first moves and running out loses', async ({
+  page,
+}) => {
+  await page.clock.install()
+  await startBotGame(page, '1', 'White', '1+0')
+  const mine = page.getByRole('timer', { name: 'white clock' })
+  const bots = page.getByRole('timer', { name: 'black clock' })
+  await expect(mine).toHaveText('1:00')
+  await expect(page.getByRole('button', { name: 'Takeback' })).toHaveCount(0)
+
+  const board = await boardDriver(page)
+  await board.play(['e2', 'e4'])
+  await expect(moves(page)).toHaveCount(2, { timeout: 15_000 })
+  await expect(mine).toHaveClass(/bot-clock-running/)
+  await expect(bots).not.toHaveClass(/bot-clock-running/)
+
+  await page.clock.fastForward('00:50')
+  await expect(mine).toHaveClass(/bot-clock-low/)
+  await page.clock.fastForward('00:15')
+  await expect(page.locator('.status')).toContainText('Time out · Black wins')
+  await expect(mine).toHaveText('0:00.0')
+  await expect(page.getByText('Saved to your games.')).toBeVisible()
+
+  await page.getByRole('link', { name: 'Games' }).click()
+  const row = page.getByTestId('game-row').first()
+  await expect(row).toContainText('Lost')
+  await expect(row).toContainText('Bullet 1+0')
+})
+
+test('the bot declines a draw in an even opening', async ({ page }) => {
+  await startBotGame(page, '8', 'White')
+  const board = await boardDriver(page)
+  await board.play(['e2', 'e4'])
+  await expect(moves(page)).toHaveCount(2, { timeout: 15_000 })
+  await page.getByRole('button', { name: 'Offer draw' }).click()
+  await expect(page.getByText('Chessy bot (level 8) declines the draw.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Offer draw' })).toBeDisabled()
 })
