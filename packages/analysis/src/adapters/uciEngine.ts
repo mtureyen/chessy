@@ -9,6 +9,8 @@ export interface UciEngineOptions {
   hashMb?: number
   /** How long loading (uci → uciok → readyok) may take before the engine counts as failed. */
   initTimeoutMs?: number
+  /** Further UCI options, set once after loading (e.g. `UCI_LimitStrength`, `UCI_Elo`). */
+  setOptions?: Readonly<Record<string, string | number | boolean>>
 }
 
 interface Search {
@@ -51,7 +53,7 @@ export class UciEngine implements EngineProvider {
 
   constructor(createTransport: () => UciTransport, options: UciEngineOptions = {}) {
     this.createTransport = createTransport
-    this.options = { hashMb: 16, initTimeoutMs: 30_000, ...options }
+    this.options = { hashMb: 16, initTimeoutMs: 30_000, setOptions: {}, ...options }
   }
 
   init(): Promise<EngineInfo> {
@@ -121,6 +123,9 @@ export class UciEngine implements EngineProvider {
     transport.send('uci')
     await uciok
     transport.send(`setoption name Hash value ${this.options.hashMb}`)
+    for (const [name, value] of Object.entries(this.options.setOptions)) {
+      transport.send(`setoption name ${name} value ${value}`)
+    }
     const readyok = this.waitFor((line) => line === 'readyok')
     transport.send('isready')
     await readyok
