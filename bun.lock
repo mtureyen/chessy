@@ -21,6 +21,7 @@
         "@chessy/chess": "workspace:*",
         "@chessy/contracts": "workspace:*",
         "@chessy/library": "workspace:*",
+        "@chessy/play": "workspace:*",
         "@hono/zod-openapi": "^1.6.3",
         "@scalar/hono-api-reference": "^0.12.14",
         "hono": "^4.13.14",
