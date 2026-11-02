@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SourceGame } from '../domain/game'
 import type { GameSource } from '../ports/gameSource'
-import { sampleGame } from '../testing'
+import { sampleSourceGame } from '../testing'
 import { CachedGameSource } from './cachedGameSource'
 
 /** A source whose answers the test releases by hand. */
@@ -33,7 +33,7 @@ describe('CachedGameSource', () => {
     const b = cached.recentGames('alice', { max: 5 })
     await tick()
     expect(calls).toHaveLength(1)
-    calls[0]!.resolve([sampleGame()])
+    calls[0]!.resolve([sampleSourceGame()])
     expect(await a).toBe(await b)
 
     now = 999

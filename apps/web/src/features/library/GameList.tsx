@@ -1,4 +1,5 @@
 import {
+  LOCAL_PLAYER_NAME,
   outcomeFor,
   sourceName,
   type LibraryGame,
@@ -28,7 +29,7 @@ export function GameList({ games, usernames, onDelete }: GameListProps) {
   return (
     <ul className="game-list">
       {games.map((game) => {
-        const me = usernames[game.source]
+        const me = game.source === 'chessy' ? LOCAL_PLAYER_NAME : usernames[game.source]
         const outcome = me ? outcomeFor(game, me) : 'unknown'
         return (
           <li key={game.id} className="game-row" data-testid="game-row">
@@ -61,15 +62,17 @@ export function GameList({ games, usernames, onDelete }: GameListProps) {
               <Link to="/analysis" search={{ game: game.id }} className="button">
                 Analyse
               </Link>
-              <a
-                href={game.url}
-                target="_blank"
-                rel="noreferrer"
-                className="button"
-                title={`Open on ${sourceName(game.source)}`}
-              >
-                ↗
-              </a>
+              {game.url && (
+                <a
+                  href={game.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="button"
+                  title={`Open on ${sourceName(game.source)}`}
+                >
+                  ↗
+                </a>
+              )}
               <button
                 type="button"
                 aria-label="Delete game"

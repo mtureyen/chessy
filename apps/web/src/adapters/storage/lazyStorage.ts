@@ -4,7 +4,7 @@ import type {
   LibrarySettings,
   ListGamesOptions,
   SettingsStore,
-  SourceId,
+  GameOrigin,
 } from '@chessy/library'
 
 type Storage = { games: GameRepository; settings: SettingsStore; evals: EvalCache }
@@ -20,7 +20,7 @@ export function createLazyStorage(load: () => Promise<Storage>): Storage {
   const games: GameRepository = {
     saveAll: async (list) => (await get()).games.saveAll(list),
     get: async (id: string) => (await get()).games.get(id),
-    findByExternalId: async (source: SourceId, externalId: string) =>
+    findByExternalId: async (source: GameOrigin, externalId: string) =>
       (await get()).games.findByExternalId(source, externalId),
     list: async (options?: ListGamesOptions) => (await get()).games.list(options),
     delete: async (id: string) => (await get()).games.delete(id),

@@ -3,9 +3,18 @@ export type SourceId = 'lichess' | 'chesscom'
 
 export const SOURCE_IDS: readonly SourceId[] = ['lichess', 'chesscom']
 
+/** Where a library game comes from: a platform it was imported from, or played here in Chessy. */
+export type GameOrigin = SourceId | 'chessy'
+
+/** The name the user plays under in games played in Chessy. */
+export const LOCAL_PLAYER_NAME = 'You'
+
 export type GameResult = '1-0' | '0-1' | '1/2-1/2' | '*'
 
 export type Speed = 'ultrabullet' | 'bullet' | 'blitz' | 'rapid' | 'classical' | 'correspondence'
+
+/** A library game's speed: a platform's, or 'unlimited' for a game played here without a clock. */
+export type GameSpeed = Speed | 'unlimited'
 
 export interface PlayerInfo {
   name: string
@@ -31,17 +40,24 @@ export interface SourceGame {
   opening?: { eco?: string; name?: string }
 }
 
-/** A game stored in the user's library. */
-export interface LibraryGame extends SourceGame {
+/** A game stored in the user's library: imported from a platform, or played in Chessy. */
+export interface LibraryGame extends Omit<SourceGame, 'source' | 'url' | 'speed'> {
   /** Our own stable id (UUID); (source, externalId) stays unique as well. */
   id: string
+  source: GameOrigin
+  /** The game on its platform; absent for games played in Chessy. */
+  url?: string
+  speed: GameSpeed
   importedAt: string
 }
 
 export type Outcome = 'win' | 'loss' | 'draw' | 'unknown'
 
 /** The game's outcome from `username`'s point of view (case-insensitive); 'unknown' if they didn't play. */
-export function outcomeFor(game: SourceGame, username: string): Outcome {
+export function outcomeFor(
+  game: Pick<LibraryGame, 'white' | 'black' | 'result'>,
+  username: string,
+): Outcome {
   const name = username.toLowerCase()
   const side =
     game.white.name.toLowerCase() === name

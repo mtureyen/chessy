@@ -1,5 +1,5 @@
 import { DuplicateGameError } from '../domain/errors'
-import type { LibraryGame, SourceId } from '../domain/game'
+import type { GameOrigin, LibraryGame } from '../domain/game'
 import type { GameRepository, ListGamesOptions } from '../ports/gameRepository'
 
 /** GameRepository in memory: for tests, and as a fallback where no storage is available. */
@@ -19,7 +19,7 @@ export class InMemoryGameRepository implements GameRepository {
     return game && structuredClone(game)
   }
 
-  async findByExternalId(source: SourceId, externalId: string): Promise<LibraryGame | undefined> {
+  async findByExternalId(source: GameOrigin, externalId: string): Promise<LibraryGame | undefined> {
     for (const game of this.games.values()) {
       if (game.source === source && game.externalId === externalId) return structuredClone(game)
     }

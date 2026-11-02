@@ -4,7 +4,7 @@ import {
   type GameSource,
   type SourceGame,
 } from '@chessy/library'
-import { sampleGame } from '@chessy/library/testing'
+import { sampleSourceGame } from '@chessy/library/testing'
 import { describe, expect, it } from 'vitest'
 import type { EngineService, EngineStatus } from './adapters/engine/service'
 import { createApp } from './app'
@@ -16,9 +16,7 @@ function fakeSource(
   return { id, recentGames: async (username, { max }) => answer(username, max) }
 }
 
-const games: SourceGame[] = [sampleGame(), sampleGame()].map(
-  ({ id: _id, importedAt: _at, ...game }) => game,
-)
+const games: SourceGame[] = [sampleSourceGame(), sampleSourceGame()]
 const requests: { username: string; max: number }[] = []
 
 let engineStatus: EngineStatus = { available: true, name: 'FakeFish 1', parallelism: 3 }
