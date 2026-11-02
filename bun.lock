@@ -105,6 +105,18 @@
         "vitest": "^5.0.5",
       },
     },
+    "packages/play": {
+      "name": "@chessy/play",
+      "version": "0.0.0",
+      "dependencies": {
+        "@chessy/analysis": "workspace:*",
+        "@chessy/chess": "workspace:*",
+        "@chessy/library": "workspace:*",
+      },
+      "devDependencies": {
+        "@chessy/config": "workspace:*",
+      },
+    },
   },
   "packages": {
     "@asteasolutions/zod-to-openapi": ["@asteasolutions/zod-to-openapi@9.1.0", "", { "dependencies": { "openapi3-ts": "^4.6.0" }, "peerDependencies": { "zod": "^4.0.0" } }, "sha512-pLMeRgRYS7/vZIgAAkOe2P6+XGTifR1MT9pqDoxZ11EmcJJ+DPmdPqLN8ZZF4U8R9KHCCQCS9c2wtuE8wSrfkw=="],
@@ -122,6 +134,8 @@
     "@chessy/contracts": ["@chessy/contracts@workspace:packages/contracts"],
 
     "@chessy/library": ["@chessy/library@workspace:packages/library"],
+
+    "@chessy/play": ["@chessy/play@workspace:packages/play"],
 
     "@chessy/web": ["@chessy/web@workspace:apps/web"],
 
