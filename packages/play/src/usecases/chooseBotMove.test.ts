@@ -63,6 +63,12 @@ describe('chooseBotMove', () => {
     expect(requests).toEqual([{ fen: START, nodes: 80_000, multiPv: 5, fresh: true }])
   })
 
+  it('searches less when the bot is low on time', async () => {
+    const { engine, requests } = fakeEngine({ bestMove: 'e2e4' })
+    await chooseBotMove({ engine }, { ...request, level: botLevel(8), remainingMs: 3000 })
+    expect(requests[0]!.nodes).toBeLessThan(botLevel(8).nodes)
+  })
+
   it('falls back to the best move when there are no lines', async () => {
     const { engine } = fakeEngine({ bestMove: 'g1f3' })
     expect((await chooseBotMove({ engine }, request)).move).toBe('g1f3')
