@@ -34,3 +34,6 @@ playwright-report
 # Downloaded at dev/build time (apps/web/scripts/fetch-engine.ts)
 apps/web/public/engine/
 apps/web/public/openings/
+
+# Native Stockfish, installed with `bun run engine:native` (apps/api/scripts/fetch-stockfish.ts)
+apps/api/.engine/

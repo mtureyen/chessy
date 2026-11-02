@@ -11,7 +11,10 @@ export interface EvalCacheKeyParts {
   fen: string
 }
 
+/** Version of how evaluations are computed; bump it when that changes (v2: fresh hash per search). */
+const EVAL_VERSION = 'v2'
+
 /** Cache key for a stored evaluation. Includes everything that changes the engine's answer. */
 export function evalCacheKey({ engine, nodes, multiPv, fen }: EvalCacheKeyParts): string {
-  return `${engine}|n${nodes}|pv${multiPv}|${positionKey(fen)}`
+  return `${EVAL_VERSION}|${engine}|n${nodes}|pv${multiPv}|${positionKey(fen)}`
 }

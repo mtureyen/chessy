@@ -1,5 +1,8 @@
 import { keyMoments, type GameReview } from '@chessy/analysis'
+import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
+import type { ReviewEngine } from '@/app/services'
+import { useServices } from '@/app/servicesContext'
 import { ClassBadge } from './ClassBadge'
 import { CLASS_STYLES, SUMMARY_ORDER } from './classes'
 import { presetNodes, REVIEW_PRESETS, type ReviewPresetId } from './presets'
@@ -9,7 +12,7 @@ import './Review.css'
 interface ReviewPanelProps {
   state: ReviewState
   moveCount: number
-  onStart: (nodes: number) => void
+  onStart: (nodes: number, engine: ReviewEngine) => void
   onCancel: () => void
   onSelectPly: (ply: number) => void
 }
@@ -21,10 +24,31 @@ export function ReviewPanel({
   onCancel,
   onSelectPly,
 }: ReviewPanelProps) {
+  const { review } = useServices()
   const [preset, setPreset] = useState<ReviewPresetId>('standard')
+  const [choice, setChoice] = useState<ReviewEngine>()
+  const server = useQuery({
+    queryKey: ['server-engine'],
+    queryFn: review.serverEngine,
+    staleTime: 30_000,
+  })
+  // Native on the server when it has one (much faster), else this browser's engine.
+  const engine: ReviewEngine = choice ?? (server.data ? 'server' : 'browser')
 
   const startControls = (label: string) => (
     <div className="review-start">
+      {server.data && (
+        <select
+          value={engine}
+          onChange={(e) => setChoice(e.target.value as ReviewEngine)}
+          aria-label="Review engine"
+        >
+          <option value="server">
+            Server · {server.data.name} · {server.data.parallelism}× parallel
+          </option>
+          <option value="browser">Browser · Stockfish (WASM)</option>
+        </select>
+      )}
       <select
         value={preset}
         onChange={(e) => setPreset(e.target.value as ReviewPresetId)}
@@ -40,7 +64,7 @@ export function ReviewPanel({
         type="button"
         className="review-start-button"
         disabled={moveCount === 0}
-        onClick={() => onStart(presetNodes(preset))}
+        onClick={() => onStart(presetNodes(preset), engine)}
       >
         {label}
       </button>

@@ -5,6 +5,11 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   /** `live` talks to lichess/chess.com; `recorded` answers from recorded responses (E2E, offline). */
   CHESSY_SOURCES: z.enum(['live', 'recorded']).default('live'),
+  /** Native Stockfish binary; default: apps/api/.engine/stockfish, else `stockfish` on the PATH. */
+  STOCKFISH_PATH: z.string().min(1).optional(),
+  /** Parallel single-threaded engine processes; default: cores − 2, at most 8. */
+  ENGINE_POOL_SIZE: z.coerce.number().int().min(1).max(64).optional(),
+  ENGINE_HASH_MB: z.coerce.number().int().min(1).max(4096).default(64),
 })
 
 export type Config = z.infer<typeof EnvSchema>

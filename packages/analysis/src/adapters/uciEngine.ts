@@ -19,6 +19,8 @@ interface Search {
   onUpdate: ((snapshot: AnalysisSnapshot) => void) | undefined
   /** Set once we asked the engine to stop; output after that belongs to no one. */
   stopReason?: 'stopped' | 'superseded'
+  /** `go` has been sent; before that a stop must end the search directly (no bestmove follows). */
+  started: boolean
   resolve: (snapshot: AnalysisSnapshot) => void
 }
 
@@ -71,6 +73,7 @@ export class UciEngine implements EngineProvider {
       snapshot: { fen: request.fen, depth: 0, lines: [] },
       onUpdate,
       resolve,
+      started: false,
     }
 
     if (this.disposed) {
@@ -134,11 +137,27 @@ export class UciEngine implements EngineProvider {
     if (this.running || !this.queued || !this.transport) return
 
     const search = this.queued
+    const transport = this.transport
     this.queued = undefined
     this.running = search
-    this.transport.send(`setoption name MultiPV value ${search.request.multiPv ?? 1}`)
-    this.transport.send(`position fen ${search.request.fen}`)
-    this.transport.send(goCommand(search.request))
+    if (search.request.fresh) {
+      const ready = this.waitFor((line) => line === 'readyok')
+      transport.send('ucinewgame')
+      transport.send('isready')
+      try {
+        await ready
+      } catch (error) {
+        // Only a search still waiting for this answer makes a silent engine a failure.
+        if (this.running === search)
+          this.fail(error instanceof Error ? error : new Error(String(error)))
+        return
+      }
+      if (this.running !== search) return // stopped or superseded while clearing the hash
+    }
+    search.started = true
+    transport.send(`setoption name MultiPV value ${search.request.multiPv ?? 1}`)
+    transport.send(`position fen ${search.request.fen}`)
+    transport.send(goCommand(search.request))
   }
 
   private onLine(line: string): void {
@@ -189,6 +208,13 @@ export class UciEngine implements EngineProvider {
       return
     }
     search.stopReason = reason
+    if (!search.started) {
+      // Still preparing (clearing the hash): the engine is idle, so end the search right here.
+      this.running = undefined
+      this.finish(search, reason)
+      void this.startNext()
+      return
+    }
     this.transport?.send('stop')
   }
 

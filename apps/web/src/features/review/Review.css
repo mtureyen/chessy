@@ -28,11 +28,12 @@
 
 .review-start {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
 
 .review-start select {
-  flex: 1;
+  flex: 1 1 8rem;
   min-width: 0;
   padding: 0.4rem;
   border: 1px solid var(--border);

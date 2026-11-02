@@ -4,6 +4,8 @@ import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
 import { problem } from './http/problem'
 import { createRouter } from './http/router'
+import type { EngineService } from './adapters/engine/service'
+import { engineRoutes } from './routes/v1/engine'
 import { healthRoutes } from './routes/v1/health'
 import { sourceRoutes } from './routes/v1/sources'
 
@@ -12,13 +14,15 @@ export interface AppDeps {
   startedAt: number
   now?: () => number
   sources: Record<SourceId, GameSource>
+  engine: EngineService
 }
 
 /** Builds the HTTP app from its dependencies. main.ts wires real ones, tests wire fakes. */
-export function createApp({ version, startedAt, now = Date.now, sources }: AppDeps) {
+export function createApp({ version, startedAt, now = Date.now, sources, engine }: AppDeps) {
   const v1 = createRouter()
     .route('/', healthRoutes({ version, startedAt, now }))
     .route('/', sourceRoutes({ sources }))
+    .route('/', engineRoutes({ engine }))
 
   v1.doc31('/openapi.json', {
     openapi: '3.1.0',

@@ -74,3 +74,43 @@ test('loading another game discards the review', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Start review' })).toBeVisible()
   await expect(page.getByRole('img', { name: 'Evaluation graph' })).toHaveCount(0)
 })
+
+test('reviews on the server engine when the API has one', async ({ page }) => {
+  // Simulate a server with a native engine (CI has none): status + NDJSON evaluation stream.
+  let requested: { fens: string[]; nodes: number; multiPv: number } | undefined
+  await page.route('**/api/v1/engine', (route) =>
+    route.fulfill({ json: { available: true, name: 'FakeFish 9', parallelism: 4 } }),
+  )
+  await page.route('**/api/v1/engine/evaluations', async (route) => {
+    requested = route.request().postDataJSON()
+    const lines = requested!.fens.map((_, index) =>
+      JSON.stringify({
+        type: 'evaluated',
+        index,
+        eval: {
+          depth: 12,
+          lines: [{ rank: 1, depth: 12, score: { type: 'cp', value: 0 }, pv: [] }],
+        },
+      }),
+    )
+    await route.fulfill({
+      contentType: 'application/x-ndjson',
+      body: [...lines, JSON.stringify({ type: 'done' })].join('\n') + '\n',
+    })
+  })
+
+  await openAnalysis(page, SCHOLARS_MATE)
+  await page.getByRole('tab', { name: /Review/ }).click()
+  const engine = page.getByRole('combobox', { name: 'Review engine' })
+  await expect(engine).toHaveValue('server')
+  await expect(engine.locator('option[value="server"]')).toHaveText(
+    'Server · FakeFish 9 · 4× parallel',
+  )
+
+  await page.getByRole('button', { name: 'Start review' }).click()
+  await expect(page.getByTestId('accuracy-white')).toBeVisible()
+  await expect(page.locator('.review-meta')).toContainText('FakeFish 9')
+  // Only positions with legal moves go to the engine (the final mate does not).
+  expect(requested).toMatchObject({ nodes: 500_000, multiPv: 2 })
+  expect(requested!.fens).toHaveLength(7)
+})

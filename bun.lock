@@ -17,6 +17,8 @@
       "name": "@chessy/api",
       "version": "0.1.0",
       "dependencies": {
+        "@chessy/analysis": "workspace:*",
+        "@chessy/chess": "workspace:*",
         "@chessy/contracts": "workspace:*",
         "@chessy/library": "workspace:*",
         "@hono/zod-openapi": "^1.6.3",
@@ -35,6 +37,7 @@
       "dependencies": {
         "@chessy/analysis": "workspace:*",
         "@chessy/chess": "workspace:*",
+        "@chessy/contracts": "workspace:*",
         "@chessy/library": "workspace:*",
         "@tanstack/react-query": "^5.105.0",
         "@tanstack/react-router": "^1.170.46",
@@ -85,6 +88,7 @@
       "name": "@chessy/contracts",
       "version": "0.0.0",
       "dependencies": {
+        "@chessy/analysis": "workspace:*",
         "@chessy/library": "workspace:*",
         "@hono/zod-openapi": "^1.6.3",
         "zod": "^4.6.7",

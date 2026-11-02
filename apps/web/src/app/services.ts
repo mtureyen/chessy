@@ -1,7 +1,10 @@
 import {
+  EnginePoolEvaluator,
   reviewGame,
   type EngineProvider,
+  type EvaluatorInfo,
   type GameReview,
+  type PositionEvaluator,
   type ReviewInput,
   type ReviewOptions,
 } from '@chessy/analysis'
@@ -15,6 +18,7 @@ import {
 } from '@chessy/library'
 import { ApiGameSource } from '@/adapters/api/apiGameSource'
 import { createApiClient, type ApiClient } from '@/adapters/api/client'
+import { RemoteEvaluator } from '@/adapters/engine/remoteEvaluator'
 import { createBrowserEngine } from '@/adapters/engine/stockfish'
 import { createBookLoader } from '@/adapters/openings/bookLoader'
 import { createLazyStorage } from '@/adapters/storage/lazyStorage'
@@ -30,9 +34,17 @@ export interface Services {
     importRecentGames: (source: SourceId, username: string) => Promise<ImportReport>
   }
   review: {
-    run: (input: ReviewInput, options: ReviewOptions) => Promise<GameReview>
+    /** The API's native engine, if the server has one. */
+    serverEngine: () => Promise<EvaluatorInfo | undefined>
+    run: (
+      input: ReviewInput,
+      options: ReviewOptions & { engine: ReviewEngine },
+    ) => Promise<GameReview>
   }
 }
+
+/** Where a review's positions are evaluated: native on the server, or WASM in this browser. */
+export type ReviewEngine = 'server' | 'browser'
 
 /** Composition root: the only place that decides which adapter fills which port. */
 export function createServices(): Services {
@@ -44,22 +56,24 @@ export function createServices(): Services {
     lichess: new ApiGameSource('lichess', api),
     chesscom: new ApiGameSource('chesscom', api),
   }
-  // Reviews get their own engine so they never interrupt the live analysis on the same page.
-  const reviewEngine = createBrowserEngine()
   const loadBook = createBookLoader()
+  const evaluators: Record<ReviewEngine, PositionEvaluator> = {
+    server: new RemoteEvaluator(api, window.location.origin),
+    // Its own engine, so a review never interrupts the live analysis on the same page.
+    browser: new EnginePoolEvaluator([createBrowserEngine()]),
+  }
 
   return {
     api,
     engine: createBrowserEngine(),
     review: {
-      run: async (input, options) => {
-        const [info, book] = await Promise.all([reviewEngine.init(), loadBook()])
-        return reviewGame(
-          { engine: reviewEngine, engineName: info.name, cache: evals, book },
+      serverEngine: () => evaluators.server.describe().catch(() => undefined),
+      run: async (input, { engine, ...options }) =>
+        reviewGame(
+          { evaluator: evaluators[engine], cache: evals, book: await loadBook() },
           input,
           options,
-        )
-      },
+        ),
     },
     library: {
       games,
