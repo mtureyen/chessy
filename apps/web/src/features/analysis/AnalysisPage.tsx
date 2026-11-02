@@ -13,6 +13,7 @@ import { CLASS_STYLES, LIST_BADGES } from '@/features/review/classes'
 import { EvalGraph } from '@/features/review/EvalGraph'
 import { mainline, reviewedNodes } from '@/features/review/mapping'
 import { ReviewPanel } from '@/features/review/ReviewPanel'
+import { useAutoReview } from '@/features/review/useAutoReview'
 import { useGameReview } from '@/features/review/useGameReview'
 import { Board, type BoardArrow } from '@/shared/board/Board'
 import { GameStatusBar } from '@/shared/game/GameStatusBar'
@@ -36,6 +37,8 @@ export interface AnalysisInitial {
   pgn?: string
   fen?: string
   error?: string
+  /** Start a review of the game right away. */
+  review?: boolean
 }
 
 /** Free analysis board: engine with eval bar and best lines, game review, any variation. */
@@ -46,9 +49,10 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   const [orientation, setOrientation] = useState<Color>('white')
   const [engineEnabled, setEngineEnabled] = useState(true)
   const [multiPv, setMultiPv] = useState(3)
-  const [tab, setTab] = useState<'moves' | 'review'>('moves')
+  const [tab, setTab] = useState<'moves' | 'review'>(initial.review ? 'review' : 'moves')
 
   const review = useGameReview(view.root)
+  useAutoReview(initial.review === true && !boot.error, view.root, review.start)
   const reviewed =
     review.state.status === 'done' ? reviewedNodes(view.root, review.state.review) : undefined
   const currentReview = reviewed?.get(view.current.id)

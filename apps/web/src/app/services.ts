@@ -13,9 +13,17 @@ import {
   type GameRepository,
   type GameSource,
   type ImportReport,
+  type LibraryGame,
   type SettingsStore,
   type SourceId,
 } from '@chessy/library'
+import {
+  chooseBotMove,
+  recordBotGame,
+  type BotChoice,
+  type BotMoveRequest,
+  type FinishedBotGame,
+} from '@chessy/play'
 import { ApiGameSource } from '@/adapters/api/apiGameSource'
 import { createApiClient, type ApiClient } from '@/adapters/api/client'
 import { RemoteEvaluator } from '@/adapters/engine/remoteEvaluator'
@@ -32,6 +40,11 @@ export interface Services {
     settings: SettingsStore
     sources: Record<SourceId, GameSource>
     importRecentGames: (source: SourceId, username: string) => Promise<ImportReport>
+  }
+  play: {
+    chooseBotMove: (request: BotMoveRequest) => Promise<BotChoice>
+    /** Saves a finished bot game to the library. */
+    saveBotGame: (finished: FinishedBotGame) => Promise<LibraryGame>
   }
   review: {
     /** The API's native engine, if the server has one. */
@@ -63,9 +76,18 @@ export function createServices(): Services {
     browser: new EnginePoolEvaluator([createBrowserEngine()]),
   }
 
+  // The bot's own engine, so a bot game never competes with analysis or a review.
+  const botEngine = createBrowserEngine()
+  const newId = () => crypto.randomUUID()
+  const now = () => new Date()
+
   return {
     api,
     engine: createBrowserEngine(),
+    play: {
+      chooseBotMove: (request) => chooseBotMove({ engine: botEngine }, request),
+      saveBotGame: (finished) => recordBotGame({ repository: games, newId, now }, finished),
+    },
     review: {
       serverEngine: () => evaluators.server.describe().catch(() => undefined),
       run: async (input, { engine, ...options }) =>
@@ -84,8 +106,8 @@ export function createServices(): Services {
           {
             source: sources[source],
             repository: games,
-            newId: () => crypto.randomUUID(),
-            now: () => new Date(),
+            newId,
+            now,
           },
           { username },
         ),

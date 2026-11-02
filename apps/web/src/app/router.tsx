@@ -24,13 +24,19 @@ const analysisRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/analysis/AnalysisRoute'), 'AnalysisRoute'),
 })
 
+const botRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/bot',
+  component: lazyRouteComponent(() => import('@/features/play/BotPage'), 'BotPage'),
+})
+
 const gamesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/games',
   component: lazyRouteComponent(() => import('@/features/library/LibraryPage'), 'LibraryPage'),
 })
 
-const routeTree = rootRoute.addChildren([playRoute, analysisRoute, gamesRoute])
+const routeTree = rootRoute.addChildren([playRoute, botRoute, analysisRoute, gamesRoute])
 
 export const router = createRouter({ routeTree, defaultPreload: 'intent' })
 
