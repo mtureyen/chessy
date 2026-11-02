@@ -1,6 +1,7 @@
-import { exportPgn, type Color, type GameState, type MoveNode } from '@chessy/chess'
+import { exportPgn, type GameState, type MoveNode } from '@chessy/chess'
 import { LOCAL_PLAYER_NAME, type GameRepository, type LibraryGame } from '@chessy/library'
-import { botName, resultOf, type BotGameSetup } from '../domain/session'
+import { pgnTimeControl, speedOf } from '../domain/timeControl'
+import { botName, opposite, resultOf, type BotGameSetup, type Termination } from '../domain/session'
 
 export interface RecordBotGameDeps {
   repository: GameRepository
@@ -11,14 +12,14 @@ export interface RecordBotGameDeps {
 export interface FinishedBotGame {
   game: GameState
   setup: BotGameSetup
-  /** The side that resigned, if the game ended that way. */
-  resigned?: Color
+  /** How the game ended, unless on the board. */
+  termination?: Termination
 }
 
 /** Saves a bot game to the library (source 'chessy'), so it can be reviewed later. */
 export async function recordBotGame(
   { repository, newId, now }: RecordBotGameDeps,
-  { game, setup, resigned }: FinishedBotGame,
+  { game, setup, termination }: FinishedBotGame,
 ): Promise<LibraryGame> {
   const id = newId()
   const playedAt = now()
@@ -26,8 +27,9 @@ export async function recordBotGame(
   const bot = { name: botName(setup.level) }
   const players =
     setup.color === 'white' ? { white: user, black: bot } : { white: bot, black: user }
-  const result = resultOf(game.status(mainlineEnd(game.root)), resigned)
-  // exportPgn fills in Result for a finished position; a resignation has to be stated.
+  const result = resultOf(game.status(mainlineEnd(game.root)), termination)
+  const { timeControl } = setup
+  // exportPgn fills in Result for a finished position; other endings have to be stated.
   const pgn = exportPgn(game, {
     Result: result,
     Event: `Casual game vs ${botName(setup.level)}`,
@@ -35,7 +37,8 @@ export async function recordBotGame(
     Date: pgnDate(playedAt),
     White: players.white.name,
     Black: players.black.name,
-    ...(resigned && { Termination: `${capitalize(resigned)} resigned` }),
+    ...(timeControl && { TimeControl: pgnTimeControl(timeControl) }),
+    ...(termination && { Termination: describe(termination, players) }),
   })
   const record: LibraryGame = {
     id,
@@ -45,7 +48,8 @@ export async function recordBotGame(
     white: players.white,
     black: players.black,
     result,
-    speed: 'unlimited',
+    speed: timeControl ? speedOf(timeControl) : 'unlimited',
+    ...(timeControl && { timeControl: pgnTimeControl(timeControl) }),
     rated: false,
     playedAt: playedAt.toISOString(),
     importedAt: playedAt.toISOString(),
@@ -60,8 +64,16 @@ function mainlineEnd(root: MoveNode): MoveNode {
   return node
 }
 
-function capitalize(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1)
+/** PGN Termination in words, the way chess.com writes it ("You won on time"). */
+function describe(
+  termination: Termination,
+  players: Record<'white' | 'black', { name: string }>,
+): string {
+  if (termination.reason === 'agreement') return 'Game drawn by agreement'
+  if (termination.reason === 'timeout' && termination.draw)
+    return 'Game drawn by timeout vs insufficient material'
+  const winner = players[opposite(termination.loser)].name
+  return `${winner} won ${termination.reason === 'timeout' ? 'on time' : 'by resignation'}`
 }
 
 /** PGN dates are "YYYY.MM.DD" (UTC here). */

@@ -1,5 +1,6 @@
 import { EngineFailedError, type CancelSignal, type EngineProvider } from '@chessy/analysis'
 import { createGame } from '@chessy/chess'
+import { botBudget } from '../domain/budget'
 import type { BotLevel } from '../domain/levels'
 import type { Random } from '../domain/random'
 import { selectMove, type BotChoice } from '../domain/selection'
@@ -13,6 +14,8 @@ export interface BotMoveRequest {
   fen: string
   level: BotLevel
   random: Random
+  /** The bot's time left; it searches less when low. Unset: no clock. */
+  remainingMs?: number
   signal?: CancelSignal
 }
 
@@ -31,14 +34,15 @@ export class BotMoveCancelledError extends Error {
  */
 export async function chooseBotMove(
   { engine }: BotMoveDeps,
-  { fen, level, random, signal }: BotMoveRequest,
+  { fen, level, random, remainingMs, signal }: BotMoveRequest,
 ): Promise<BotChoice> {
   const position = createGame(fen)
   if (position.status().kind !== 'ongoing') throw new Error('The game is over: no move to play')
   if (signal?.aborted) throw new BotMoveCancelledError()
 
   // Fresh searches with a node limit: the same seed replays the same game.
-  const handle = engine.analyze({ fen, nodes: level.nodes, multiPv: level.candidates, fresh: true })
+  const { nodes } = botBudget(level, remainingMs)
+  const handle = engine.analyze({ fen, nodes, multiPv: level.candidates, fresh: true })
   const stop = () => handle.stop()
   signal?.addEventListener('abort', stop, { once: true })
   const snapshot = await handle.result.finally(() => signal?.removeEventListener('abort', stop))

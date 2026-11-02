@@ -65,12 +65,54 @@ describe('recordBotGame', () => {
     const saved = await recordBotGame(deps(), {
       game,
       setup: { level: botLevel(2), color: 'black' },
-      resigned: 'black',
+      termination: { reason: 'resignation', loser: 'black' },
     })
     expect(saved.result).toBe('1-0')
     expect(importPgn(saved.pgn).headers).toMatchObject({
       Result: '1-0',
-      Termination: 'Black resigned',
+      Termination: 'Chessy bot (level 2) won by resignation',
     })
+  })
+
+  it('records the time control, the speed, the clocks and a loss on time', async () => {
+    const game = createGame()
+    game.annotate(game.play('e4')!, { clock: 180 })
+    game.annotate(game.play('e5')!, { clock: 178.5 })
+    const saved = await recordBotGame(deps(), {
+      game,
+      setup: {
+        level: botLevel(5),
+        color: 'white',
+        timeControl: { initialMs: 180_000, incrementMs: 2000 },
+      },
+      termination: { reason: 'timeout', loser: 'black', draw: false },
+    })
+    expect(saved).toMatchObject({ result: '1-0', speed: 'blitz', timeControl: '180+2' })
+    const imported = importPgn(saved.pgn)
+    expect(imported.headers).toMatchObject({ TimeControl: '180+2', Termination: 'You won on time' })
+    expect(imported.game.line().map((node) => node.clock)).toEqual([180, 178.5])
+  })
+
+  it('records draws by agreement and by timeout against a bare king', async () => {
+    const game = createGame()
+    game.play('e4')
+    const agreed = await recordBotGame(deps(), {
+      game,
+      setup: { level: botLevel(1), color: 'white' },
+      termination: { reason: 'agreement' },
+    })
+    expect(agreed.result).toBe('1/2-1/2')
+    const timedOut = await recordBotGame(
+      { ...deps(), newId: () => 'game-2' },
+      {
+        game,
+        setup: { level: botLevel(1), color: 'white' },
+        termination: { reason: 'timeout', loser: 'white', draw: true },
+      },
+    )
+    expect(timedOut.result).toBe('1/2-1/2')
+    expect(importPgn(timedOut.pgn).headers.Termination).toBe(
+      'Game drawn by timeout vs insufficient material',
+    )
   })
 })

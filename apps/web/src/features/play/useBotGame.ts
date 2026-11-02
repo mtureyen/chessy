@@ -59,7 +59,11 @@ export function useBotGame(setup: BotGameSetup, seed: number) {
     saving.current = true
     setSave({ status: 'saving' })
     play
-      .saveBotGame({ game, setup, ...(resigned && { resigned }) })
+      .saveBotGame({
+        game,
+        setup,
+        ...(resigned && { termination: { reason: 'resignation', loser: resigned } }),
+      })
       .then((saved) => setSave({ status: 'saved', game: saved }))
       .catch((error: unknown) =>
         setSave({
