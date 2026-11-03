@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { MOVE_COUNT, moveIndex, mirrorMove } from '../domain/encoding'
 import type { MaiaInput, MaiaModel } from '../ports/maiaModel'
-import { predictHumanMoves } from './predictHumanMoves'
+import { moveProbabilities, predictHumanMoves } from './predictHumanMoves'
 
 /** Favours one move (given from White's side) and records what it was asked. */
 function fakeModel(favourite: string) {
@@ -45,5 +45,21 @@ describe('predictHumanMoves', () => {
     const [result] = await predictHumanMoves(model, [{ fen: mated, eloSelf: 1500 }])
     expect(result!.moves).toEqual([])
     expect(calls[0]).toEqual([])
+  })
+})
+
+describe('moveProbabilities', () => {
+  it('reads the probability of the given move, 0 for an illegal one', async () => {
+    const { model } = fakeModel('e2e4')
+    const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+    const [likely, unlikely, illegal] = await moveProbabilities(model, [
+      { fen: start, move: 'e2e4', eloSelf: 1500 },
+      { fen: start, move: 'a2a3', eloSelf: 1500 },
+      { fen: start, move: 'e2e5', eloSelf: 1500 },
+    ])
+    expect(likely).toBeGreaterThan(0.99)
+    expect(unlikely).toBeGreaterThan(0)
+    expect(unlikely).toBeLessThan(0.01)
+    expect(illegal).toBe(0)
   })
 })

@@ -36,3 +36,19 @@ export async function predictHumanMoves(
   }
   return predictions
 }
+
+export interface MoveProbabilityQuery extends HumanMoveRequest {
+  /** UCI. */
+  move: string
+}
+
+/** How likely each given move is for a player of the given rating; 0 for an illegal move. */
+export async function moveProbabilities(
+  model: MaiaModel,
+  queries: readonly MoveProbabilityQuery[],
+): Promise<number[]> {
+  const predictions = await predictHumanMoves(model, queries)
+  return queries.map(
+    (query, i) => predictions[i]!.moves.find((m) => m.move === query.move)?.probability ?? 0,
+  )
+}
