@@ -2,6 +2,7 @@ import type {} from './env'
 /** Library context: the user's games, imported from platforms and stored locally. */
 export {
   DuplicateGameError,
+  GameNotFoundError,
   InvalidUsernameError,
   SourceUnavailableError,
   UserNotFoundError,
@@ -22,6 +23,7 @@ export {
   type SourceId,
   type Speed,
 } from './domain/game'
+export { parseGameUrl, type GameReference } from './domain/gameUrl'
 export type { GameRepository, ListGamesOptions } from './ports/gameRepository'
 export type { GameSource } from './ports/gameSource'
 export type { LibrarySettings, SettingsStore } from './ports/settingsStore'
@@ -30,5 +32,6 @@ export {
   type ImportRecentGamesDeps,
   type ImportReport,
 } from './usecases/importRecentGames'
+export { openGame, UnsupportedGameUrlError, type OpenGameDeps } from './usecases/openGame'
 export { CachedGameSource, type CachedGameSourceOptions } from './adapters/cachedGameSource'
 export { InMemoryGameRepository } from './adapters/inMemoryGameRepository'

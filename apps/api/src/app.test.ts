@@ -1,4 +1,5 @@
 import {
+  GameNotFoundError,
   SourceUnavailableError,
   UserNotFoundError,
   type GameSource,
@@ -14,7 +15,18 @@ function fakeSource(
   id: 'lichess' | 'chesscom',
   answer: (username: string, max: number) => SourceGame[],
 ): GameSource {
-  return { id, recentGames: async (username, { max }) => answer(username, max) }
+  return {
+    id,
+    recentGames: async (username, { max }) => answer(username, max),
+    async game(gameId, { username }) {
+      if (gameId === 'HqjDTU4A') return games[0]!
+      throw new GameNotFoundError(
+        id,
+        gameId,
+        username ? `not among ${username}'s games` : undefined,
+      )
+    },
+  }
 }
 
 const games: SourceGame[] = [sampleSourceGame(), sampleSourceGame()]
@@ -81,6 +93,7 @@ describe('api', () => {
       '/health',
       '/human-moves',
       '/human-moves/probabilities',
+      '/sources/{source}/games/{id}',
       '/sources/{source}/users/{username}/games',
     ])
   })
@@ -252,5 +265,21 @@ describe('human-move routes', () => {
     } finally {
       humanStatus = { available: true, name: 'FakeMaia' }
     }
+  })
+})
+
+describe('GET /api/v1/sources/{source}/games/{id}', () => {
+  it('returns the game', async () => {
+    const res = await app.request('/api/v1/sources/lichess/games/HqjDTU4A')
+    expect(res.status).toBe(200)
+    expect(((await res.json()) as { game: SourceGame }).game).toEqual(games[0])
+  })
+
+  it('answers 404 for an unknown game and 400 for invalid ids or usernames', async () => {
+    const missing = await app.request('/api/v1/sources/chesscom/games/123?username=8sly')
+    expect(missing.status).toBe(404)
+    expect(((await missing.json()) as { detail: string }).detail).toMatch(/8sly/)
+    expect((await app.request('/api/v1/sources/lichess/games/no%20way')).status).toBe(400)
+    expect((await app.request('/api/v1/sources/chesscom/games/1?username=x')).status).toBe(400)
   })
 })

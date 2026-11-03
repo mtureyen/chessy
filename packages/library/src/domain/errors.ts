@@ -33,6 +33,19 @@ export class InvalidUsernameError extends Error {
   }
 }
 
+/** The platform has no such game, or none the user can reach (chess.com: only their own). */
+export class GameNotFoundError extends Error {
+  readonly source: SourceId
+  readonly gameId: string
+
+  constructor(source: SourceId, gameId: string, detail?: string) {
+    super(`No ${sourceName(source)} game ${gameId}${detail ? ` (${detail})` : ''}`)
+    this.name = 'GameNotFoundError'
+    this.source = source
+    this.gameId = gameId
+  }
+}
+
 /** Two different library ids for the same platform game. */
 export class DuplicateGameError extends Error {
   constructor(source: GameOrigin, externalId: string) {

@@ -1,4 +1,10 @@
-import type { GameSource, PlayerInfo, SourceGame, Speed } from '@chessy/library'
+import {
+  GameNotFoundError,
+  type GameSource,
+  type PlayerInfo,
+  type SourceGame,
+  type Speed,
+} from '@chessy/library'
 import { z } from 'zod'
 import { get, pgnResult, pgnTag, type HttpSourceOptions } from './http'
 
@@ -31,6 +37,8 @@ const SPEEDS: Record<string, Speed> = {
 
 /** Archives are monthly; look back at most this many months with games. */
 const MAX_MONTHS = 3
+/** How far back a single game is looked for in the user's archives. */
+const MAX_LOOKUP_MONTHS = 12
 
 export interface ChessComOptions extends HttpSourceOptions {
   baseUrl?: string
@@ -62,6 +70,33 @@ export class ChessComGameSource implements GameSource {
       if (games.length >= max) break
     }
     return games.slice(0, max).map(toSourceGame)
+  }
+
+  /**
+   * One of the user's games by the number in its URL. The published API has no lookup by game,
+   * so the user's monthly archives are searched, newest first.
+   */
+  async game(id: string, { username }: { username?: string }): Promise<SourceGame> {
+    if (!username) throw new GameNotFoundError('chesscom', id, 'needs the player’s username')
+    const base = this.options.baseUrl ?? 'https://api.chess.com'
+    const archivesUrl = `${base}/pub/player/${encodeURIComponent(username.toLowerCase())}/games/archives`
+    const { archives } = ArchivesSchema.parse(await this.json(archivesUrl, username))
+    for (const monthUrl of archives.slice(-MAX_LOOKUP_MONTHS).reverse()) {
+      const month = MonthSchema.parse(await this.json(monthUrl, username))
+      for (const raw of month.games) {
+        const parsed = ChessComGameSchema.safeParse(raw)
+        if (!parsed.success || !parsed.data.url.endsWith(`/${id}`)) continue
+        if (parsed.data.rules !== 'chess') {
+          throw new GameNotFoundError('chesscom', id, `${parsed.data.rules} is not supported`)
+        }
+        return toSourceGame(parsed.data)
+      }
+    }
+    throw new GameNotFoundError(
+      'chesscom',
+      id,
+      `not among ${username}'s games of the last ${MAX_LOOKUP_MONTHS} months`,
+    )
   }
 
   private async json(url: string, username: string): Promise<unknown> {

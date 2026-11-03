@@ -17,6 +17,7 @@ function controllableSource() {
       new Promise((resolve, reject) => {
         calls.push({ username, resolve, reject })
       }),
+    game: async (id) => sampleSourceGame({ externalId: id }),
   }
   return { source, calls }
 }
@@ -71,5 +72,19 @@ describe('CachedGameSource', () => {
     expect(calls).toHaveLength(2)
     calls[1]!.resolve([])
     expect(await retry).toEqual([])
+  })
+
+  it('passes single games through, queued behind running requests', async () => {
+    const { source, calls } = controllableSource()
+    const cached = new CachedGameSource(source)
+    const recent = cached.recentGames('alice', { max: 5 })
+    const single = cached.game('HqjDTU4A', {})
+    let done = false
+    void single.then(() => (done = true))
+    await tick()
+    expect(done).toBe(false) // waits for the running request
+    calls[0]!.resolve([])
+    await recent
+    expect((await single).externalId).toBe('HqjDTU4A')
   })
 })

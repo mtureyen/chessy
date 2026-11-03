@@ -1,4 +1,10 @@
-import type { GameSource, PlayerInfo, SourceGame, Speed } from '@chessy/library'
+import {
+  GameNotFoundError,
+  type GameSource,
+  type PlayerInfo,
+  type SourceGame,
+  type Speed,
+} from '@chessy/library'
 import { z } from 'zod'
 import { get, pgnResult, type HttpSourceOptions } from './http'
 
@@ -63,6 +69,20 @@ export class LichessGameSource implements GameSource {
         ? [toSourceGame(parsed.data)]
         : []
     })
+  }
+
+  /** One game via https://lichess.org/api#tag/Games/operation/gamePgn (as JSON). */
+  async game(id: string): Promise<SourceGame> {
+    const base = this.options.baseUrl ?? 'https://lichess.org'
+    const query = new URLSearchParams({ pgnInJson: 'true', clocks: 'true', opening: 'true' })
+    const url = `${base}/game/export/${encodeURIComponent(id)}?${query}`
+    const notFound = (detail?: string) => new GameNotFoundError('lichess', id, detail)
+    const res = await get('lichess', url, '', this.options, 'application/json', () => notFound())
+    const parsed = LichessGameSchema.safeParse(await res.json())
+    if (!parsed.success) throw notFound('unexpected answer')
+    if (!SUPPORTED_VARIANTS.has(parsed.data.variant))
+      throw notFound(`${parsed.data.variant} is not supported`)
+    return toSourceGame(parsed.data)
   }
 }
 

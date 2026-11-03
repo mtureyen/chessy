@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { SourceUnavailableError, UserNotFoundError } from '@chessy/library'
+import { GameNotFoundError, SourceUnavailableError, UserNotFoundError } from '@chessy/library'
 import { describe, expect, it } from 'vitest'
 import { ChessComGameSource } from './chesscom'
 import type { Fetch } from './http'
@@ -222,5 +222,31 @@ describe('ChessComGameSource', () => {
         max: 1,
       }),
     ).rejects.toBeInstanceOf(UserNotFoundError)
+  })
+})
+
+describe('single games', () => {
+  it('fetches a lichess game by id, and reports unknown ones as missing games', async () => {
+    const { fetch, requests } = spyFetch()
+    const source = new LichessGameSource({ fetch, userAgent })
+    const game = await source.game('HqjDTU4A')
+    expect(game).toMatchObject({ source: 'lichess', externalId: 'HqjDTU4A' })
+    expect(new URL(requests[0]!.url).pathname).toBe('/game/export/HqjDTU4A')
+    expect(requests[0]!.headers.Accept).toBe('application/json')
+    await expect(source.game('zzzzzzz1')).rejects.toBeInstanceOf(GameNotFoundError)
+  })
+
+  it('finds a chess.com game among the user’s archives, newest month first', async () => {
+    const { fetch, requests } = spyFetch()
+    const source = new ChessComGameSource({ fetch, userAgent })
+    const game = await source.game('185932092650', { username: 'Hikaru' })
+    expect(game.url).toBe('https://www.chess.com/game/live/185932092650')
+    expect(requests.map((r) => new URL(r.url).pathname)).toEqual([
+      '/pub/player/hikaru/games/archives',
+      '/pub/player/hikaru/games/2026/10',
+    ])
+    await expect(source.game('1', { username: 'hikaru' })).rejects.toThrow(/not among hikaru/)
+    await expect(source.game('1', {})).rejects.toBeInstanceOf(GameNotFoundError)
+    await expect(source.game('1', { username: 'ghost' })).rejects.toBeInstanceOf(UserNotFoundError)
   })
 })

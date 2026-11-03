@@ -20,6 +20,9 @@ function setup(games: SourceGame[] | Error) {
       if (games instanceof Error) throw games
       return games
     },
+    game: async () => {
+      throw new Error('not used')
+    },
   }
   let id = 0
   const deps = {
