@@ -57,7 +57,8 @@ cp apps/api/.env.example apps/api/.env      # DATABASE_URL for it
 
 The schema is applied on start (migrations in `apps/api/drizzle/`, changes via
 `bun run --cwd apps/api db:generate`). `DATABASE_URL=pglite:<folder>` runs an embedded Postgres
-instead, without Docker; tests and E2E use `pglite:memory`.
+instead, without Docker; tests and E2E use `pglite:memory`. `bun run --cwd apps/api db:check`
+checks the adapters against a real PostgreSQL (as CI does).
 
 ### Native engine (optional, much faster reviews)
 
