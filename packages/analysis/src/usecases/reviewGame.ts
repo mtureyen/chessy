@@ -1,4 +1,10 @@
-import { createGame, materialBalance, type Color, type GameStatus } from '@chessy/chess'
+import {
+  createGame,
+  materialBalance,
+  mostExposedPiece,
+  type Color,
+  type GameStatus,
+} from '@chessy/chess'
 import type { EngineLine } from '../domain/analysis'
 import { formatSanLine, toSanLine } from '../domain/line'
 import type { Score } from '../domain/score'
@@ -9,6 +15,7 @@ import { evalCacheKey } from '../domain/review/keys'
 import type { GameReview, PositionEval, ReviewedMove } from '../domain/review/types'
 import { winPercent } from '../domain/review/winPercent'
 import type { EvalCache } from '../ports/evalCache'
+import type { HumanMoveModel } from '../ports/humanMoveModel'
 import {
   EvaluationCancelledError,
   type CancelSignal,
@@ -19,6 +26,8 @@ export interface ReviewDeps {
   evaluator: PositionEvaluator
   cache?: EvalCache
   book?: OpeningBook
+  /** Tells hard-to-find moves from obvious ones (brilliant needs the former). Optional. */
+  humanMoves?: HumanMoveModel
 }
 
 export interface ReviewOptions {
@@ -32,7 +41,11 @@ export interface ReviewInput {
   startFen: string
   /** The game's moves in UCI. */
   moves: readonly string[]
+  /** The players' ratings, for judging how hard a move was to find; 1500 when unknown. */
+  ratings?: { white?: number; black?: number }
 }
+
+const DEFAULT_RATING = 1500
 
 /** Two lines: the second one tells whether the best move was the only good one ("great"). */
 const REVIEW_MULTI_PV = 2
@@ -60,6 +73,7 @@ export async function reviewGame(
   const evals = await evaluateAll(deps, engine, positions, options)
 
   const scores = positions.map((p, i) => bestScore(p, evals[i]!))
+  const human = await humanProbabilities(deps, input, positions, played)
   const moves: ReviewedMove[] = []
   let previousLoss: number | undefined
   for (const [i, move] of played.entries()) {
@@ -73,12 +87,20 @@ export async function reviewGame(
       legalMoves: before.legalMoves,
       inBook:
         !!deps.book?.isBook(after.fen) && (i === 0 || moves[i - 1]?.classification === 'book'),
-      sacrifice: sacrifice(before.fen, move.uci, move.color, evals[i + 1]!.lines[0]?.pv ?? []),
+      sacrifice: materialOffered(before.fen, after.fen, move.color),
+      sacrificeTaken: sacrificeTaken(
+        before.fen,
+        move.uci,
+        move.color,
+        evals[i + 1]!.lines[0]?.pv ?? [],
+      ),
+      isPromotion: move.uci.length > 4,
       isRecapture:
         i > 0 && move.san.includes('x') && played[i - 1]!.uci.slice(2, 4) === move.uci.slice(2, 4),
       inCheck: before.inCheck,
     }
     if (lines[1]) facts.secondBestWin = winPercent(lines[1].score, move.color)
+    if (human) facts.humanProbability = human[i]!
     if (previousLoss !== undefined) facts.opponentLoss = previousLoss
 
     const best = lines[0]?.pv[0]
@@ -93,6 +115,7 @@ export async function reviewGame(
       winAfter: facts.winAfter,
       accuracy: moveAccuracy(facts.winBefore, facts.winAfter),
       classification: classifyMove(facts),
+      facts,
       ...(best && bestLine[0]
         ? { best: { uci: best, san: bestLine[0].san, line: lines[0]!.pv.slice(0, 8) } }
         : {}),
@@ -144,6 +167,25 @@ function replay(input: ReviewInput) {
     positions.push(snapshot())
   }
   return { positions, played }
+}
+
+/** How likely a player of the mover's rating was to play each move; undefined without a model. */
+async function humanProbabilities(
+  deps: ReviewDeps,
+  input: ReviewInput,
+  positions: readonly Position[],
+  played: readonly { uci: string; color: Color }[],
+): Promise<number[] | undefined> {
+  if (!deps.humanMoves || played.length === 0) return undefined
+  const rating = (color: Color) => input.ratings?.[color] ?? DEFAULT_RATING
+  return deps.humanMoves.moveProbabilities(
+    played.map((move, i) => ({
+      fen: positions[i]!.fen,
+      move: move.uci,
+      eloSelf: rating(move.color),
+      eloOppo: rating(move.color === 'white' ? 'black' : 'white'),
+    })),
+  )
 }
 
 /** Cached evaluations first; the rest in one batch, so the evaluator can parallelise. */
@@ -203,10 +245,23 @@ function bestScore(position: Position, evaluation: PositionEval): Score {
 }
 
 /**
- * Material the mover is down after offering a piece: the opponent's best reply takes on the
- * destination square and the mover does not simply take back. 0 if nothing was given up.
+ * Material (pawns) the mover leaves for the taking: the most the opponent could now win by
+ * capturing one of the mover's pieces (static exchange), less what the move itself captured.
+ * Covers giving up the moved piece, leaving another piece en prise (ignoring a threat), and
+ * captures that cost more than they take. 0 if nothing is offered.
  */
-function sacrifice(
+function materialOffered(fenBefore: string, fenAfter: string, mover: Color): number {
+  const exposed = mostExposedPiece(fenAfter, mover)?.gain ?? 0
+  const sign = mover === 'white' ? 1 : -1
+  const captured = Math.max(0, sign * (materialBalance(fenAfter) - materialBalance(fenBefore)))
+  return Math.max(0, exposed - captured)
+}
+
+/**
+ * Material the mover is down after offering the moved piece: the opponent's best reply takes on
+ * the destination square and the mover does not simply take back. 0 if nothing was given up.
+ */
+function sacrificeTaken(
   fenBefore: string,
   uci: string,
   mover: Color,

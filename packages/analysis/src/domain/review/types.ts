@@ -1,7 +1,7 @@
 import type { Color } from '@chessy/chess'
 import type { EngineLine } from '../analysis'
 import type { Score } from '../score'
-import type { MoveClass } from './classify'
+import type { MoveClass, MoveFacts } from './classify'
 
 export interface PositionEval {
   /** Best lines (multi-PV), empty for positions without legal moves. */
@@ -29,6 +29,8 @@ export interface ReviewedMove {
   /** Move accuracy (0–100), lichess formula. */
   accuracy: number
   classification: MoveClass
+  /** What the classification was based on, e.g. to explain it. */
+  facts: MoveFacts
   /** The engine's preferred move and line in the position before. */
   best?: { uci: string; san: string; line: string[] }
 }

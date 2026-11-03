@@ -46,12 +46,23 @@ export const CLASSIFY_CONFIG = {
   greatOnlyMoveGap: 12,
   /** ... and only while the game is still open: finding mate in an already won position isn't "great". */
   greatMaxWinBefore: 90,
-  /** Brilliant = sound sacrifice of at least this much material (pawns) ... */
+  /**
+   * Brilliant = a best or nearly best move (less than `excellent` lost) that gives up at least
+   * this much material (pawns), i.e. a piece or the exchange ...
+   */
   brilliantMinSacrifice: 2,
   /** ... while not ending up worse than this (mover's win %) ... */
   brilliantMinWinAfter: 50,
-  /** ... and not already winning anyway (mover's win % before). */
-  brilliantMaxWinBefore: 90,
+  /**
+   * ... and not completely winning anyway (mover's win %): with a human-move model, judged by the
+   * second-best move; without one, by the position before ...
+   */
+  brilliantMaxWinWithout: 90,
+  /**
+   * ... and, with a human-move model, hard to find: players of the mover's rating play it less
+   * often than this (0–1). Measured against chess.com's own brilliants (bun run review:bench).
+   */
+  brilliantMaxHumanProbability: 0.2,
   /** Miss = the opponent's previous move lost at least this many expected points ... */
   missMinOpponentLoss: 0.1,
   /** ... and this move gives back at least this share of it. */
@@ -68,8 +79,20 @@ export interface MoveFacts {
   secondBestWin?: number
   legalMoves: number
   inBook: boolean
-  /** Material (pawns) the mover is down after the opponent takes the offered piece; 0 if none. */
+  /**
+   * Material (pawns) the move leaves for the taking: what the opponent could win by capturing
+   * one of the mover's pieces (static exchange), less what the move captured; 0 if nothing.
+   */
   sacrifice: number
+  /**
+   * Material (pawns) the mover is down once the engine's best reply takes the moved piece on its
+   * square and the mover doesn't simply take back; 0 otherwise. Stricter than `sacrifice`.
+   */
+  sacrificeTaken: number
+  /** A promotion is never brilliant: winning material that way is easy to see. */
+  isPromotion?: boolean
+  /** How likely a player of the mover's rating was to play this move (0–1), if known. */
+  humanProbability?: number
   /** The move recaptures on the square the opponent just captured on. */
   isRecapture: boolean
   /** The mover was in check: escaping is often the only move, but rarely a "great" find. */
@@ -89,14 +112,7 @@ export function classifyMove(facts: MoveFacts, config = CLASSIFY_CONFIG): MoveCl
   if (facts.legalMoves === 1) return 'forced'
   if (facts.inBook) return 'book'
 
-  if (
-    lost < config.excellent &&
-    facts.sacrifice >= config.brilliantMinSacrifice &&
-    facts.winAfter >= config.brilliantMinWinAfter &&
-    facts.winBefore < config.brilliantMaxWinBefore
-  ) {
-    return 'brilliant'
-  }
+  if (isBrilliant(facts, lost, config)) return 'brilliant'
 
   if (
     facts.isBestMove &&
@@ -125,4 +141,25 @@ export function classifyMove(facts: MoveFacts, config = CLASSIFY_CONFIG): MoveCl
   if (lost < config.inaccuracy) return 'inaccuracy'
   if (lost < config.mistake) return 'mistake'
   return 'blunder'
+}
+
+/**
+ * A good piece sacrifice. With a human-move model (Maia) every way of leaving material for the
+ * taking counts, as long as players of that rating rarely find the move. Without one only a
+ * sacrifice the engine's reply actually takes counts: fewer brilliants, but rarely wrong ones.
+ */
+function isBrilliant(facts: MoveFacts, lost: number, config: typeof CLASSIFY_CONFIG): boolean {
+  if (lost >= config.excellent || facts.inCheck || facts.isPromotion) return false
+  if (facts.winAfter < config.brilliantMinWinAfter) return false
+  if (facts.humanProbability === undefined) {
+    return (
+      facts.sacrificeTaken >= config.brilliantMinSacrifice &&
+      facts.winBefore < config.brilliantMaxWinWithout
+    )
+  }
+  return (
+    facts.sacrifice >= config.brilliantMinSacrifice &&
+    (facts.secondBestWin ?? facts.winBefore) < config.brilliantMaxWinWithout &&
+    facts.humanProbability < config.brilliantMaxHumanProbability
+  )
 }

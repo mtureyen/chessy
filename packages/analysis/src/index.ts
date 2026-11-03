@@ -49,6 +49,7 @@ export {
 } from './domain/review/types'
 export { CP_CEILING, cappedCentipawns, winPercent } from './domain/review/winPercent'
 export type { EvalCache } from './ports/evalCache'
+export type { HumanMoveModel, HumanMoveQuery } from './ports/humanMoveModel'
 export { InMemoryEvalCache } from './adapters/inMemoryEvalCache'
 export {
   EngineFailedError,
