@@ -14,6 +14,8 @@ export interface HumanMoveQuery {
  * hard-to-find moves from ones most players would play anyway.
  */
 export interface HumanMoveModel {
+  /** E.g. "Maia-3"; shown with the review. */
+  readonly name: string
   /** One probability (0–1) per query, in order. */
   moveProbabilities(queries: readonly HumanMoveQuery[]): Promise<number[]>
 }

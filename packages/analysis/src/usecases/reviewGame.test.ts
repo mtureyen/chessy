@@ -167,6 +167,48 @@ describe('reviewGame', () => {
     expect(review.moves[0]?.classification).toBe('brilliant')
   })
 
+  it("asks the human-move model with the players' ratings and names it in the settings", async () => {
+    const queries: unknown[] = []
+    const { engine } = fakeEngine()
+    const review = await reviewGame(
+      {
+        evaluator: new EnginePoolEvaluator([engine]),
+        humanMoves: {
+          name: 'FakeMaia',
+          async moveProbabilities(q) {
+            queries.push(...q)
+            return q.map(() => 0.3)
+          },
+        },
+      },
+      { startFen: START, moves: ['e2e4', 'e7e5'], ratings: { white: 1200 } },
+      { nodes: 1 },
+    )
+    expect(queries).toEqual([
+      { fen: START, move: 'e2e4', eloSelf: 1200, eloOppo: 1500 },
+      expect.objectContaining({ move: 'e7e5', eloSelf: 1500, eloOppo: 1200 }),
+    ])
+    expect(review.moves.map((m) => m.facts.humanProbability)).toEqual([0.3, 0.3])
+    expect(review.settings.humanMoves).toBe('FakeMaia')
+  })
+
+  it('reviews without the human-move model when it fails', async () => {
+    const { engine } = fakeEngine()
+    const review = await reviewGame(
+      {
+        evaluator: new EnginePoolEvaluator([engine]),
+        humanMoves: {
+          name: 'FakeMaia',
+          moveProbabilities: async () => Promise.reject(new Error('gone')),
+        },
+      },
+      { startFen: START, moves: ['e2e4'] },
+      { nodes: 1 },
+    )
+    expect(review.moves[0]!.facts.humanProbability).toBeUndefined()
+    expect(review.settings.humanMoves).toBeUndefined()
+  })
+
   it('reuses cached evaluations', async () => {
     const cache = new InMemoryEvalCache()
     const first = fakeEngine()

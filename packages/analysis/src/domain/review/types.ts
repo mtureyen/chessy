@@ -42,7 +42,8 @@ export interface GameReview {
   moves: ReviewedMove[]
   accuracy: Partial<Record<Color, number>>
   counts: Record<Color, Partial<Record<MoveClass, number>>>
-  settings: { engine: string; nodes: number }
+  /** `humanMoves`: the model that judged how hard moves were to find, if one did. */
+  settings: { engine: string; nodes: number; humanMoves?: string }
 }
 
 const NOTABLE: readonly MoveClass[] = ['brilliant', 'great', 'miss', 'mistake', 'blunder']
