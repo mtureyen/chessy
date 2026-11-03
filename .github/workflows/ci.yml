@@ -13,6 +13,21 @@ jobs:
   check:
     name: Lint, boundaries, types, tests, build
     runs-on: ubuntu-latest
+    services:
+      # Unit tests use an embedded Postgres; db:check runs the adapters on a real one too.
+      postgres:
+        image: postgres:17.10-alpine
+        env:
+          POSTGRES_USER: chessy
+          POSTGRES_PASSWORD: chessy
+          POSTGRES_DB: chessy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U chessy -d chessy"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -23,6 +38,11 @@ jobs:
       - run: bun run format:check
       - run: bun run check:boundaries
       - run: bunx turbo run typecheck test build
+      - name: Database adapters on PostgreSQL
+        working-directory: apps/api
+        run: bun run db:check
+        env:
+          DATABASE_URL: postgres://chessy:chessy@localhost:5432/chessy
 
   e2e:
     name: E2E (Playwright)

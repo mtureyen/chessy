@@ -19,7 +19,8 @@
     "maia:spike": "bun scripts/maia-spike.ts",
     "review:bench": "bun scripts/review-bench.ts",
     "bench:references": "bun scripts/collect-references.ts",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "db:check": "bun scripts/check-postgres.ts"
   },
   "dependencies": {
     "@chessy/analysis": "workspace:*",

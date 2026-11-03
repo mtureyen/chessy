@@ -1,10 +1,11 @@
 import type { GameReview } from '@chessy/analysis'
 import type { LibraryGame, Profile } from '@chessy/library'
+import { sql } from 'drizzle-orm'
 import {
   boolean,
+  customType,
   index,
   integer,
-  jsonb,
   pgTable,
   primaryKey,
   real,
@@ -18,6 +19,18 @@ import {
  * sent it; the other columns are copies for querying. After a change: `bun run db:generate`
  * writes the migration to apps/api/drizzle/ (applied on start).
  */
+/**
+ * A jsonb column whose values stay JSON objects with every driver. Bun's Postgres client
+ * encodes a parameter for a json column again, so drizzle's `jsonb` (which sends a JSON string)
+ * stored a string scalar; sent as text and cast, Postgres parses it itself.
+ */
+const json = <T>(name: string) =>
+  customType<{ data: T; driverData: unknown }>({
+    dataType: () => 'jsonb',
+    toDriver: (value) => sql`${JSON.stringify(value)}::text::jsonb`,
+    fromDriver: (value) => (typeof value === 'string' ? JSON.parse(value) : value) as T,
+  })(name)
+
 export const games = pgTable(
   'games',
   {
@@ -36,7 +49,7 @@ export const games = pgTable(
     openingName: text('opening_name'),
     /** SHA-256 of the main line (see lineText), to find the game's review. */
     lineHash: text('line_hash').notNull(),
-    data: jsonb('data').$type<LibraryGame>().notNull(),
+    data: json<LibraryGame>('data').notNull(),
   },
   (t) => [
     uniqueIndex('games_source_external_id').on(t.source, t.externalId),
@@ -55,7 +68,7 @@ export const reviews = pgTable('reviews', {
   accuracyWhite: real('accuracy_white'),
   accuracyBlack: real('accuracy_black'),
   reviewedAt: timestamp('reviewed_at', { withTimezone: true }).notNull(),
-  data: jsonb('data').$type<GameReview>().notNull(),
+  data: json<GameReview>('data').notNull(),
 })
 
 /** One row per reviewed move, for statistics across games. */
@@ -86,5 +99,5 @@ export const profiles = pgTable('profiles', {
   id: text('id').primaryKey(),
   displayName: text('display_name').notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
-  data: jsonb('data').$type<Profile>().notNull(),
+  data: json<Profile>('data').notNull(),
 })
