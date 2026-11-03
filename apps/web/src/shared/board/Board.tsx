@@ -7,6 +7,7 @@ import type { Key } from 'chessground/types'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Color, Move, SquareName } from '@chessy/chess'
 import { useBoardAppearance } from './appearanceStore'
+import { MARK_BRUSHES, markClasses, takeSquareMarks, type MarkBrush } from './markings'
 import './Board.css'
 import { PromotionDialog } from './PromotionDialog'
 
@@ -48,6 +49,8 @@ export function Board(props: BoardProps) {
   const latest = useRef(props)
   const [promotion, setPromotion] = useState<{ from: SquareName; to: SquareName }>()
   const { coordinates } = useBoardAppearance()
+  /** The user's coloured squares (right-click); their arrows live in chessground's shapes. */
+  const marks = useRef(new Map<Key, MarkBrush>())
 
   useLayoutEffect(() => {
     latest.current = props
@@ -60,11 +63,25 @@ export function Board(props: BoardProps) {
       if (latest.current.isPromotion(from, to)) setPromotion({ from, to })
       else latest.current.onMove({ from, to })
     }
+    const showMarks = (next: Map<Key, MarkBrush>) => {
+      marks.current = next
+      api.current?.set({ highlight: { custom: markClasses(next) } })
+    }
     const cg = Chessground(host.current!, {
       ...toConfig(latest.current),
       animation: { duration: 180 },
       premovable: { enabled: false },
       highlight: { lastMove: true, check: true },
+      drawable: {
+        brushes: MARK_BRUSHES,
+        // chessground draws a right-clicked square as a circle: colour the square instead.
+        onChange: (shapes) => {
+          const taken = takeSquareMarks(shapes, marks.current)
+          if (!taken) return
+          api.current?.setShapes(taken.arrows)
+          showMarks(taken.marks)
+        },
+      },
       movable: {
         ...toConfig(latest.current).movable,
         free: false,
@@ -73,7 +90,14 @@ export function Board(props: BoardProps) {
       },
     })
     api.current = cg
+    // A left click clears the markings, as chessground does with the arrows.
+    const element = host.current!
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button === 0 && marks.current.size > 0) showMarks(new Map())
+    }
+    element.addEventListener('pointerdown', onPointerDown)
     return () => {
+      element.removeEventListener('pointerdown', onPointerDown)
       cg.destroy()
       api.current = null
     }
@@ -90,8 +114,18 @@ export function Board(props: BoardProps) {
   // Only push when board-relevant props change, so unrelated re-renders don't reset the board.
   const { fen, orientation, turnColor, dests, check } = props
   const lastMove = props.lastMove?.join('')
+  const markedFen = useRef(fen)
   useEffect(() => {
-    api.current?.set(toConfig(latest.current))
+    const cg = api.current
+    if (!cg) return
+    // A new position clears the markings; flipping the board keeps them.
+    if (fen !== markedFen.current) {
+      markedFen.current = fen
+      marks.current = new Map()
+      cg.set({ ...toConfig(latest.current), highlight: { custom: new Map() } })
+    } else {
+      cg.set({ ...toConfig(latest.current), drawable: { shapes: cg.state.drawable.shapes } })
+    }
   }, [fen, orientation, turnColor, dests, check, lastMove])
 
   const { badge } = props
