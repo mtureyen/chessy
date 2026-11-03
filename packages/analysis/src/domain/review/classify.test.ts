@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { classifyMove, expectedPointsLost, type MoveFacts } from './classify'
+import {
+  CLASSIFY_CONFIG,
+  classifyMove,
+  expectedPointsLost,
+  type ClassifyConfig,
+  type MoveFacts,
+} from './classify'
 
 const quiet: MoveFacts = {
   isBestMove: false,
@@ -12,7 +18,14 @@ const quiet: MoveFacts = {
   isRecapture: false,
   inCheck: false,
 }
-const move = (facts: Partial<MoveFacts>) => classifyMove({ ...quiet, ...facts })
+/** Expected points on lichess' fixed curve: a loss is just the drop in win %. */
+const lichess: ClassifyConfig = {
+  ...CLASSIFY_CONFIG,
+  expectedPointsSlope: { at500: 1, at2000: 1 },
+  bestMaxLoss: 0,
+}
+const move = (facts: Partial<MoveFacts>, config = lichess) =>
+  classifyMove({ ...quiet, ...facts }, config)
 
 describe('classifyMove: expected points lost (chess.com thresholds)', () => {
   it.each([
@@ -31,8 +44,27 @@ describe('classifyMove: expected points lost (chess.com thresholds)', () => {
   })
 
   it('computes the loss in expected points and never below 0', () => {
-    expect(expectedPointsLost({ winBefore: 60, winAfter: 45 })).toBeCloseTo(0.15)
-    expect(expectedPointsLost({ winBefore: 40, winAfter: 60 })).toBe(0)
+    expect(expectedPointsLost({ winBefore: 60, winAfter: 45 }, lichess)).toBeCloseTo(0.15)
+    expect(expectedPointsLost({ winBefore: 40, winAfter: 60 }, lichess)).toBe(0)
+  })
+
+  it('weighs the same drop in evaluation less for weaker players', () => {
+    const drop = { winBefore: 75, winAfter: 40 }
+    const at = (rating: number) => expectedPointsLost({ ...drop, rating })
+    expect(at(400)).toBeCloseTo(at(500)) // constant below 500 ...
+    expect(at(500)).toBeLessThan(at(1200))
+    expect(at(1200)).toBeLessThan(at(2000))
+    expect(at(2000)).toBeCloseTo(at(2800)) // ... and above 2000
+    expect(at(2000)).toBeLessThan(0.35) // still flatter than lichess' 0.35 at the top
+    expect(expectedPointsLost(drop)).toBeCloseTo(at(1500)) // unknown rating: 1500
+    // A blunder for a 2000 player is only a mistake for a beginner.
+    expect(classifyMove({ ...quiet, ...drop, rating: 2000 })).toBe('blunder')
+    expect(classifyMove({ ...quiet, ...drop, rating: 500 })).toBe('mistake')
+  })
+
+  it('counts a move that loses next to nothing as best, not only the engine’s top move', () => {
+    expect(classifyMove({ ...quiet, winBefore: 55, winAfter: 54.95 })).toBe('best')
+    expect(classifyMove({ ...quiet, winBefore: 55, winAfter: 54 })).toBe('excellent')
   })
 })
 
@@ -103,10 +135,11 @@ describe('classifyMove: special classes', () => {
     expect(move({ ...sacrifice, humanProbability: 0.05, inCheck: true })).toBe('best')
   })
 
-  it('miss = giving back most of what the opponent’s mistake offered', () => {
-    expect(move({ opponentLoss: 0.25, winBefore: 80, winAfter: 66 })).toBe('miss')
-    expect(move({ opponentLoss: 0.25, winBefore: 80, winAfter: 76 })).toBe('good')
-    expect(move({ opponentLoss: 0.05, winBefore: 80, winAfter: 66 })).toBe('mistake')
-    expect(move({ opponentLoss: 0.3, winBefore: 80, winAfter: 55 })).toBe('blunder')
+  it('miss = giving back about what the opponent’s mistake offered, however much that is', () => {
+    expect(move({ opponentLoss: 0.25, winBefore: 80, winAfter: 66 })).toBe('miss') // 0.14 of 0.25
+    expect(move({ opponentLoss: 0.4, winBefore: 85, winAfter: 50 })).toBe('miss') // 0.35, a blunder's size
+    expect(move({ opponentLoss: 0.25, winBefore: 80, winAfter: 76 })).toBe('good') // keeps most of it
+    expect(move({ opponentLoss: 0.05, winBefore: 80, winAfter: 66 })).toBe('mistake') // no real chance
+    expect(move({ opponentLoss: 0.15, winBefore: 80, winAfter: 30 })).toBe('blunder') // far more than given
   })
 })
