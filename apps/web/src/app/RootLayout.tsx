@@ -1,5 +1,6 @@
 import { Link, Outlet } from '@tanstack/react-router'
 import { ApiStatus } from './ApiStatus'
+import { BoardSettings } from './BoardSettings'
 import './RootLayout.css'
 
 export function RootLayout() {
@@ -24,6 +25,7 @@ export function RootLayout() {
           </Link>
         </nav>
         <ApiStatus />
+        <BoardSettings />
       </header>
       <main className="app-main">
         <Outlet />
