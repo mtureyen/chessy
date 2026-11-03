@@ -51,6 +51,13 @@ const humanMoves: HumanMoveService = {
   status: async () => humanStatus,
   // A fixed answer per move: e2e4 is likely, anything else rare.
   moveProbabilities: async (queries) => queries.map((q) => (q.move === 'e2e4' ? 0.6 : 0.01)),
+  predict: async ({ eloSelf }) => ({
+    moves: [
+      { move: 'e2e4', probability: eloSelf / 2000 },
+      { move: 'd2d4', probability: 1 - eloSelf / 2000 },
+    ],
+    expectedScore: 0.55,
+  }),
 }
 
 const app = createApp({
@@ -92,6 +99,7 @@ describe('api', () => {
       '/engine/evaluations',
       '/health',
       '/human-moves',
+      '/human-moves/predict',
       '/human-moves/probabilities',
       '/sources/{source}/games/{id}',
       '/sources/{source}/users/{username}/games',
@@ -262,6 +270,37 @@ describe('human-move routes', () => {
       })
       expect(res.status).toBe(503)
       expect(((await res.json()) as { detail: string }).detail).toBe('No Maia model')
+    } finally {
+      humanStatus = { available: true, name: 'FakeMaia' }
+    }
+  })
+
+  const predict = (body: unknown) =>
+    app.request('/api/v1/human-moves/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+  it('predicts the moves a player of the rating would play', async () => {
+    const res = await predict({ fen: START, eloSelf: 1200, eloOppo: 1000 })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      moves: [
+        { move: 'e2e4', probability: 0.6 },
+        { move: 'd2d4', probability: 0.4 },
+      ],
+      expectedScore: 0.55,
+    })
+  })
+
+  it('rejects an invalid position and answers 503 without a model', async () => {
+    const invalid = await predict({ fen: 'nonsense', eloSelf: 1200, eloOppo: 1200 })
+    expect(invalid.status).toBe(400)
+    expect((await predict({ fen: START, eloSelf: 50, eloOppo: 1200 })).status).toBe(400)
+    humanStatus = { available: false, reason: 'No Maia model' }
+    try {
+      expect((await predict({ fen: START, eloSelf: 1200, eloOppo: 1200 })).status).toBe(503)
     } finally {
       humanStatus = { available: true, name: 'FakeMaia' }
     }

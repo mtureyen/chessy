@@ -10,6 +10,7 @@ import { adjudicate } from '../domain/adjudication'
 import type { BotLevel } from '../domain/levels'
 import { seededRandom } from '../domain/random'
 import { resultOf } from '../domain/session'
+import type { HumanMovePolicy } from '../ports/humanMovePolicy'
 import { chooseBotMove } from './chooseBotMove'
 
 /** Anything that can play a move in a match. */
@@ -29,18 +30,33 @@ export interface MatchGame {
   pgn: string
 }
 
-/** Our bot at a level, playing exactly as in a real game (fresh searches, seeded choice). */
-export function botPlayer(engine: EngineProvider, level: BotLevel, seed: number): MatchPlayer {
+/**
+ * Our bot at a level, playing exactly as in a real game (fresh searches, seeded choice); with a
+ * human-move policy, human-like levels play from it.
+ */
+export function botPlayer(
+  engine: EngineProvider,
+  level: BotLevel,
+  seed: number,
+  human?: HumanMovePolicy,
+): MatchPlayer {
   const random = seededRandom(seed)
   return {
     name: `level-${level.level}`,
     async move(fen) {
-      const choice = await chooseBotMove({ engine }, { fen, level, random })
-      const best = choice.candidates[0]
+      const choice = await chooseBotMove(
+        { engine, ...(human && { human }) },
+        { fen, level, random },
+      )
       const turn: Color = fen.split(' ')[1] === 'b' ? 'black' : 'white'
+      const { winChance } = choice
       return {
         move: choice.move,
-        ...(best && { whiteWinChance: turn === 'white' ? best.winChance : 100 - best.winChance }),
+        // Only an engine's view: humans' expected results would end games too early.
+        ...(choice.by === 'engine' &&
+          winChance !== undefined && {
+            whiteWinChance: turn === 'white' ? winChance : 100 - winChance,
+          }),
       }
     },
   }

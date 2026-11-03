@@ -1,5 +1,9 @@
 import { createGame, InvalidPositionError } from '@chessy/chess'
-import { humanMovesStatusRoute, moveProbabilitiesRoute } from '@chessy/contracts'
+import {
+  humanMovePredictionRoute,
+  humanMovesStatusRoute,
+  moveProbabilitiesRoute,
+} from '@chessy/contracts'
 import type { HumanMoveService } from '../../adapters/humanMoves/service'
 import { problem } from '../../http/problem'
 import { createRouter } from '../../http/router'
@@ -24,5 +28,19 @@ export function humanMoveRoutes({ humanMoves }: { humanMoves: HumanMoveService }
         return problem(c, 503, 'Human-move model unavailable', { detail: status.reason })
       }
       return c.json({ probabilities: await humanMoves.moveProbabilities(queries) }, 200)
+    })
+    .openapi(humanMovePredictionRoute, async (c) => {
+      const request = c.req.valid('json')
+      try {
+        createGame(request.fen)
+      } catch (error) {
+        if (!(error instanceof InvalidPositionError)) throw error
+        return problem(c, 400, 'Invalid position', { detail: `fen: ${error.message}` })
+      }
+      const status = await humanMoves.status()
+      if (!status.available) {
+        return problem(c, 503, 'Human-move model unavailable', { detail: status.reason })
+      }
+      return c.json(await humanMoves.predict(request), 200)
     })
 }

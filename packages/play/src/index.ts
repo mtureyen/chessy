@@ -10,7 +10,14 @@ export {
   type ClockState,
   type TimeControl,
 } from './domain/clock'
-export { approximateRating, BOT_LEVELS, botLevel, type BotLevel } from './domain/levels'
+export { sampleHumanMove } from './domain/humanSelection'
+export {
+  approximateRating,
+  BOT_LEVELS,
+  botLevel,
+  type BotLevel,
+  type HumanStyle,
+} from './domain/levels'
 export { MATCH_OPENINGS } from './domain/openings'
 export {
   estimateRatings,
@@ -37,6 +44,11 @@ export {
   TIME_CONTROLS,
   type TimeControlPreset,
 } from './domain/timeControl'
+export type {
+  HumanMoveDistribution,
+  HumanMovePolicy,
+  HumanMoveRequest,
+} from './ports/humanMovePolicy'
 export {
   BotMoveCancelledError,
   chooseBotMove,

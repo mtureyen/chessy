@@ -122,4 +122,20 @@ describe('BOT_LEVELS', () => {
     expect(approximateRating({ ...botLevel(1), rating: 1437 })).toBe('~1450')
     expect(approximateRating({ ...botLevel(1), rating: undefined })).toBeUndefined()
   })
+
+  it('still tells good moves from blunders when the game is already decided', () => {
+    // Black is lost either way (~2 % win), but taking back the piece keeps it closer.
+    const lost = [
+      line(1, 'd7f6', cp(680)),
+      line(2, 'd8f6', cp(790)),
+      line(3, 'g7g5', cp(870)),
+      line(4, 'c7h2', cp(1150)),
+    ]
+    const choice = selectMove(lost, 'black', botLevel(3), seededRandom(1))!
+    const chance = (move: string) =>
+      choice.candidates.find((c) => c.move === move)?.probability ?? 0
+    expect(chance('d7f6')).toBeGreaterThan(0.4)
+    expect(chance('c7h2')).toBeLessThan(0.05)
+    expect(choice).toMatchObject({ by: 'engine', winChance: choice.candidates[0]!.winChance })
+  })
 })
