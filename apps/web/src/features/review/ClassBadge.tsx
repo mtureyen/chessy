@@ -1,16 +1,18 @@
 import type { MoveClass } from '@chessy/analysis'
+import { classIconSvg } from './classIcons'
 import { CLASS_STYLES } from './classes'
 
 export function ClassBadge({ cls }: { cls: MoveClass }) {
-  const style = CLASS_STYLES[cls]
+  const label = CLASS_STYLES[cls].label
   return (
-    <span
+    <svg
       className="class-badge"
-      style={{ background: style.color }}
-      title={style.label}
+      viewBox="-20 -20 40 40"
+      role="img"
+      aria-label={label}
       data-class={cls}
-    >
-      {style.glyph}
-    </span>
+      // Our own static markup (classIcons.ts), shared with the board's badge.
+      dangerouslySetInnerHTML={{ __html: `<title>${label}</title>${classIconSvg(cls)}` }}
+    />
   )
 }

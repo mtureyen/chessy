@@ -9,7 +9,8 @@ import {
 } from '@chessy/chess'
 import { useMemo, useState } from 'react'
 import { ClassBadge } from '@/features/review/ClassBadge'
-import { CLASS_STYLES, LIST_BADGES } from '@/features/review/classes'
+import { classIconSvg } from '@/features/review/classIcons'
+import { LIST_BADGES } from '@/features/review/classes'
 import { EvalGraph } from '@/features/review/EvalGraph'
 import { mainline, reviewedNodes } from '@/features/review/mapping'
 import { ReviewPanel } from '@/features/review/ReviewPanel'
@@ -110,8 +111,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
             currentReview && view.lastMove
               ? {
                   square: view.lastMove[1],
-                  glyph: CLASS_STYLES[currentReview.classification].glyph,
-                  color: CLASS_STYLES[currentReview.classification].color,
+                  svg: classIconSvg(currentReview.classification, { outline: true }),
                 }
               : undefined
           }

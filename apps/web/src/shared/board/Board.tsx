@@ -28,8 +28,8 @@ export interface BoardProps {
 
 export interface BoardBadge {
   square: SquareName
-  glyph: string
-  color: string
+  /** SVG markup for a 40×40 box centred on the origin. */
+  svg: string
 }
 
 export interface BoardArrow {
@@ -97,7 +97,7 @@ export function Board(props: BoardProps) {
   const { badge } = props
   const shapesKey = [
     ...(props.arrows ?? []).map((a) => `${a.kind}:${a.from}${a.to}`),
-    badge ? `badge:${badge.square}${badge.glyph}${badge.color}` : '',
+    badge ? `badge:${badge.square}${badge.svg}` : '',
   ].join(',')
   useEffect(() => {
     // setAutoShapes leaves the user's own drawings alone (cg.set with a fen would clear them).
@@ -130,14 +130,8 @@ export function Board(props: BoardProps) {
 }
 
 /** Drawn in a 100×100 box whose origin is the square's top-left corner; the badge sits top-right. */
-function badgeShape({ square, glyph, color }: BoardBadge): DrawShape {
-  const text = glyph.replace(/[<>&"]/g, '')
-  return {
-    orig: square,
-    customSvg: {
-      html: `<g transform="translate(86 14)"><circle r="19" fill="${color}" stroke="#fff" stroke-width="3"/><text text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-weight="800" font-size="${text.length > 1 ? 20 : 24}" fill="#fff">${text}</text></g>`,
-    },
-  }
+function badgeShape({ square, svg }: BoardBadge): DrawShape {
+  return { orig: square, customSvg: { html: `<g transform="translate(86 14)">${svg}</g>` } }
 }
 
 function toShape(arrow: BoardArrow): DrawShape {
