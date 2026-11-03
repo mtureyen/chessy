@@ -112,3 +112,7 @@ Branch, commit and PR conventions: [CONTRIBUTING.md](CONTRIBUTING.md).
 Chessy is licensed under the [GNU Affero General Public License v3.0](LICENSE). It builds on
 GPL-3.0 libraries (chessops, chessground, Stockfish) and on Maia-3 by the University of Toronto
 Computational Social Science Lab (AGPL-3.0).
+
+The board's piece sets come from lichess under their own licences (GPL, AGPL, Apache 2.0, MIT,
+CC BY 4.0, CC0); authors and licences are listed in
+[apps/web/public/pieces/README.md](apps/web/public/pieces/README.md).
