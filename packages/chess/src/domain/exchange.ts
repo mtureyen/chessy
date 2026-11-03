@@ -4,6 +4,7 @@ import { parseFen } from 'chessops/fen'
 import type { SquareSet } from 'chessops/squareSet'
 import type { Role, Square } from 'chessops/types'
 import { makeSquare, parseSquare } from 'chessops/util'
+import { createGame } from './game'
 import type { Color, SquareName } from './types'
 
 /** Pawn units; the king's value only orders it last among attackers. */
@@ -47,7 +48,8 @@ export function staticExchange(fen: string, square: SquareName, by: Color): numb
 /**
  * The most material the opponent of `color` could win by capturing one of `color`'s pieces
  * (knights and up; pawns and the king aside), with the square of that piece. Undefined if no
- * such capture wins anything.
+ * such capture wins anything. With the opponent to move, only pieces it can legally take right
+ * away count: a piece left attacked while giving check isn't offered.
  */
 export function mostExposedPiece(
   fen: string,
@@ -55,14 +57,25 @@ export function mostExposedPiece(
 ): { square: SquareName; gain: number } | undefined {
   const setup = parseFen(fen)
   if (setup.isErr) throw new Error(`Invalid FEN: ${fen}`)
+  const takeable = setup.value.turn === color ? undefined : legalTargets(fen)
   let best: { square: SquareName; gain: number } | undefined
   for (const [square, piece] of setup.value.board) {
     if (piece.color !== color || piece.role === 'pawn' || piece.role === 'king') continue
     const name = makeSquare(square)
+    if (takeable && !takeable.has(name)) continue
     const gain = staticExchange(fen, name, opposite(color))
     if (gain > 0 && gain > (best?.gain ?? 0)) best = { square: name, gain }
   }
   return best
+}
+
+/** The squares the side to move can move to (and so capture on) legally. */
+function legalTargets(fen: string): Set<SquareName> {
+  return new Set(
+    createGame(fen)
+      .legalMoves()
+      .map((move) => move.to),
+  )
 }
 
 function cheapestAttacker(board: Board, target: Square, color: Color, occupied: SquareSet) {

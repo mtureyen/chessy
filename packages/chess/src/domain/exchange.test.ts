@@ -50,4 +50,11 @@ describe('mostExposedPiece', () => {
       mostExposedPiece('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', 'white'),
     ).toBeUndefined()
   })
+
+  it('does not count a piece the opponent cannot take because it is in check', () => {
+    // 5. Bg5 attacks Black's queen; 5...Nxf3+ takes a knight with check, so White can't take
+    // the queen next move: only the knight on f3 can be taken, which just trades knights.
+    const afterCheck = 'r1bqkbnr/pp1p1ppp/4p3/2p3B1/4P3/2NP1n2/PPP2PPP/R2QKB1R w KQkq - 0 6'
+    expect(mostExposedPiece(afterCheck, 'black')).toEqual({ square: 'f3', gain: 3 })
+  })
 })
