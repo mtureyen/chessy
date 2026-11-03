@@ -104,7 +104,7 @@ export function useBotGame(setup: BotGameSetup, seed: number) {
       .then(([choice]) => {
         if (controller.signal.aborted) return
         setBotError(undefined)
-        setBotWinChance(choice.candidates[0]?.winChance)
+        setBotWinChance(choice.winChance)
         playMove(choice.move, opposite(setup.color))
       })
       .catch((error: unknown) => {
