@@ -5,8 +5,11 @@ import {
   type GameSource,
   type SourceGame,
 } from '@chessy/library'
-import { sampleSourceGame } from '@chessy/library/testing'
+import { sampleReview } from '@chessy/history/testing'
+import { sampleGame, sampleSourceGame } from '@chessy/library/testing'
 import { describe, expect, it } from 'vitest'
+import { openDatabase } from './adapters/db/database'
+import { DatabaseLibraryService } from './adapters/db/service'
 import type { EngineService, EngineStatus } from './adapters/engine/service'
 import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/service'
 import { createApp } from './app'
@@ -63,6 +66,7 @@ const humanMoves: HumanMoveService = {
 const app = createApp({
   engine,
   humanMoves,
+  library: new DatabaseLibraryService(() => openDatabase('pglite:memory')),
   version: '9.9.9',
   startedAt: 1_000,
   now: () => 61_000,
@@ -101,6 +105,10 @@ describe('api', () => {
       '/human-moves',
       '/human-moves/predict',
       '/human-moves/probabilities',
+      '/library',
+      '/library/games',
+      '/library/games/missing',
+      '/library/reviews',
       '/sources/{source}/games/{id}',
       '/sources/{source}/users/{username}/games',
     ])
@@ -320,5 +328,61 @@ describe('GET /api/v1/sources/{source}/games/{id}', () => {
     expect(((await missing.json()) as { detail: string }).detail).toMatch(/8sly/)
     expect((await app.request('/api/v1/sources/lichess/games/no%20way')).status).toBe(400)
     expect((await app.request('/api/v1/sources/chesscom/games/1?username=x')).status).toBe(400)
+  })
+})
+
+describe('library routes', () => {
+  const post = (path: string, body: unknown) =>
+    app.request(`/api/v1/library${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  const game = sampleGame({ id: 'lib-1', externalId: 'lib-ext-1' })
+
+  it('keeps games, tells which ones it lacks and reports what it holds', async () => {
+    expect((await post('/games', { games: [game] })).status).toBe(200)
+    const missing = await post('/games/missing', { ids: ['lib-1', 'lib-2'] })
+    expect(await missing.json()).toEqual({ missing: ['lib-2'] })
+    const status = await app.request('/api/v1/library')
+    expect(await status.json()).toMatchObject({ available: true, games: 1 })
+  })
+
+  it('rejects unreadable PGNs and a platform game under a second id', async () => {
+    const broken = await post('/games', { games: [{ ...game, id: 'lib-3', pgn: '1. e5 e4' }] })
+    expect(broken.status).toBe(400)
+    const twice = await post('/games', { games: [{ ...game, id: 'lib-4' }] })
+    expect(twice.status).toBe(409)
+  })
+
+  it('keeps a review of a line, and only of the moves it was sent with', async () => {
+    const { line, review } = sampleReview()
+    const ok = await post('/reviews', { ...line, review })
+    expect(ok.status).toBe(200)
+    expect(await (await app.request('/api/v1/library')).json()).toMatchObject({ reviews: 1 })
+    const other = await post('/reviews', { ...line, moves: ['d2d4', 'd7d5'], review })
+    expect(other.status).toBe(400)
+  })
+
+  it('answers 503 without a database', async () => {
+    const offline = createApp({
+      engine,
+      humanMoves,
+      library: new DatabaseLibraryService(undefined),
+      version: '9.9.9',
+      startedAt: 0,
+      sources: {
+        lichess: fakeSource('lichess', () => []),
+        chesscom: fakeSource('chesscom', () => []),
+      },
+    })
+    const status = await offline.request('/api/v1/library')
+    expect(await status.json()).toMatchObject({ available: false })
+    const save = await offline.request('/api/v1/library/games', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ games: [game] }),
+    })
+    expect(save.status).toBe(503)
   })
 })

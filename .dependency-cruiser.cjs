@@ -7,7 +7,8 @@ const NODE_BUILTINS = `^(${require('node:module')
   .builtinModules.map((name) => name.replace(/[/]/g, '\\/'))
   .join('|')})$`
 
-const FRAMEWORKS = 'node_modules/(react|react-dom|hono|@hono|@scalar|dexie|chessground|@tanstack)/'
+const FRAMEWORKS =
+  'node_modules/(react|react-dom|hono|@hono|@scalar|dexie|chessground|@tanstack|drizzle-orm|@electric-sql|@anthropic-ai|@modelcontextprotocol)/'
 
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
@@ -40,7 +41,7 @@ module.exports = {
       comment:
         'apps/web compiles the API types (typed client); nothing they reach may import Node built-ins.',
       from: { path: '^apps/api/src/rpc\\.ts$' },
-      to: { path: NODE_BUILTINS, reachable: true },
+      to: { path: [NODE_BUILTINS, '^bun$'], reachable: true },
     },
     {
       name: 'domain-is-pure',

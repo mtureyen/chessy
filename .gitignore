@@ -23,6 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 
+# Local settings (examples: .env.example)
+.env
+.env.*
+!.env.example
+
 # Monorepo / tooling
 .turbo
 coverage

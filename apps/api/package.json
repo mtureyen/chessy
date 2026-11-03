@@ -18,17 +18,21 @@
     "maia:fetch": "bun scripts/fetch-maia.ts",
     "maia:spike": "bun scripts/maia-spike.ts",
     "review:bench": "bun scripts/review-bench.ts",
-    "bench:references": "bun scripts/collect-references.ts"
+    "bench:references": "bun scripts/collect-references.ts",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@chessy/analysis": "workspace:*",
     "@chessy/chess": "workspace:*",
     "@chessy/contracts": "workspace:*",
+    "@chessy/history": "workspace:*",
     "@chessy/library": "workspace:*",
     "@chessy/maia": "workspace:*",
     "@chessy/play": "workspace:*",
+    "@electric-sql/pglite": "0.5.10",
     "@hono/zod-openapi": "^1.6.3",
     "@scalar/hono-api-reference": "^0.12.14",
+    "drizzle-orm": "0.45.4",
     "hono": "^4.13.14",
     "onnxruntime-web": "1.30.0",
     "zod": "^4.6.7"
@@ -36,6 +40,7 @@
   "devDependencies": {
     "@chessy/config": "workspace:*",
     "@playwright/test": "^1.64.1",
-    "@types/bun": "^1.4.4"
+    "@types/bun": "^1.4.4",
+    "drizzle-kit": "0.31.11"
   }
 }
