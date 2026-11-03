@@ -1,0 +1,82 @@
+.profile-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 12rem;
+  padding: 0.2rem 0.6rem 0.2rem 0.2rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.profile-chip:hover {
+  background: var(--hover);
+}
+
+.profile-chip img,
+.profile-chip-initial {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-chip-initial {
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.profile-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-chip-setup {
+  padding: 0.35rem 0.75rem;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.profile-chip-setup:hover {
+  background: var(--accent);
+  filter: brightness(1.1);
+}
+
+.welcome-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 1.25rem 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 0.9rem;
+}
+
+.welcome-banner span {
+  flex: 1;
+}
+
+.welcome-banner-action {
+  padding: 0.35rem 0.8rem;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.welcome-banner button {
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}

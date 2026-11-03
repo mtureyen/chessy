@@ -9,6 +9,7 @@ import {
   type ReviewOptions,
 } from '@chessy/analysis'
 import {
+  buildProfile,
   importRecentGames,
   mirrorLibrary,
   MirroredGameRepository,
@@ -17,6 +18,9 @@ import {
   type GameSource,
   type ImportReport,
   type LibraryGame,
+  type LinkedAccount,
+  type PlayerProfile,
+  type Profile,
   type SettingsStore,
   type SourceId,
 } from '@chessy/library'
@@ -54,6 +58,14 @@ export interface Services {
     chooseBotMove: (request: BotMoveRequest) => Promise<BotChoice>
     /** Saves a finished bot game to the library. */
     saveBotGame: (finished: FinishedBotGame) => Promise<LibraryGame>
+  }
+  profile: {
+    /** The user's profile: this browser's, else the server's copy (kept here then); null if none. */
+    load: () => Promise<Profile | null>
+    /** Creates or updates the profile; also remembers the accounts for the import form. */
+    save: (input: { displayName?: string; accounts: LinkedAccount[] }) => Promise<Profile>
+    /** A platform account's public profile, e.g. to confirm "is this you?". */
+    lookup: (source: SourceId, username: string) => Promise<PlayerProfile>
   }
   history: {
     /**
@@ -131,12 +143,45 @@ export function createServices(): Services {
         return review
       },
     },
+    profile: {
+      load: async () => {
+        const mine = await local.profile.load()
+        if (mine) return mine
+        const kept = await withTimeout(remoteLibrary.profile(), SERVER_CHECK_MS).catch(
+          () => undefined,
+        )
+        if (kept) await local.profile.save(kept)
+        return kept ?? null
+      },
+      save: async (input) => {
+        const existing = await local.profile.load()
+        const profile = buildProfile(input, {
+          id: existing?.id ?? newId(),
+          now: now().toISOString(),
+          ...(existing && { createdAt: existing.createdAt }),
+        })
+        await local.profile.save(profile)
+        const current = await settings.load()
+        const usernames = { ...current.usernames }
+        for (const account of profile.accounts) usernames[account.source] = account.username
+        await settings.save({ ...current, usernames })
+        remoteLibrary.saveProfile(profile).catch(() => undefined)
+        return profile
+      },
+      lookup: (source, username) => sources[source].player(username),
+    },
     history: {
       sync: async () => {
         const status = await withTimeout(remoteLibrary.status(), SERVER_CHECK_MS).catch(
           () => undefined,
         )
         if (!status?.available) return undefined
+        // The server keeps the newer profile of the two (e.g. one set up while it was down).
+        const mine = await local.profile.load()
+        const kept = await remoteLibrary.profile()
+        if (mine && (!kept || kept.updatedAt < mine.updatedAt)) {
+          await remoteLibrary.saveProfile(mine)
+        }
         return (await mirrorLibrary({ games: local.games, mirror: remoteLibrary })).uploaded
       },
     },
