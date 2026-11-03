@@ -37,8 +37,9 @@ describe('classifyMove: expected points lost (chess.com thresholds)', () => {
 })
 
 describe('classifyMove: special classes', () => {
-  it('forced and book win over everything', () => {
-    expect(move({ legalMoves: 1, winAfter: 5 })).toBe('forced')
+  it('the only legal move is best, and book wins over everything else', () => {
+    expect(move({ legalMoves: 1, winAfter: 5 })).toBe('best')
+    expect(move({ legalMoves: 1, sacrificeTaken: 5 })).toBe('best')
     expect(move({ inBook: true, winAfter: 50 })).toBe('book')
   })
 

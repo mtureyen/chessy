@@ -12,7 +12,6 @@ export type MoveClass =
   | 'excellent'
   | 'good'
   | 'book'
-  | 'forced'
   | 'inaccuracy'
   | 'mistake'
   | 'miss'
@@ -25,7 +24,6 @@ export const MOVE_CLASSES: readonly MoveClass[] = [
   'excellent',
   'good',
   'book',
-  'forced',
   'inaccuracy',
   'mistake',
   'miss',
@@ -109,7 +107,8 @@ export function expectedPointsLost(facts: Pick<MoveFacts, 'winBefore' | 'winAfte
 export function classifyMove(facts: MoveFacts, config = CLASSIFY_CONFIG): MoveClass {
   const lost = expectedPointsLost(facts)
 
-  if (facts.legalMoves === 1) return 'forced'
+  // chess.com has no "forced" class: the only legal move is also the best one.
+  if (facts.legalMoves === 1) return 'best'
   if (facts.inBook) return 'book'
 
   if (isBrilliant(facts, lost, config)) return 'brilliant'
