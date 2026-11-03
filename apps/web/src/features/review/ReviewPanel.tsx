@@ -133,10 +133,6 @@ function ReviewReport({
   again: ReactNode
 }) {
   const moments = keyMoments(review)
-  // "Forced" only appears when it happened; the others always, like on chess.com.
-  const total = (cls: (typeof SUMMARY_ORDER)[number]) =>
-    (review.counts.white[cls] ?? 0) + (review.counts.black[cls] ?? 0)
-  const rows = SUMMARY_ORDER.filter((cls) => cls !== 'forced' || total(cls) > 0)
   return (
     <div className="review">
       <div className="review-accuracy">
@@ -154,7 +150,7 @@ function ReviewReport({
 
       <table className="review-counts">
         <tbody>
-          {rows.map((cls) => (
+          {SUMMARY_ORDER.map((cls) => (
             <tr key={cls} data-testid={`count-${cls}`}>
               <td className="review-count">{review.counts.white[cls] ?? 0}</td>
               <td className="review-count-label">
