@@ -16,7 +16,8 @@
     "engine:native": "bun scripts/fetch-stockfish.ts",
     "bots:calibrate": "bun scripts/calibrate-bots.ts",
     "maia:fetch": "bun scripts/fetch-maia.ts",
-    "maia:spike": "bun scripts/maia-spike.ts"
+    "maia:spike": "bun scripts/maia-spike.ts",
+    "review:bench": "bun scripts/review-bench.ts"
   },
   "dependencies": {
     "@chessy/analysis": "workspace:*",

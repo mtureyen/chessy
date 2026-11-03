@@ -71,6 +71,14 @@ browsers (pinned, checksum-verified); `bun run --cwd apps/api maia:spike latency
 <games.json> | strength` measures its speed, how often it predicts real moves, and its strength
 against the bot levels.
 
+### Review benchmark
+
+`bun run --cwd apps/api review:bench <dataset.json>` runs the game review over games where
+chess.com marked a move brilliant (e.g. Chessigma's published brilliant benchmark, not part of
+this repo) and reports how many we find and how many other moves we call brilliant. Engine and
+Maia results are cached in `apps/api/.bench/`, so after the first run a rule change is measured
+in seconds. Even games are for tuning, odd ones for checking (`--split tune|check`).
+
 ## Contributing
 
 Branch, commit and PR conventions: [CONTRIBUTING.md](CONTRIBUTING.md).
