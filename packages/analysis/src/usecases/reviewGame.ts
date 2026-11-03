@@ -10,10 +10,15 @@ import { formatSanLine, toSanLine } from '../domain/line'
 import type { Score } from '../domain/score'
 import { gameAccuracy, moveAccuracy } from '../domain/review/accuracy'
 import type { OpeningBook } from '../domain/review/book'
-import { classifyMove, expectedPointsLost, type MoveFacts } from '../domain/review/classify'
+import {
+  CLASSIFY_CP_CEILING,
+  classifyMove,
+  expectedPointsLost,
+  type MoveFacts,
+} from '../domain/review/classify'
 import { evalCacheKey } from '../domain/review/keys'
 import type { GameReview, PositionEval, ReviewedMove } from '../domain/review/types'
-import { winPercent } from '../domain/review/winPercent'
+import { povCentipawns, winPercent } from '../domain/review/winPercent'
 import type { EvalCache } from '../ports/evalCache'
 import type { HumanMoveModel } from '../ports/humanMoveModel'
 import {
@@ -75,7 +80,7 @@ export async function reviewGame(
   const scores = positions.map((p, i) => bestScore(p, evals[i]!))
   const human = await humanProbabilities(deps, input, positions, played)
   const moves: ReviewedMove[] = []
-  let previousLoss: number | undefined
+  let previous: MoveFacts | undefined
   for (const [i, move] of played.entries()) {
     const before = positions[i]!
     const after = positions[i + 1]!
@@ -84,9 +89,11 @@ export async function reviewGame(
       isBestMove: lines[0]?.pv[0] === move.uci,
       winBefore: winPercent(scores[i]!, move.color),
       winAfter: winPercent(scores[i + 1]!, move.color),
+      evalBefore: povCentipawns(scores[i]!, move.color, CLASSIFY_CP_CEILING),
+      evalAfter: povCentipawns(scores[i + 1]!, move.color, CLASSIFY_CP_CEILING),
       legalMoves: before.legalMoves,
-      inBook:
-        !!deps.book?.isBook(after.fen) && (i === 0 || moves[i - 1]?.classification === 'book'),
+      // Book positions count wherever they come up, also after a move that left the book.
+      inBook: !!deps.book?.isBook(after.fen),
       sacrifice: materialOffered(before.fen, after.fen, move.color),
       sacrificeTaken: sacrificeTaken(
         before.fen,
@@ -102,7 +109,13 @@ export async function reviewGame(
     }
     if (lines[1]) facts.secondBestWin = winPercent(lines[1].score, move.color)
     if (human) facts.humanProbability = human[i]!
-    if (previousLoss !== undefined) facts.opponentLoss = previousLoss
+    // What the opponent's move gave away, measured on this mover's scale, like their own loss.
+    if (previous) {
+      const { rating: _, ...withoutRating } = previous
+      facts.opponentLoss = expectedPointsLost(
+        facts.rating === undefined ? withoutRating : { ...previous, rating: facts.rating },
+      )
+    }
 
     const best = lines[0]?.pv[0]
     const bestLine = best ? toSanLine(before.fen, lines[0]!.pv, 8) : []
@@ -121,7 +134,7 @@ export async function reviewGame(
         ? { best: { uci: best, san: bestLine[0].san, line: lines[0]!.pv.slice(0, 8) } }
         : {}),
     })
-    previousLoss = expectedPointsLost(facts)
+    previous = facts
   }
 
   const counts: GameReview['counts'] = { white: {}, black: {} }

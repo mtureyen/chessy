@@ -15,3 +15,14 @@ export function winPercent(score: Score, pov: Color): number {
   const white = 50 + 50 * winningChances(cappedCentipawns(score))
   return pov === 'white' ? white : 100 - white
 }
+
+/** The score in centipawns from `pov`'s side, capped at ±`ceiling`; a mate counts as the cap. */
+export function povCentipawns(score: Score, pov: Color, ceiling: number): number {
+  const white =
+    score.type === 'mate'
+      ? score.winner === 'white'
+        ? ceiling
+        : -ceiling
+      : Math.max(-ceiling, Math.min(ceiling, score.value))
+  return pov === 'white' ? white : -white
+}

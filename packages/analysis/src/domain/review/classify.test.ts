@@ -37,10 +37,22 @@ describe('classifyMove: expected points lost (chess.com thresholds)', () => {
     [45.5, 'inaccuracy'],
     [45, 'mistake'],
     [35.5, 'mistake'],
-    [35, 'blunder'],
+    [25, 'blunder'],
     [5, 'blunder'],
   ] as const)('55%% → %s%% is %s', (winAfter, expected) => {
     expect(move({ winAfter })).toBe(expected)
+  })
+
+  it('calls a big drop a mistake, not a blunder, while the game is still fine', () => {
+    expect(move({ winBefore: 90, winAfter: 55 })).toBe('mistake') // still better
+    expect(move({ winBefore: 60, winAfter: 25 })).toBe('blunder') // now losing
+  })
+
+  it('uses the engine evaluation when given, beyond the win % cap', () => {
+    // Both +10 and +15 are 97.5 % on lichess' capped curve; the evaluations still differ.
+    const capped = { winBefore: 97.5, winAfter: 97.5, rating: 1500 }
+    expect(expectedPointsLost(capped)).toBe(0)
+    expect(expectedPointsLost({ ...capped, evalBefore: 1500, evalAfter: 1000 })).toBeGreaterThan(0)
   })
 
   it('computes the loss in expected points and never below 0', () => {
@@ -58,8 +70,9 @@ describe('classifyMove: expected points lost (chess.com thresholds)', () => {
     expect(at(2000)).toBeLessThan(0.35) // still flatter than lichess' 0.35 at the top
     expect(expectedPointsLost(drop)).toBeCloseTo(at(1500)) // unknown rating: 1500
     // A blunder for a 2000 player is only a mistake for a beginner.
-    expect(classifyMove({ ...quiet, ...drop, rating: 2000 })).toBe('blunder')
-    expect(classifyMove({ ...quiet, ...drop, rating: 500 })).toBe('mistake')
+    const collapse = { winBefore: 60, winAfter: 25 }
+    expect(classifyMove({ ...quiet, ...collapse, rating: 2000 })).toBe('blunder')
+    expect(classifyMove({ ...quiet, ...collapse, rating: 500 })).toBe('mistake')
   })
 
   it('counts a move that loses next to nothing as best, not only the engine’s top move', () => {
@@ -79,15 +92,18 @@ describe('classifyMove: special classes', () => {
     expect(move({ isBestMove: true })).toBe('best')
   })
 
-  it('great = the only good move, but not a plain recapture or an escape from check', () => {
-    expect(move({ isBestMove: true, secondBestWin: 40 })).toBe('great')
-    expect(move({ isBestMove: true, secondBestWin: 44 })).toBe('best')
-    expect(move({ isBestMove: true, secondBestWin: 20, isRecapture: true })).toBe('best')
-    expect(move({ isBestMove: true, secondBestWin: 20, inCheck: true })).toBe('best')
+  it('great = the only good move that punishes a mistake, not a recapture or an escape from check', () => {
+    const punish = { isBestMove: true, opponentLoss: 0.2 }
+    expect(move({ ...punish, secondBestWin: 40 })).toBe('great')
+    expect(move({ ...punish, secondBestWin: 44 })).toBe('best')
+    expect(move({ ...punish, secondBestWin: 20, isRecapture: true })).toBe('best')
+    expect(move({ ...punish, secondBestWin: 20, inCheck: true })).toBe('best')
+    // The only good move in a quiet position is just best.
+    expect(move({ isBestMove: true, secondBestWin: 20, opponentLoss: 0.02 })).toBe('best')
     // The only winning move is great, even though the position counts as won with it ...
-    expect(move({ isBestMove: true, winBefore: 97, winAfter: 97, secondBestWin: 60 })).toBe('great')
+    expect(move({ ...punish, winBefore: 97, winAfter: 97, secondBestWin: 60 })).toBe('great')
     // ... but not when another move wins as well.
-    expect(move({ isBestMove: true, winBefore: 97, winAfter: 97, secondBestWin: 92 })).toBe('best')
+    expect(move({ ...punish, winBefore: 97, winAfter: 97, secondBestWin: 92 })).toBe('best')
   })
 
   it('brilliant without a human-move model = a sacrifice the engine takes, not already winning', () => {
@@ -140,6 +156,6 @@ describe('classifyMove: special classes', () => {
     expect(move({ opponentLoss: 0.4, winBefore: 85, winAfter: 50 })).toBe('miss') // 0.35, a blunder's size
     expect(move({ opponentLoss: 0.25, winBefore: 80, winAfter: 76 })).toBe('good') // keeps most of it
     expect(move({ opponentLoss: 0.05, winBefore: 80, winAfter: 66 })).toBe('mistake') // no real chance
-    expect(move({ opponentLoss: 0.15, winBefore: 80, winAfter: 30 })).toBe('blunder') // far more than given
+    expect(move({ opponentLoss: 0.15, winBefore: 80, winAfter: 20 })).toBe('blunder') // far more than given
   })
 })
