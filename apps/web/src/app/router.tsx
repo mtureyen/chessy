@@ -44,7 +44,27 @@ const openRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/library/OpenGamePage'), 'OpenGamePage'),
 })
 
-const routeTree = rootRoute.addChildren([playRoute, botRoute, analysisRoute, gamesRoute, openRoute])
+const welcomeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/welcome',
+  component: lazyRouteComponent(() => import('@/features/profile/WelcomePage'), 'WelcomePage'),
+})
+
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/profile',
+  component: lazyRouteComponent(() => import('@/features/profile/ProfilePage'), 'ProfilePage'),
+})
+
+const routeTree = rootRoute.addChildren([
+  playRoute,
+  botRoute,
+  analysisRoute,
+  gamesRoute,
+  openRoute,
+  welcomeRoute,
+  profileRoute,
+])
 
 export const router = createRouter({ routeTree, defaultPreload: 'intent' })
 

@@ -17,6 +17,16 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${WEB_PORT}`,
     trace: 'on-first-retry',
+    // A browser that has already closed the welcome banner; profile.spec starts fresh.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: `http://localhost:${WEB_PORT}`,
+          localStorage: [{ name: 'chessy.welcome-dismissed', value: '1' }],
+        },
+      ],
+    },
   },
   projects: [
     {

@@ -1,0 +1,152 @@
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 1.25rem;
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.profile-page h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.profile-page h2 {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.profile-intro {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.account-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.account-field label {
+  font-weight: 600;
+}
+
+.account-field-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.account-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.profile-page button,
+.profile-page .profile-save,
+.profile-page .profile-edit {
+  padding: 0.5rem 0.9rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.profile-page button:hover:not(:disabled),
+.profile-page .profile-edit:hover {
+  background: var(--hover);
+}
+
+.profile-page button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.profile-page .profile-save {
+  align-self: flex-start;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-actions a:not(.profile-save):not(.profile-edit) {
+  color: var(--text-muted);
+}
+
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.player-card-avatar {
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.player-card-initial {
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.player-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.player-card-name {
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.player-card-name:hover {
+  text-decoration: underline;
+}
+
+.player-card-title {
+  margin-right: 0.35rem;
+  padding: 0 0.25rem;
+  border-radius: 3px;
+  background: #b33430;
+  color: #fff;
+  font-size: 0.8em;
+}
+
+.player-card-source,
+.player-card-ratings {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}

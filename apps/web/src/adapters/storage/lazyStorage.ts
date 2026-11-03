@@ -5,9 +5,16 @@ import type {
   ListGamesOptions,
   SettingsStore,
   GameOrigin,
+  Profile,
+  ProfileStore,
 } from '@chessy/library'
 
-type Storage = { games: GameRepository; settings: SettingsStore; evals: EvalCache }
+type Storage = {
+  games: GameRepository
+  settings: SettingsStore
+  evals: EvalCache
+  profile: ProfileStore
+}
 
 /**
  * Storage ports whose IndexedDB implementation (Dexie, ~1/5 of the app's code) is only
@@ -33,5 +40,9 @@ export function createLazyStorage(load: () => Promise<Storage>): Storage {
     get: async (key: string) => (await get()).evals.get(key),
     put: async (key: string, value: PositionEval) => (await get()).evals.put(key, value),
   }
-  return { games, settings, evals }
+  const profile: ProfileStore = {
+    load: async () => (await get()).profile.load(),
+    save: async (value: Profile) => (await get()).profile.save(value),
+  }
+  return { games, settings, evals, profile }
 }
