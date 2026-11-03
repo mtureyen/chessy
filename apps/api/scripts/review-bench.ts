@@ -93,6 +93,7 @@ async function maiaModel(path: string): Promise<HumanMoveModel & { save(): void 
     : {}
   const key = (q: MoveProbabilityQuery) => `${q.fen}|${q.move}|${q.eloSelf}|${q.eloOppo}`
   return {
+    name: 'Maia-3',
     async moveProbabilities(queries) {
       const missing = queries.filter((q) => !(key(q) in known))
       const found = await moveProbabilities(model, missing)

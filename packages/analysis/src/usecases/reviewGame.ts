@@ -140,7 +140,11 @@ export async function reviewGame(
       positions[0]!.turn,
     ),
     counts,
-    settings: { engine, nodes: options.nodes },
+    settings: {
+      engine,
+      nodes: options.nodes,
+      ...(human && deps.humanMoves && { humanMoves: deps.humanMoves.name }),
+    },
   }
 }
 
@@ -169,7 +173,10 @@ function replay(input: ReviewInput) {
   return { positions, played }
 }
 
-/** How likely a player of the mover's rating was to play each move; undefined without a model. */
+/**
+ * How likely a player of the mover's rating was to play each move; undefined without a model.
+ * A failing model only costs the finer brilliant rule, never the review.
+ */
 async function humanProbabilities(
   deps: ReviewDeps,
   input: ReviewInput,
@@ -178,14 +185,18 @@ async function humanProbabilities(
 ): Promise<number[] | undefined> {
   if (!deps.humanMoves || played.length === 0) return undefined
   const rating = (color: Color) => input.ratings?.[color] ?? DEFAULT_RATING
-  return deps.humanMoves.moveProbabilities(
-    played.map((move, i) => ({
-      fen: positions[i]!.fen,
-      move: move.uci,
-      eloSelf: rating(move.color),
-      eloOppo: rating(move.color === 'white' ? 'black' : 'white'),
-    })),
-  )
+  try {
+    return await deps.humanMoves.moveProbabilities(
+      played.map((move, i) => ({
+        fen: positions[i]!.fen,
+        move: move.uci,
+        eloSelf: rating(move.color),
+        eloOppo: rating(move.color === 'white' ? 'black' : 'white'),
+      })),
+    )
+  } catch {
+    return undefined
+  }
 }
 
 /** Cached evaluations first; the rest in one batch, so the evaluator can parallelise. */
