@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Open in Chessy</title>
+    <style>
+      body {
+        font:
+          14px system-ui,
+          sans-serif;
+        margin: 1rem;
+        min-width: 22rem;
+      }
+      label {
+        display: grid;
+        gap: 0.35rem;
+      }
+      input {
+        padding: 0.4rem;
+        font: inherit;
+      }
+      p {
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <label>
+      Chessy address
+      <input id="chessy-url" type="url" placeholder="http://localhost:5173" />
+    </label>
+    <p id="status">Where the "Open in Chessy" button sends games.</p>
+    <script src="options.js" type="module"></script>
+  </body>
+</html>

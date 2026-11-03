@@ -11,6 +11,7 @@ Modular monolith with hexagonal modules in a Bun + Turborepo monorepo.
 ```
 apps/
   web/          React SPA (Vite, TanStack Router + Query): UI + browser adapters
+  extension/    browser extension: "Open in Chessy" on lichess / chess.com game pages
   api/          Hono on Bun: HTTP API under /api/v1 + server adapters
 packages/
   chess/        shared core: rules, move tree, PGN/FEN (pure)
@@ -70,6 +71,20 @@ options.
 browsers (pinned, checksum-verified); `bun run --cwd apps/api maia:spike latency | match
 <games.json> | strength` measures its speed, how often it predicts real moves, and its strength
 against the bot levels.
+
+### Browser extension ("Open in Chessy")
+
+On lichess, chess.com and Chessigma game pages the extension shows an "Open in Chessy" button.
+It reads only the page address; Chessy then fetches the game through the platforms' public
+APIs (chess.com: among your own games, so set your chess.com username under Games first) and
+opens it on the analysis board (`/open?url=…`).
+
+```sh
+bun run --cwd apps/extension build   # → apps/extension/dist
+```
+
+In Chrome: `chrome://extensions` → Developer mode → Load unpacked → `apps/extension/dist`.
+The Chessy address (default `http://localhost:5173`) is set in the extension's options.
 
 ### Review benchmark
 
