@@ -57,6 +57,20 @@ describe('estimateRatings', () => {
     expect(few.x!.score).toBe(1)
   })
 
+  it('converges for a player far from where the fit starts', () => {
+    // Starts at the anchors' mean (~1450) and must climb past 1900 without overshooting.
+    const anchors = { a1: 474, a2: 680, a3: 1054, a4: 1355, a5: 1692, a6: 1898, a7: 2133, a8: 2308 }
+    const games: RatedGame[] = []
+    for (let i = 0; i < 20; i++) {
+      games.push({ white: 'x', black: 'a5', score: i < 16 ? 1 : 0 })
+      games.push({ white: 'x', black: 'a6', score: i < 13 ? 1 : 0 })
+    }
+    const { x } = estimateRatings(games, anchors)
+    expect(Number.isFinite(x!.rating)).toBe(true)
+    expect(x!.rating).toBeGreaterThan(1898)
+    expect(x!.rating).toBeLessThan(2200)
+  })
+
   it('needs an anchor that every player connects to', () => {
     const games = [
       { white: 'a', black: 'b', score: 1 },

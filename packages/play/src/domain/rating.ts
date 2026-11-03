@@ -16,6 +16,8 @@ export interface RatingEstimate {
 
 /** Elo's logistic: rating points per factor of 10 in the odds. */
 const SCALE = Math.LN10 / 400
+/** Largest Newton step (rating points): full steps overshoot for players far from the start. */
+const MAX_STEP = 200
 
 /**
  * Maximum-likelihood ratings (Bradley–Terry on the Elo scale, a draw is half a win) with the
@@ -47,7 +49,7 @@ export function estimateRatings(
     for (const player of players) {
       if (player in anchors) continue
       const { gradient, information } = fit(player, ratings, pairs.values())
-      const step = gradient / information
+      const step = Math.max(-MAX_STEP, Math.min(MAX_STEP, gradient / information))
       ratings.set(player, ratings.get(player)! + step)
       largest = Math.max(largest, Math.abs(step))
     }
