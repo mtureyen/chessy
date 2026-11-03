@@ -2,22 +2,21 @@ import type { MoveClass } from '@chessy/analysis'
 
 export interface ClassStyle {
   label: string
-  glyph: string
   color: string
 }
 
-/** Labels, glyphs and colors per classification (close to chess.com's palette). */
+/** Labels and colors per classification (close to chess.com's palette); icons in classIcons.ts. */
 export const CLASS_STYLES: Record<MoveClass, ClassStyle> = {
-  brilliant: { label: 'Brilliant', glyph: '!!', color: '#1baca6' },
-  great: { label: 'Great', glyph: '!', color: '#5c8bb0' },
-  best: { label: 'Best', glyph: '★', color: '#81b64c' },
-  excellent: { label: 'Excellent', glyph: '✓', color: '#96bc4b' },
-  good: { label: 'Good', glyph: '✓', color: '#7f9c6c' },
-  book: { label: 'Book', glyph: '≡', color: '#a88865' },
-  inaccuracy: { label: 'Inaccuracy', glyph: '?!', color: '#e6b422' },
-  mistake: { label: 'Mistake', glyph: '?', color: '#f08c2e' },
-  miss: { label: 'Miss', glyph: '✗', color: '#e8644d' },
-  blunder: { label: 'Blunder', glyph: '??', color: '#d43d2c' },
+  brilliant: { label: 'Brilliant', color: '#1baca6' },
+  great: { label: 'Great', color: '#5c8bb0' },
+  best: { label: 'Best', color: '#81b64c' },
+  excellent: { label: 'Excellent', color: '#96bc4b' },
+  good: { label: 'Good', color: '#7f9c6c' },
+  book: { label: 'Book', color: '#a88865' },
+  inaccuracy: { label: 'Inaccuracy', color: '#e6b422' },
+  mistake: { label: 'Mistake', color: '#f08c2e' },
+  miss: { label: 'Miss', color: '#e8644d' },
+  blunder: { label: 'Blunder', color: '#d43d2c' },
 }
 
 /** Order in the summary table (as on chess.com). */
