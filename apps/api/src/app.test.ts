@@ -7,6 +7,7 @@ import {
 import { sampleSourceGame } from '@chessy/library/testing'
 import { describe, expect, it } from 'vitest'
 import type { EngineService, EngineStatus } from './adapters/engine/service'
+import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/service'
 import { createApp } from './app'
 
 function fakeSource(
@@ -33,8 +34,16 @@ const engine: EngineService = {
   },
 }
 
+let humanStatus: HumanMovesStatus = { available: true, name: 'FakeMaia' }
+const humanMoves: HumanMoveService = {
+  status: async () => humanStatus,
+  // A fixed answer per move: e2e4 is likely, anything else rare.
+  moveProbabilities: async (queries) => queries.map((q) => (q.move === 'e2e4' ? 0.6 : 0.01)),
+}
+
 const app = createApp({
   engine,
+  humanMoves,
   version: '9.9.9',
   startedAt: 1_000,
   now: () => 61_000,
@@ -70,6 +79,8 @@ describe('api', () => {
       '/engine',
       '/engine/evaluations',
       '/health',
+      '/human-moves',
+      '/human-moves/probabilities',
       '/sources/{source}/users/{username}/games',
     ])
   })
@@ -189,5 +200,57 @@ describe('engine routes', () => {
     expect(res.status).toBe(503)
     expect(await res.json()).toMatchObject({ title: 'Engine unavailable', detail: 'no binary' })
     engineStatus = { available: true, name: 'FakeFish 1', parallelism: 3 }
+  })
+})
+
+describe('human-move routes', () => {
+  const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+  const post = (body: unknown) =>
+    app.request('/api/v1/human-moves/probabilities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+  it('GET /api/v1/human-moves reports the model', async () => {
+    const res = await app.request('/api/v1/human-moves')
+    expect(await res.json()).toEqual({ available: true, name: 'FakeMaia' })
+  })
+
+  it('answers one probability per query, in order', async () => {
+    const res = await post({
+      queries: [
+        { fen: START, move: 'e2e4', eloSelf: 1500, eloOppo: 1500 },
+        { fen: START, move: 'a2a3', eloSelf: 900, eloOppo: 1200 },
+      ],
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ probabilities: [0.6, 0.01] })
+  })
+
+  it('rejects invalid requests and positions', async () => {
+    expect((await post({ queries: [] })).status).toBe(400)
+    expect(
+      (await post({ queries: [{ fen: START, move: 'e9e4', eloSelf: 1500, eloOppo: 1500 }] }))
+        .status,
+    ).toBe(400)
+    const invalid = await post({
+      queries: [{ fen: 'nonsense', move: 'e2e4', eloSelf: 1500, eloOppo: 1500 }],
+    })
+    expect(invalid.status).toBe(400)
+    expect(((await invalid.json()) as { detail: string }).detail).toMatch(/queries\[0\]\.fen/)
+  })
+
+  it('answers 503 without a model', async () => {
+    humanStatus = { available: false, reason: 'No Maia model' }
+    try {
+      const res = await post({
+        queries: [{ fen: START, move: 'e2e4', eloSelf: 1500, eloOppo: 1500 }],
+      })
+      expect(res.status).toBe(503)
+      expect(((await res.json()) as { detail: string }).detail).toBe('No Maia model')
+    } finally {
+      humanStatus = { available: true, name: 'FakeMaia' }
+    }
   })
 })

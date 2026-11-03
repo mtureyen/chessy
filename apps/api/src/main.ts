@@ -5,6 +5,7 @@ import {
   defaultPoolSize,
   resolveStockfishPath,
 } from './adapters/engine/native'
+import { createMaiaService } from './adapters/humanMoves/maia'
 import { ChessComGameSource } from './adapters/sources/chesscom'
 import { LichessGameSource } from './adapters/sources/lichess'
 import { recordedFetch } from './adapters/sources/recorded'
@@ -24,6 +25,7 @@ const app = createApp({
     poolSize,
     hashMb: config.ENGINE_HASH_MB,
   }),
+  humanMoves: createMaiaService(config.MAIA_MODEL_PATH),
 })
 
 console.log(

@@ -10,6 +10,8 @@ const EnvSchema = z.object({
   /** Parallel single-threaded engine processes; default: cores − 2, at most 8. */
   ENGINE_POOL_SIZE: z.coerce.number().int().min(1).max(64).optional(),
   ENGINE_HASH_MB: z.coerce.number().int().min(1).max(4096).default(64),
+  /** Maia-3 ONNX model (human-like moves); default: apps/api/.maia/ from `bun run maia:fetch`. */
+  MAIA_MODEL_PATH: z.string().min(1).optional(),
 })
 
 export type Config = z.infer<typeof EnvSchema>
