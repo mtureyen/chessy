@@ -35,6 +35,7 @@ export {
   CLASSIFY_CONFIG,
   MOVE_CLASSES,
   classifyMove,
+  type ClassifyConfig,
   expectedPointsLost,
   type MoveClass,
   type MoveFacts,

@@ -98,6 +98,7 @@ export async function reviewGame(
       isRecapture:
         i > 0 && move.san.includes('x') && played[i - 1]!.uci.slice(2, 4) === move.uci.slice(2, 4),
       inCheck: before.inCheck,
+      ...(input.ratings?.[move.color] !== undefined && { rating: input.ratings[move.color] }),
     }
     if (lines[1]) facts.secondBestWin = winPercent(lines[1].score, move.color)
     if (human) facts.humanProbability = human[i]!
