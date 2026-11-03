@@ -17,6 +17,7 @@ packages/
   chess/        shared core: rules, move tree, PGN/FEN (pure)
   analysis/     engine port (UCI), evaluations, game review (accuracy, move classes)
   library/      the user's games: import from lichess / chess.com, storage port
+  history/      finished games and reviews kept for the long run (the server's copy)
   play/         games against bots: levels, move choice, saving finished games
   maia/         Maia-3: which move a human of a given rating would play (runtime-neutral)
   contracts/    API contract (zod + OpenAPI), shared by api and web
@@ -28,7 +29,7 @@ The rules are enforced in CI by dependency-cruiser (`.dependency-cruiser.cjs`).
 
 ## Stack
 
-TypeScript · React + Vite · TanStack Router/Query · Hono + zod-openapi · [chessops](https://github.com/niklasf/chessops) · [chessground](https://github.com/lichess-org/chessground) · Vitest · Playwright · Bun · Turborepo
+TypeScript · React + Vite · TanStack Router/Query · Hono + zod-openapi · PostgreSQL + Drizzle · [chessops](https://github.com/niklasf/chessops) · [chessground](https://github.com/lichess-org/chessground) · Vitest · Playwright · Bun · Turborepo
 
 ## Development
 
@@ -42,6 +43,21 @@ bun run check:boundaries   # architecture rules
 ```
 
 API docs: http://localhost:3000/api/v1/docs (OpenAPI: `/api/v1/openapi.json`)
+
+### Game history (optional, PostgreSQL)
+
+The app keeps your games in the browser and works without a server. With a database, the API
+also keeps a copy of every saved game and finished review; the browser sends it whatever it
+lacks on start. Later features (the coach, statistics) build on that copy.
+
+```sh
+docker compose up -d db                     # PostgreSQL 17 on localhost:5433
+cp apps/api/.env.example apps/api/.env      # DATABASE_URL for it
+```
+
+The schema is applied on start (migrations in `apps/api/drizzle/`, changes via
+`bun run --cwd apps/api db:generate`). `DATABASE_URL=pglite:<folder>` runs an embedded Postgres
+instead, without Docker; tests and E2E use `pglite:memory`.
 
 ### Native engine (optional, much faster reviews)
 

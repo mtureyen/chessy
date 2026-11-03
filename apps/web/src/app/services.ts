@@ -10,6 +10,8 @@ import {
 } from '@chessy/analysis'
 import {
   importRecentGames,
+  mirrorLibrary,
+  MirroredGameRepository,
   openGame,
   type GameRepository,
   type GameSource,
@@ -26,6 +28,7 @@ import {
   type FinishedBotGame,
 } from '@chessy/play'
 import { ApiGameSource } from '@/adapters/api/apiGameSource'
+import { RemoteLibrary } from '@/adapters/api/remoteLibrary'
 import { createApiClient, type ApiClient } from '@/adapters/api/client'
 import { RemoteEvaluator } from '@/adapters/engine/remoteEvaluator'
 import { createBrowserEngine } from '@/adapters/engine/stockfish'
@@ -52,6 +55,13 @@ export interface Services {
     /** Saves a finished bot game to the library. */
     saveBotGame: (finished: FinishedBotGame) => Promise<LibraryGame>
   }
+  history: {
+    /**
+     * Sends the server's game history what it lacks (games saved while it was down); resolves
+     * to how many games were sent, or undefined when the server keeps no history.
+     */
+    sync: () => Promise<number | undefined>
+  }
   review: {
     /** The API's native engine, if the server has one. */
     serverEngine: () => Promise<EvaluatorInfo | undefined>
@@ -68,9 +78,13 @@ export type ReviewEngine = 'server' | 'browser'
 /** Composition root: the only place that decides which adapter fills which port. */
 export function createServices(): Services {
   const api = createApiClient(window.location.origin)
-  const { games, settings, evals } = createLazyStorage(() =>
+  const local = createLazyStorage(() =>
     import('@/adapters/storage/dexieStorage').then((m) => m.createDexieStorage()),
   )
+  const { settings, evals } = local
+  // Everything the library saves also goes to the server's game history (when it keeps one).
+  const remoteLibrary = new RemoteLibrary(api)
+  const games = new MirroredGameRepository(local.games, remoteLibrary)
   const sources: Record<SourceId, GameSource> = {
     lichess: new ApiGameSource('lichess', api),
     chesscom: new ApiGameSource('chesscom', api),
@@ -105,11 +119,25 @@ export function createServices(): Services {
       run: async (input, { engine, ...options }) => {
         // The server's Maia, when it has one, judges which sacrifices were hard to find.
         const [book, humanMoves] = await Promise.all([loadBook(), RemoteHumanMoves.describe(api)])
-        return reviewGame(
+        const review = await reviewGame(
           { evaluator: evaluators[engine], cache: evals, book, ...(humanMoves && { humanMoves }) },
           input,
           options,
         )
+        // Kept in the server's history too; without one the review just isn't kept there.
+        remoteLibrary
+          .saveReview({ startFen: input.startFen, moves: input.moves }, review)
+          .catch(() => undefined)
+        return review
+      },
+    },
+    history: {
+      sync: async () => {
+        const status = await withTimeout(remoteLibrary.status(), SERVER_CHECK_MS).catch(
+          () => undefined,
+        )
+        if (!status?.available) return undefined
+        return (await mirrorLibrary({ games: local.games, mirror: remoteLibrary })).uploaded
       },
     },
     library: {

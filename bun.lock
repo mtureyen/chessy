@@ -58,6 +58,7 @@
         "@chessy/analysis": "workspace:*",
         "@chessy/chess": "workspace:*",
         "@chessy/contracts": "workspace:*",
+        "@chessy/history": "workspace:*",
         "@chessy/library": "workspace:*",
         "@chessy/play": "workspace:*",
         "@tanstack/react-query": "^5.105.0",
