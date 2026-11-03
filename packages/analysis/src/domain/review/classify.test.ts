@@ -8,6 +8,7 @@ const quiet: MoveFacts = {
   legalMoves: 30,
   inBook: false,
   sacrifice: 0,
+  sacrificeTaken: 0,
   isRecapture: false,
   inCheck: false,
 }
@@ -53,13 +54,49 @@ describe('classifyMove: special classes', () => {
     expect(move({ isBestMove: true, winBefore: 97, winAfter: 97, secondBestWin: 60 })).toBe('best') // already won
   })
 
-  it('brilliant = a sound sacrifice when not already winning', () => {
-    expect(move({ isBestMove: true, sacrifice: 3, winBefore: 60, winAfter: 62 })).toBe('brilliant')
-    expect(move({ sacrifice: 3, winBefore: 60, winAfter: 59 })).toBe('brilliant')
-    expect(move({ sacrifice: 1, winBefore: 60, winAfter: 60 })).toBe('excellent')
-    expect(move({ sacrifice: 3, winBefore: 95, winAfter: 95 })).toBe('excellent') // winning anyway
-    expect(move({ sacrifice: 3, winBefore: 40, winAfter: 40 })).toBe('excellent') // still worse after
-    expect(move({ sacrifice: 3, winBefore: 60, winAfter: 45 })).toBe('mistake') // unsound
+  it('brilliant without a human-move model = a sacrifice the engine takes, not already winning', () => {
+    expect(move({ isBestMove: true, sacrificeTaken: 3, winBefore: 60, winAfter: 62 })).toBe(
+      'brilliant',
+    )
+    expect(move({ sacrificeTaken: 3, winBefore: 60, winAfter: 59 })).toBe('brilliant')
+    expect(move({ sacrificeTaken: 1, winBefore: 60, winAfter: 60 })).toBe('excellent')
+    expect(move({ sacrificeTaken: 3, winBefore: 95, winAfter: 95 })).toBe('excellent') // winning anyway
+    expect(move({ sacrificeTaken: 3, winBefore: 40, winAfter: 40 })).toBe('excellent') // worse after
+    expect(move({ sacrificeTaken: 3, winBefore: 60, winAfter: 45 })).toBe('mistake') // unsound
+    // Material merely left en prise isn't enough without the model to judge how hard it was.
+    expect(move({ isBestMove: true, sacrifice: 3, winBefore: 60, winAfter: 60 })).toBe('best')
+  })
+
+  it('brilliant with a human-move model = material left for the taking, rarely found', () => {
+    const offered = { isBestMove: true, sacrifice: 3, winBefore: 60, winAfter: 60 }
+    expect(move({ ...offered, humanProbability: 0.05 })).toBe('brilliant')
+    expect(move({ ...offered, humanProbability: 0.4 })).toBe('best') // most players find it
+    expect(move({ ...offered, sacrifice: 1, humanProbability: 0.05 })).toBe('best')
+  })
+
+  it('with the model, "winning anyway" is judged by the second-best move', () => {
+    const onlyWin = {
+      isBestMove: true,
+      sacrifice: 3,
+      winBefore: 97,
+      winAfter: 97,
+      humanProbability: 0.05,
+    }
+    expect(move({ ...onlyWin, secondBestWin: 55 })).toBe('brilliant') // the only winning move
+    expect(move({ ...onlyWin, secondBestWin: 95 })).toBe('best') // another move wins as well
+  })
+
+  it('a sacrifice played out of check or by promoting is not brilliant', () => {
+    const sacrifice = {
+      isBestMove: true,
+      sacrifice: 3,
+      sacrificeTaken: 3,
+      winBefore: 60,
+      winAfter: 60,
+    }
+    expect(move({ ...sacrifice, inCheck: true })).toBe('best')
+    expect(move({ ...sacrifice, isPromotion: true })).toBe('best')
+    expect(move({ ...sacrifice, humanProbability: 0.05, inCheck: true })).toBe('best')
   })
 
   it('miss = giving back most of what the opponent’s mistake offered', () => {
