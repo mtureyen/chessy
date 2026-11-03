@@ -12,8 +12,10 @@ import {
   type ColorChoice,
   type Termination,
 } from '@chessy/play'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
+import { useServices } from '@/app/servicesContext'
 import { Board } from '@/shared/board/Board'
 import { GameStatusBar } from '@/shared/game/GameStatusBar'
 import { MoveTree } from '@/shared/game/MoveTree'
@@ -26,6 +28,17 @@ import './BotPage.css'
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 const NO_MOVES = new Map()
+const HUMAN_LEVELS = BOT_LEVELS.filter((l) => l.human).map((l) => l.level)
+
+/** The human-move model human-like levels play with, or null when the server has none. */
+function useHumanModel() {
+  const { play } = useServices()
+  return useQuery({
+    queryKey: ['human-model'],
+    queryFn: async () => (await play.humanModel()) ?? null,
+    staleTime: 30_000,
+  }).data
+}
 
 interface Match {
   setup: BotGameSetup
@@ -41,6 +54,7 @@ export function BotPage() {
   /** Index into TIME_CONTROLS; -1 for no clock. */
   const [clockChoice, setClockChoice] = useState(-1)
   const [match, setMatch] = useState<Match>()
+  const humanModel = useHumanModel()
 
   const start = ({ color, ...setup }: Omit<BotGameSetup, 'color'> & { color: ColorChoice }) => {
     const seed = Math.floor(Math.random() * 2 ** 32)
@@ -95,6 +109,13 @@ export function BotPage() {
             </button>
           ))}
         </fieldset>
+        {humanModel !== undefined && (
+          <p className="bot-note" data-testid="human-levels">
+            {humanModel
+              ? `Levels ${HUMAN_LEVELS[0]}–${HUMAN_LEVELS.at(-1)} play like humans of their rating (${humanModel}); the others play from the engine.`
+              : 'Human-like play needs the server’s Maia model; until then every level plays from the engine.'}
+          </p>
+        )}
         <fieldset className="bot-colors">
           <legend>You play</legend>
           {(['white', 'random', 'black'] as const).map((c) => (
@@ -148,6 +169,7 @@ interface BotGameProps {
 function BotGame({ setup, seed, onRematch, onNewGame }: BotGameProps) {
   const bot = useBotGame(setup, seed)
   const { game, view, update } = bot
+  const humanModel = useHumanModel()
   const [orientation, setOrientation] = useState<Color>(setup.color)
   const navigate = useNavigate()
 
@@ -180,7 +202,13 @@ function BotGame({ setup, seed, onRematch, onNewGame }: BotGameProps) {
           <span className={`player-dot player-dot-${opposite(setup.color)}`} aria-hidden />
           <span className="bot-opponent-name">{botName(setup.level)}</span>
           <span className="bot-opponent-level">
-            {[setup.level.name, approximateRating(setup.level)].filter(Boolean).join(' · ')}
+            {[
+              setup.level.name,
+              approximateRating(setup.level),
+              setup.level.human && humanModel && 'human-like',
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </span>
           {bot.botThinking && (
             <span className="bot-thinking" role="status">

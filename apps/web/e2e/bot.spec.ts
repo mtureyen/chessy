@@ -99,3 +99,11 @@ test('the bot declines a draw in an even opening', async ({ page }) => {
   await expect(page.getByText('Chessy bot (level 8) declines the draw.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Offer draw' })).toBeDisabled()
 })
+
+test('says whether the levels play human-like', async ({ page }) => {
+  await page.goto('/bot')
+  // With the server's Maia model the human-like levels are named, without it the fallback.
+  await expect(page.getByTestId('human-levels')).toHaveText(
+    /Levels 1–6 play like humans of their rating|every level plays from the engine/,
+  )
+})

@@ -46,6 +46,8 @@ export interface Services {
     openGame: (url: string) => Promise<LibraryGame>
   }
   play: {
+    /** The server's human-move model (e.g. "Maia-3") that human-like levels play with, if any. */
+    humanModel: () => Promise<string | undefined>
     chooseBotMove: (request: BotMoveRequest) => Promise<BotChoice>
     /** Saves a finished bot game to the library. */
     saveBotGame: (finished: FinishedBotGame) => Promise<LibraryGame>
@@ -82,6 +84,7 @@ export function createServices(): Services {
 
   // The bot's own engine, so a bot game never competes with analysis or a review.
   const botEngine = createBrowserEngine()
+  const botHuman = humanPolicyLoader(api)
   const newId = () => crypto.randomUUID()
   const now = () => new Date()
 
@@ -89,7 +92,11 @@ export function createServices(): Services {
     api,
     engine: createBrowserEngine(),
     play: {
-      chooseBotMove: (request) => chooseBotMove({ engine: botEngine }, request),
+      humanModel: async () => (await botHuman())?.name,
+      chooseBotMove: async (request) => {
+        const human = request.level.human ? await botHuman() : undefined
+        return chooseBotMove({ engine: botEngine, ...(human && { human }) }, request)
+      },
       saveBotGame: (finished) => recordBotGame({ repository: games, newId, now }, finished),
     },
     review: {
@@ -130,6 +137,28 @@ export function createServices(): Services {
 
 /** How long to wait for the API to say whether it has an engine before reviewing in the browser. */
 const SERVER_CHECK_MS = 3000
+/** How long a server without a human-move model is believed before asking again. */
+const HUMAN_RECHECK_MS = 30_000
+
+/** The server's human-move model, asked once (again later if it had none or was unreachable). */
+function humanPolicyLoader(api: ApiClient): () => Promise<RemoteHumanMoves | undefined> {
+  let known: Promise<RemoteHumanMoves | undefined> | undefined
+  let askedAt = 0
+  return () => {
+    if (!known || Date.now() - askedAt > HUMAN_RECHECK_MS) {
+      askedAt = Date.now()
+      const asking = withTimeout(RemoteHumanMoves.describe(api), SERVER_CHECK_MS).catch(
+        () => undefined,
+      )
+      // Keep a found model for good; a miss only until the next check.
+      known = asking.then((model) => {
+        if (model) askedAt = Infinity
+        return model
+      })
+    }
+    return known
+  }
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {

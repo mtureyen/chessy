@@ -1,9 +1,13 @@
 import type { HumanMoveModel, HumanMoveQuery } from '@chessy/analysis'
-import type { HumanMovesStatusBody } from '@chessy/contracts'
+import type { HumanMovePredictionBody, HumanMovesStatusBody } from '@chessy/contracts'
+import type { HumanMoveDistribution, HumanMovePolicy, HumanMoveRequest } from '@chessy/play'
 import type { ApiClient } from '@/adapters/api/client'
 
-/** HumanMoveModel backed by the API's Maia. `describe` tells whether the server has one. */
-export class RemoteHumanMoves implements HumanMoveModel {
+/**
+ * The API's Maia, for the review (HumanMoveModel) and human-like bots (HumanMovePolicy).
+ * `describe` tells whether the server has one.
+ */
+export class RemoteHumanMoves implements HumanMoveModel, HumanMovePolicy {
   readonly name: string
   private readonly api: ApiClient
 
@@ -29,5 +33,11 @@ export class RemoteHumanMoves implements HumanMoveModel {
     if (res.status !== 200) throw new Error(`Human-move model failed: HTTP ${res.status}`)
     const { probabilities } = (await res.json()) as { probabilities: number[] }
     return probabilities
+  }
+
+  async predict(request: HumanMoveRequest): Promise<HumanMoveDistribution> {
+    const res = await this.api.api.v1['human-moves'].predict.$post({ json: request })
+    if (res.status !== 200) throw new Error(`Human-move model failed: HTTP ${res.status}`)
+    return (await res.json()) as HumanMovePredictionBody
   }
 }
