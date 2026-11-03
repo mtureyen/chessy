@@ -51,7 +51,10 @@ describe('classifyMove: special classes', () => {
     expect(move({ isBestMove: true, secondBestWin: 44 })).toBe('best')
     expect(move({ isBestMove: true, secondBestWin: 20, isRecapture: true })).toBe('best')
     expect(move({ isBestMove: true, secondBestWin: 20, inCheck: true })).toBe('best')
-    expect(move({ isBestMove: true, winBefore: 97, winAfter: 97, secondBestWin: 60 })).toBe('best') // already won
+    // The only winning move is great, even though the position counts as won with it ...
+    expect(move({ isBestMove: true, winBefore: 97, winAfter: 97, secondBestWin: 60 })).toBe('great')
+    // ... but not when another move wins as well.
+    expect(move({ isBestMove: true, winBefore: 97, winAfter: 97, secondBestWin: 92 })).toBe('best')
   })
 
   it('brilliant without a human-move model = a sacrifice the engine takes, not already winning', () => {

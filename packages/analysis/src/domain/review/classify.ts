@@ -42,10 +42,10 @@ export const CLASSIFY_CONFIG = {
    * Great = only good move: the second-best line is at least this many win-% points worse.
    * First calibration on one sharp real game: 10 also flagged routine king moves; 12 (plus no escapes
    * from check) kept 4. Still to be checked against chess.com's own reviews of the same games.
+   * Win % stop at 97.5 (lichess' cap), so with this gap the other moves never keep a won game:
+   * finding the only win counts, finding one of several wins doesn't.
    */
   greatOnlyMoveGap: 12,
-  /** ... and only while the game is still open: finding mate in an already won position isn't "great". */
-  greatMaxWinBefore: 90,
   /**
    * Brilliant = a best or nearly best move (less than `excellent` lost) that gives up at least
    * this much material (pawns), i.e. a piece or the exchange ...
@@ -118,7 +118,6 @@ export function classifyMove(facts: MoveFacts, config = CLASSIFY_CONFIG): MoveCl
     facts.isBestMove &&
     !facts.isRecapture &&
     !facts.inCheck &&
-    facts.winBefore < config.greatMaxWinBefore &&
     facts.secondBestWin !== undefined &&
     facts.winBefore - facts.secondBestWin >= config.greatOnlyMoveGap
   ) {
