@@ -1,7 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi'
-import type { LibraryGame } from '@chessy/library'
+import type { LibraryGame, Profile } from '@chessy/library'
 import { ProblemSchema } from './problem'
-import { SourceGameSchema } from './sources'
+import { SourceGameSchema, SourceIdSchema } from './sources'
 
 export const LibraryStatusSchema = z
   .union([
@@ -78,6 +78,23 @@ export const GameReviewSchema = z
     }),
   })
   .openapi('GameReview')
+
+export const ProfileSchema = z
+  .object({
+    id: z.string().min(1).max(100),
+    displayName: z.string().min(1).max(50),
+    accounts: z
+      .array(
+        z.object({
+          source: SourceIdSchema,
+          username: z.string().regex(/^[A-Za-z0-9_-]{2,30}$/),
+        }),
+      )
+      .max(2),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .openapi('Profile') satisfies z.ZodType<Profile>
 
 const problem = (description: string) => ({
   description,
@@ -177,6 +194,41 @@ export const saveLibraryReviewRoute = createRoute({
       content: { 'application/json': { schema: z.object({ stored: z.literal(true) }) } },
     },
     400: problem('Invalid review'),
+    503: unavailable,
+  },
+})
+
+export const getProfileRoute = createRoute({
+  method: 'get',
+  path: '/profile',
+  tags: ['library'],
+  summary: 'The user’s profile kept on the server (null before they set one up)',
+  responses: {
+    200: {
+      description: 'The profile',
+      content: { 'application/json': { schema: z.object({ profile: ProfileSchema.nullable() }) } },
+    },
+    503: unavailable,
+  },
+})
+
+export const saveProfileRoute = createRoute({
+  method: 'put',
+  path: '/profile',
+  tags: ['library'],
+  summary: 'Keeps the user’s profile (one per installation for now)',
+  request: {
+    body: {
+      content: { 'application/json': { schema: z.object({ profile: ProfileSchema }) } },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: 'Stored',
+      content: { 'application/json': { schema: z.object({ stored: z.literal(true) }) } },
+    },
+    400: problem('Invalid profile'),
     503: unavailable,
   },
 })

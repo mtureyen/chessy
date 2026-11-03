@@ -29,6 +29,15 @@ function fakeSource(
         username ? `not among ${username}'s games` : undefined,
       )
     },
+    async player(username) {
+      if (username === 'ghost') throw new UserNotFoundError(id, username)
+      return {
+        source: id,
+        username,
+        url: `https://example.com/${username}`,
+        ratings: { rapid: 780 },
+      }
+    },
   }
 }
 
@@ -110,7 +119,9 @@ describe('api', () => {
       '/library/games',
       '/library/games/missing',
       '/library/reviews',
+      '/profile',
       '/sources/{source}/games/{id}',
+      '/sources/{source}/users/{username}',
       '/sources/{source}/users/{username}/games',
     ])
   })
@@ -387,5 +398,50 @@ describe('library routes', () => {
       body: JSON.stringify({ games: [game] }),
     })
     expect(save.status).toBe(503)
+  })
+})
+
+describe('profile and players', () => {
+  it('looks up a player and reports unknown ones', async () => {
+    const res = await app.request('/api/v1/sources/chesscom/users/8sly')
+    expect(await res.json()).toMatchObject({
+      player: { username: '8sly', ratings: { rapid: 780 } },
+    })
+    expect((await app.request('/api/v1/sources/chesscom/users/ghost')).status).toBe(404)
+    expect((await app.request('/api/v1/sources/chesscom/users/a%20b')).status).toBe(400)
+  })
+
+  it('keeps the profile: none at first, then the latest saved', async () => {
+    await library.status()
+    expect(await (await app.request('/api/v1/profile')).json()).toEqual({ profile: null })
+    const profile = {
+      id: 'p1',
+      displayName: '8sly',
+      accounts: [{ source: 'chesscom', username: '8sly' }],
+      createdAt: '2026-11-03T21:00:00.000Z',
+      updatedAt: '2026-11-03T21:00:00.000Z',
+    }
+    const put = (body: unknown) =>
+      app.request('/api/v1/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    expect((await put({ profile })).status).toBe(200)
+    expect(
+      (
+        await put({
+          profile: { ...profile, displayName: 'Sly', updatedAt: '2026-11-03T22:00:00.000Z' },
+        })
+      ).status,
+    ).toBe(200)
+    expect(await (await app.request('/api/v1/profile')).json()).toMatchObject({
+      profile: { id: 'p1', displayName: 'Sly' },
+    })
+    const twice = {
+      ...profile,
+      accounts: [...profile.accounts, { source: 'chesscom', username: 'x2' }],
+    }
+    expect((await put({ profile: twice })).status).toBe(400)
   })
 })

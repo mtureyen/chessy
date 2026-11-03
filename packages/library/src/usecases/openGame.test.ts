@@ -18,6 +18,9 @@ function source(id: 'lichess' | 'chesscom', game: SourceGame) {
         throw new GameNotFoundError(id, gameId)
       return game
     },
+    player: async () => {
+      throw new Error('not used')
+    },
   }
   return { src, asked }
 }

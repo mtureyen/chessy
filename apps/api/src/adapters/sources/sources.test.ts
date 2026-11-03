@@ -250,3 +250,42 @@ describe('single games', () => {
     await expect(source.game('1', { username: 'ghost' })).rejects.toBeInstanceOf(UserNotFoundError)
   })
 })
+
+describe('player profiles', () => {
+  it('reads a chess.com profile and its standard ratings', async () => {
+    const { fetch, requests } = spyFetch()
+    const player = await new ChessComGameSource({ fetch, userAgent }).player('Hikaru')
+    expect(player).toEqual({
+      source: 'chesscom',
+      username: 'Hikaru',
+      url: 'https://www.chess.com/member/Hikaru',
+      title: 'GM',
+      name: 'Hikaru Nakamura',
+      avatarUrl: expect.stringMatching(/^https:\/\/images\.chesscomfiles\.com\//),
+      country: 'US',
+      ratings: { bullet: 3393, blitz: 3467, rapid: 2838, correspondence: 2239 },
+    })
+    expect(requests.map((r) => new URL(r.url).pathname)).toEqual([
+      '/pub/player/hikaru',
+      '/pub/player/hikaru/stats',
+    ])
+  })
+
+  it('reads a lichess profile, leaving out ratings without games', async () => {
+    const { fetch } = spyFetch()
+    const player = await new LichessGameSource({ fetch, userAgent }).player('drnykterstein')
+    expect(player).toMatchObject({ source: 'lichess', username: 'DrNykterstein', title: 'GM' })
+    expect(player.ratings).toEqual({ bullet: 3263, blitz: 3194 })
+    expect(player.avatarUrl).toBeUndefined()
+  })
+
+  it('reports unknown players', async () => {
+    const { fetch } = spyFetch()
+    await expect(
+      new ChessComGameSource({ fetch, userAgent }).player('ghost'),
+    ).rejects.toBeInstanceOf(UserNotFoundError)
+    await expect(
+      new LichessGameSource({ fetch, userAgent }).player('ghost'),
+    ).rejects.toBeInstanceOf(UserNotFoundError)
+  })
+})

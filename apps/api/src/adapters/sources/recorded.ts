@@ -30,6 +30,20 @@ export const recordedFetch: Fetch = async (url) => {
         })
       : new Response('{"error":"Not found"}', { status: 404 })
   }
+  const lichessProfile = /^\/api\/user\/([^/]+)$/.exec(pathname)?.[1]
+  if (lichessProfile) {
+    return lichessProfile.toLowerCase() === RECORDED_USERS.lichess.toLowerCase()
+      ? Response.json(JSON.parse(fixture('lichess-user.json')))
+      : new Response('{"error":"Not found"}', { status: 404 })
+  }
+  const chesscomProfile = /^\/pub\/player\/([^/]+)(\/stats)?$/.exec(pathname)
+  if (chesscomProfile) {
+    return chesscomProfile[1] === RECORDED_USERS.chesscom
+      ? Response.json(
+          JSON.parse(fixture(chesscomProfile[2] ? 'chesscom-stats.json' : 'chesscom-player.json')),
+        )
+      : Response.json({ code: 0, message: 'User not found.' }, { status: 404 })
+  }
   const chesscom = /^\/pub\/player\/([^/]+)\/games\/(archives|\d{4}\/\d{2})$/.exec(pathname)
   if (chesscom && chesscom[1] === RECORDED_USERS.chesscom) {
     const file =

@@ -1,4 +1,5 @@
 import type { SourceGame, SourceId } from '../domain/game'
+import type { PlayerProfile } from '../domain/player'
 
 /**
  * Port: a platform that provides a user's games.
@@ -16,4 +17,6 @@ export interface GameSource {
    * search the given user's games. Throws GameNotFoundError or SourceUnavailableError.
    */
   game(id: string, options: { username?: string }): Promise<SourceGame>
+  /** The account's public profile. Throws UserNotFoundError or SourceUnavailableError. */
+  player(username: string): Promise<PlayerProfile>
 }

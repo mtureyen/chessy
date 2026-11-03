@@ -2,6 +2,8 @@ import {
   GameNotFoundError,
   type GameSource,
   type PlayerInfo,
+  type PlayerProfile,
+  type RatedSpeed,
   type SourceGame,
   type Speed,
 } from '@chessy/library'
@@ -26,6 +28,27 @@ const LichessGameSchema = z.object({
   clock: z.object({ initial: z.number(), increment: z.number() }).optional(),
   pgn: z.string(),
 })
+
+const UserSchema = z.object({
+  username: z.string(),
+  url: z.string(),
+  title: z.string().optional(),
+  profile: z
+    .object({ flag: z.string().optional(), realName: z.string().optional() })
+    .passthrough()
+    .optional(),
+  perfs: z
+    .record(z.string(), z.object({ rating: z.number(), games: z.number() }).passthrough())
+    .default({}),
+})
+
+const RATED_SPEEDS: readonly RatedSpeed[] = [
+  'bullet',
+  'blitz',
+  'rapid',
+  'classical',
+  'correspondence',
+]
 
 /** Variants our rules core can replay; everything else (chess960, atomic, …) is skipped. */
 const SUPPORTED_VARIANTS = new Set(['standard', 'fromPosition'])
@@ -83,6 +106,30 @@ export class LichessGameSource implements GameSource {
     if (!SUPPORTED_VARIANTS.has(parsed.data.variant))
       throw notFound(`${parsed.data.variant} is not supported`)
     return toSourceGame(parsed.data)
+  }
+
+  /** Via https://lichess.org/api#tag/Users/operation/apiUser; lichess has no avatars. */
+  async player(username: string): Promise<PlayerProfile> {
+    const base = this.options.baseUrl ?? 'https://lichess.org'
+    const url = `${base}/api/user/${encodeURIComponent(username)}`
+    const user = UserSchema.parse(await (await get('lichess', url, username, this.options)).json())
+    const ratings: PlayerProfile['ratings'] = {}
+    for (const speed of RATED_SPEEDS) {
+      const perf = user.perfs[speed]
+      // A rating without games is lichess' starting value, not the player's.
+      if (perf && perf.games > 0) ratings[speed] = perf.rating
+    }
+    const flag = user.profile?.flag
+    return {
+      source: 'lichess',
+      username: user.username,
+      url: user.url,
+      ...(user.title && { title: user.title }),
+      ...(user.profile?.realName && { name: user.profile.realName }),
+      // Flags are ISO codes, or lichess' own (e.g. "_earth").
+      ...(flag && /^[A-Z]{2}$/.test(flag) && { country: flag }),
+      ratings,
+    }
   }
 }
 

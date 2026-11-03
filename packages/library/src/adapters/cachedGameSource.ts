@@ -1,4 +1,5 @@
 import type { SourceGame, SourceId } from '../domain/game'
+import type { PlayerProfile } from '../domain/player'
 import type { GameSource } from '../ports/gameSource'
 
 export interface CachedGameSourceOptions {
@@ -31,6 +32,13 @@ export class CachedGameSource implements GameSource {
     const game = this.queue.then(() => this.inner.game(id, options))
     this.queue = game.catch(() => undefined)
     return game
+  }
+
+  /** Not cached, but queued like every request to the platform. */
+  player(username: string): Promise<PlayerProfile> {
+    const player = this.queue.then(() => this.inner.player(username))
+    this.queue = player.catch(() => undefined)
+    return player
   }
 
   recentGames(username: string, options: { max: number }): Promise<SourceGame[]> {
