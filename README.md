@@ -86,6 +86,15 @@ bun run --cwd apps/extension build   # → apps/extension/dist
 In Chrome: `chrome://extensions` → Developer mode → Load unpacked → `apps/extension/dist`.
 The Chessy address (default `http://localhost:5173`) is set in the extension's options.
 
+### Reference labels
+
+`bun run --cwd apps/api bench:references <chess.com username>... [--games 20]` reviews those
+players' recent games on Chessigma (Stockfish in the browser, chess.com-like move labels) in a
+normal Chrome window and saves every move's label to `apps/api/.bench/references.json`. One game
+at a time with pauses; Chessigma itself runs one review per browser at a time.
+`bun run --cwd apps/api review:bench --references apps/api/.bench/references.json` then compares
+our classes with them, move by move.
+
 ### Review benchmark
 
 `bun run --cwd apps/api review:bench <dataset.json>` runs the game review over games where
