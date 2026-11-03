@@ -3,7 +3,8 @@ import { defineConfig, devices } from '@playwright/test'
 const CI = !!process.env.CI
 
 // E2E runs its own servers on separate ports, so it never talks to a `bun dev` session (live
-// lichess/chess.com data). The API answers from recorded responses instead.
+// lichess/chess.com data). The API answers from recorded responses instead, and keeps the game
+// history in an in-memory database that starts empty each run.
 const API_PORT = 3100
 const WEB_PORT = 5174
 
@@ -28,7 +29,7 @@ export default defineConfig({
     {
       command: 'bun run start',
       cwd: '../api',
-      env: { PORT: String(API_PORT), CHESSY_SOURCES: 'recorded' },
+      env: { PORT: String(API_PORT), CHESSY_SOURCES: 'recorded', DATABASE_URL: 'pglite:memory' },
       url: `http://localhost:${API_PORT}/api/v1/health`,
       reuseExistingServer: !CI,
     },
