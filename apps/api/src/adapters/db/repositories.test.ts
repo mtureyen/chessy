@@ -1,12 +1,19 @@
 import { reviewRepositoryContract } from '@chessy/history/testing'
 import { gameRepositoryContract, sampleGame } from '@chessy/library/testing'
+import { sql } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { openDatabase } from './database'
 import { PostgresGameRepository } from './gameRepository'
 import { PostgresReviewRepository } from './reviewRepository'
 
 // The same suites as every other adapter, on an in-memory Postgres (PGlite) with the migrations.
-const fresh = async () => (await openDatabase('pglite:memory')).db
+// One database for the file (starting one takes a while), emptied before each test.
+const shared = openDatabase('pglite:memory')
+async function fresh() {
+  const { db } = await shared
+  await db.execute(sql`truncate games, reviews, review_moves`)
+  return db
+}
 
 gameRepositoryContract('PostgreSQL (PGlite)', async () => new PostgresGameRepository(await fresh()))
 
