@@ -107,6 +107,16 @@
         "vitest": "^5.0.5",
       },
     },
+    "packages/maia": {
+      "name": "@chessy/maia",
+      "version": "0.0.0",
+      "dependencies": {
+        "@chessy/chess": "workspace:*",
+      },
+      "devDependencies": {
+        "@chessy/config": "workspace:*",
+      },
+    },
     "packages/play": {
       "name": "@chessy/play",
       "version": "0.0.0",
@@ -136,6 +146,8 @@
     "@chessy/contracts": ["@chessy/contracts@workspace:packages/contracts"],
 
     "@chessy/library": ["@chessy/library@workspace:packages/library"],
+
+    "@chessy/maia": ["@chessy/maia@workspace:packages/maia"],
 
     "@chessy/play": ["@chessy/play@workspace:packages/play"],
 
