@@ -191,6 +191,7 @@ function ReviewReport({
 
       <p className="review-meta">
         {review.settings.engine} · {review.settings.nodes.toLocaleString()} nodes per position
+        {review.settings.humanMoves && ` · ${review.settings.humanMoves}`}
       </p>
       {again}
     </div>

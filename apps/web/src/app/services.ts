@@ -28,6 +28,7 @@ import { ApiGameSource } from '@/adapters/api/apiGameSource'
 import { createApiClient, type ApiClient } from '@/adapters/api/client'
 import { RemoteEvaluator } from '@/adapters/engine/remoteEvaluator'
 import { createBrowserEngine } from '@/adapters/engine/stockfish'
+import { RemoteHumanMoves } from '@/adapters/maia/remoteHumanMoves'
 import { createBookLoader } from '@/adapters/openings/bookLoader'
 import { createLazyStorage } from '@/adapters/storage/lazyStorage'
 
@@ -90,12 +91,15 @@ export function createServices(): Services {
     },
     review: {
       serverEngine: () => evaluators.server.describe().catch(() => undefined),
-      run: async (input, { engine, ...options }) =>
-        reviewGame(
-          { evaluator: evaluators[engine], cache: evals, book: await loadBook() },
+      run: async (input, { engine, ...options }) => {
+        // The server's Maia, when it has one, judges which sacrifices were hard to find.
+        const [book, humanMoves] = await Promise.all([loadBook(), RemoteHumanMoves.describe(api)])
+        return reviewGame(
+          { evaluator: evaluators[engine], cache: evals, book, ...(humanMoves && { humanMoves }) },
           input,
           options,
-        ),
+        )
+      },
     },
     library: {
       games,
