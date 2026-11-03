@@ -32,8 +32,11 @@ export function ReviewPanel({
     queryFn: review.serverEngine,
     staleTime: 30_000,
   })
-  // Native on the server when it has one (much faster), else this browser's engine.
+  // Native on the server when it has one (much faster), else this browser's engine. Starting
+  // before that is known would review on whichever answered first, and a second review of the
+  // same game on the other engine would differ.
   const engine: ReviewEngine = choice ?? (server.data ? 'server' : 'browser')
+  const checking = server.isPending
 
   const startControls = (label: string) => (
     <div className="review-start">
@@ -63,7 +66,8 @@ export function ReviewPanel({
       <button
         type="button"
         className="review-start-button"
-        disabled={moveCount === 0}
+        disabled={moveCount === 0 || checking}
+        title={checking ? 'Checking for the server engine…' : undefined}
         onClick={() => onStart(presetNodes(preset), engine)}
       >
         {label}

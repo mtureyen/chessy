@@ -114,3 +114,18 @@ test('reviews on the server engine when the API has one', async ({ page }) => {
   expect(requested).toMatchObject({ nodes: 500_000, multiPv: 2 })
   expect(requested!.fens).toHaveLength(7)
 })
+
+test('waits to know whether the server has an engine before a review can start', async ({
+  page,
+}) => {
+  // The API answers slowly; until it has, starting would pick an engine at random.
+  await page.route('**/api/v1/engine', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await route.fulfill({ json: { available: false, reason: 'none here' } })
+  })
+  await openAnalysis(page, SCHOLARS_MATE)
+  await page.getByRole('tab', { name: /Review/ }).click()
+  const start = page.getByRole('button', { name: 'Start review' })
+  await expect(start).toBeDisabled()
+  await expect(start).toBeEnabled({ timeout: 5000 })
+})
