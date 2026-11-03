@@ -93,7 +93,8 @@ export function createServices(): Services {
       saveBotGame: (finished) => recordBotGame({ repository: games, newId, now }, finished),
     },
     review: {
-      serverEngine: () => evaluators.server.describe().catch(() => undefined),
+      serverEngine: () =>
+        withTimeout(evaluators.server.describe(), SERVER_CHECK_MS).catch(() => undefined),
       run: async (input, { engine, ...options }) => {
         // The server's Maia, when it has one, judges which sacrifices were hard to find.
         const [book, humanMoves] = await Promise.all([loadBook(), RemoteHumanMoves.describe(api)])
@@ -125,4 +126,14 @@ export function createServices(): Services {
         ),
     },
   }
+}
+
+/** How long to wait for the API to say whether it has an engine before reviewing in the browser. */
+const SERVER_CHECK_MS = 3000
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`No answer within ${ms} ms`)), ms)
+    promise.then(resolve, reject).finally(() => clearTimeout(timer))
+  })
 }
