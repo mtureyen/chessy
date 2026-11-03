@@ -175,3 +175,17 @@ cg-board square.check {
   width: 100%;
   height: 100%;
 }
+
+/* The user's coloured squares (markings.ts), under the pieces like the last-move highlight. */
+cg-board square.mark-default {
+  background-color: rgb(235 97 80 / 0.8);
+}
+cg-board square.mark-green {
+  background-color: rgb(130 180 64 / 0.8);
+}
+cg-board square.mark-blue {
+  background-color: rgb(63 159 216 / 0.8);
+}
+cg-board square.mark-yellow {
+  background-color: rgb(233 207 58 / 0.8);
+}
