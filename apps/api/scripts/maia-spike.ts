@@ -32,7 +32,7 @@ import {
 } from '@chessy/play'
 import { createProcessTransport } from '../src/adapters/engine/processTransport'
 import { resolveStockfishPath } from '../src/adapters/engine/native'
-import { MAIA_MODEL } from './fetch-maia'
+import { BUNDLED_MAIA as MAIA_MODEL } from '../src/adapters/humanMoves/maia'
 
 const { values: args, positionals } = parseArgs({
   allowPositionals: true,

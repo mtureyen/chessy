@@ -36,7 +36,7 @@ import { OnnxMaiaModel, moveProbabilities, type MoveProbabilityQuery } from '@ch
 import * as ort from 'onnxruntime-web'
 import { createProcessTransport } from '../src/adapters/engine/processTransport'
 import { defaultPoolSize, resolveStockfishPath } from '../src/adapters/engine/native'
-import { MAIA_MODEL } from './fetch-maia'
+import { BUNDLED_MAIA as MAIA_MODEL } from '../src/adapters/humanMoves/maia'
 
 const { values: args, positionals } = parseArgs({
   allowPositionals: true,
