@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi'
-import type { SourceGame } from '@chessy/library'
+import type { PlayerProfile, SourceGame } from '@chessy/library'
 import { ProblemSchema } from './problem'
 
 export const SourceIdSchema = z.enum(['lichess', 'chesscom']).openapi({ example: 'lichess' })
@@ -25,6 +25,27 @@ export const SourceGameSchema = z
     opening: z.object({ eco: z.string().optional(), name: z.string().optional() }).optional(),
   })
   .openapi('SourceGame') satisfies z.ZodType<SourceGame>
+
+const Rating = z.number().int()
+
+export const PlayerProfileSchema = z
+  .object({
+    source: SourceIdSchema,
+    username: z.string().openapi({ example: 'Hikaru' }),
+    url: z.string().url(),
+    title: z.string().optional().openapi({ example: 'GM' }),
+    name: z.string().optional(),
+    avatarUrl: z.string().url().optional(),
+    country: z.string().optional().openapi({ example: 'US' }),
+    ratings: z.object({
+      bullet: Rating.optional(),
+      blitz: Rating.optional(),
+      rapid: Rating.optional(),
+      classical: Rating.optional(),
+      correspondence: Rating.optional(),
+    }),
+  })
+  .openapi('PlayerProfile') satisfies z.ZodType<PlayerProfile>
 
 const problem = (description: string) => ({
   description,
@@ -92,6 +113,33 @@ export const sourceGameRoute = createRoute({
     },
     400: problem('Invalid source, id or username'),
     404: problem('No such game, or not among the user’s games; or the user does not exist'),
+    429: problem('The platform asked us to slow down; see Retry-After'),
+    502: problem('The platform could not be reached or failed'),
+  },
+})
+
+export const playerRoute = createRoute({
+  method: 'get',
+  path: '/sources/{source}/users/{username}',
+  tags: ['sources'],
+  summary: "An account's public profile and current ratings",
+  description: 'For confirming "is this you?" when the user links their account.',
+  request: {
+    params: z.object({
+      source: SourceIdSchema,
+      username: z
+        .string()
+        .regex(/^[A-Za-z0-9_-]{2,30}$/)
+        .openapi({ example: 'Hikaru' }),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'The profile',
+      content: { 'application/json': { schema: z.object({ player: PlayerProfileSchema }) } },
+    },
+    400: problem('Invalid source or username'),
+    404: problem('The user does not exist on that platform'),
     429: problem('The platform asked us to slow down; see Retry-After'),
     502: problem('The platform could not be reached or failed'),
   },

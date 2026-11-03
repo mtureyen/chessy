@@ -24,6 +24,9 @@ export {
   type Speed,
 } from './domain/game'
 export { parseGameUrl, type GameReference } from './domain/gameUrl'
+export type { PlayerProfile, RatedSpeed } from './domain/player'
+export { accountOn, buildProfile, sideOf, type LinkedAccount, type Profile } from './domain/profile'
+export type { ProfileStore } from './ports/profileStore'
 export type { GameRepository, ListGamesOptions } from './ports/gameRepository'
 export type { GameSource } from './ports/gameSource'
 export type { LibrarySettings, SettingsStore } from './ports/settingsStore'

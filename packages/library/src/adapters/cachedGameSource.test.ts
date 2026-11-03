@@ -18,6 +18,7 @@ function controllableSource() {
         calls.push({ username, resolve, reject })
       }),
     game: async (id) => sampleSourceGame({ externalId: id }),
+    player: async (username) => ({ source: 'lichess', username, url: '', ratings: {} }),
   }
   return { source, calls }
 }
@@ -72,6 +73,20 @@ describe('CachedGameSource', () => {
     expect(calls).toHaveLength(2)
     calls[1]!.resolve([])
     expect(await retry).toEqual([])
+  })
+
+  it('passes player profiles through, queued behind running requests', async () => {
+    const { source, calls } = controllableSource()
+    const cached = new CachedGameSource(source)
+    const recent = cached.recentGames('alice', { max: 5 })
+    let player: string | undefined
+    void cached.player('DrNykterstein').then((p) => (player = p.username))
+    await tick()
+    expect(player).toBeUndefined()
+    calls[0]!.resolve([])
+    await recent
+    await tick()
+    expect(player).toBe('DrNykterstein')
   })
 
   it('passes single games through, queued behind running requests', async () => {

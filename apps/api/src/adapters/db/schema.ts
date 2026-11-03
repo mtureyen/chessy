@@ -1,5 +1,5 @@
 import type { GameReview } from '@chessy/analysis'
-import type { LibraryGame } from '@chessy/library'
+import type { LibraryGame, Profile } from '@chessy/library'
 import {
   boolean,
   index,
@@ -80,3 +80,11 @@ export const reviewMoves = pgTable(
     index('review_moves_classification').on(t.classification),
   ],
 )
+
+/** The user's profile; one row per installation for now, keyed by id for more later. */
+export const profiles = pgTable('profiles', {
+  id: text('id').primaryKey(),
+  displayName: text('display_name').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+  data: jsonb('data').$type<Profile>().notNull(),
+})

@@ -2,6 +2,8 @@ import {
   GameNotFoundError,
   type GameSource,
   type PlayerInfo,
+  type PlayerProfile,
+  type RatedSpeed,
   type SourceGame,
   type Speed,
 } from '@chessy/library'
@@ -26,6 +28,28 @@ const ChessComGameSchema = z.object({
 })
 
 const ArchivesSchema = z.object({ archives: z.array(z.string()) })
+
+const ProfileSchema = z.object({
+  username: z.string(),
+  url: z.string(),
+  name: z.string().optional(),
+  title: z.string().optional(),
+  avatar: z.string().optional(),
+  /** A URL ending in the country code, e.g. ".../pub/country/DE". */
+  country: z.string().optional(),
+})
+
+/** Stats mix categories with other values (e.g. `fide`: a number): read only the categories. */
+const StatsSchema = z.record(z.string(), z.unknown())
+const CategorySchema = z.object({ last: z.object({ rating: z.number() }) })
+
+/** chess.com's rating categories for standard chess. */
+const RATED_SPEEDS: Record<string, RatedSpeed> = {
+  chess_bullet: 'bullet',
+  chess_blitz: 'blitz',
+  chess_rapid: 'rapid',
+  chess_daily: 'correspondence',
+}
 const MonthSchema = z.object({ games: z.array(z.unknown()) })
 
 const SPEEDS: Record<string, Speed> = {
@@ -97,6 +121,31 @@ export class ChessComGameSource implements GameSource {
       id,
       `not among ${username}'s games of the last ${MAX_LOOKUP_MONTHS} months`,
     )
+  }
+
+  /** The account's public profile and current ratings (two requests). */
+  async player(username: string): Promise<PlayerProfile> {
+    const base = this.options.baseUrl ?? 'https://api.chess.com'
+    const user = `${base}/pub/player/${encodeURIComponent(username.toLowerCase())}`
+    const profile = ProfileSchema.parse(await this.json(user, username))
+    const stats = StatsSchema.parse(await this.json(`${user}/stats`, username))
+    const ratings: PlayerProfile['ratings'] = {}
+    for (const [key, speed] of Object.entries(RATED_SPEEDS)) {
+      const category = CategorySchema.safeParse(stats[key])
+      if (category.success) ratings[speed] = category.data.last.rating
+    }
+    // The member URL spells the username as the player does ("…/member/Hikaru").
+    const spelled = profile.url.split('/member/')[1]
+    return {
+      source: 'chesscom',
+      username: spelled && spelled.toLowerCase() === profile.username ? spelled : profile.username,
+      url: profile.url,
+      ...(profile.title && { title: profile.title }),
+      ...(profile.name && { name: profile.name }),
+      ...(profile.avatar && { avatarUrl: profile.avatar }),
+      ...(profile.country && { country: profile.country.split('/').pop() }),
+      ratings,
+    }
   }
 
   private async json(url: string, username: string): Promise<unknown> {

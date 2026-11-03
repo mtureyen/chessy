@@ -1,14 +1,16 @@
 import type { StoredReview } from '@chessy/history'
-import type { LibraryGame } from '@chessy/library'
+import type { LibraryGame, Profile } from '@chessy/library'
 import type { LibraryService, LibraryStatus } from './libraryService'
 import type { OpenDatabase } from './types'
 import { PostgresGameRepository } from './gameRepository'
+import { PostgresProfileStore } from './profileStore'
 import { PostgresReviewRepository } from './reviewRepository'
 
 interface Stores {
   name: string
   games: PostgresGameRepository
   reviews: PostgresReviewRepository
+  profiles: PostgresProfileStore
 }
 
 /**
@@ -50,6 +52,14 @@ export class DatabaseLibraryService implements LibraryService {
     await (await this.connected()).reviews.save(review)
   }
 
+  async profile(): Promise<Profile | undefined> {
+    return (await this.connected()).profiles.load()
+  }
+
+  async saveProfile(profile: Profile): Promise<void> {
+    await (await this.connected()).profiles.save(profile)
+  }
+
   private connected(): Promise<Stores> {
     const open = this.open
     if (!open) return Promise.reject(new Error('No database configured (DATABASE_URL)'))
@@ -58,6 +68,7 @@ export class DatabaseLibraryService implements LibraryService {
         name,
         games: new PostgresGameRepository(db),
         reviews: new PostgresReviewRepository(db),
+        profiles: new PostgresProfileStore(db),
       }))
       .catch((error: unknown) => {
         this.stores = undefined

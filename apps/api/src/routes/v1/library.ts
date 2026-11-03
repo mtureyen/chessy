@@ -1,10 +1,12 @@
 import type { GameReview } from '@chessy/analysis'
 import { createGame, InvalidPositionError, PgnImportError } from '@chessy/chess'
 import {
+  getProfileRoute,
   libraryStatusRoute,
   missingLibraryGamesRoute,
   saveLibraryGamesRoute,
   saveLibraryReviewRoute,
+  saveProfileRoute,
 } from '@chessy/contracts'
 import { gameLine } from '@chessy/history'
 import { DuplicateGameError, type LibraryGame } from '@chessy/library'
@@ -72,6 +74,25 @@ export function libraryRoutes({
         review: sent.review,
         reviewedAt: new Date(now()).toISOString(),
       })
+      return c.json({ stored: true as const }, 200)
+    })
+    .openapi(getProfileRoute, async (c) => {
+      const status = await library.status()
+      if (!status.available) {
+        return problem(c, 503, 'Library unavailable', { detail: status.reason })
+      }
+      return c.json({ profile: (await library.profile()) ?? null }, 200)
+    })
+    .openapi(saveProfileRoute, async (c) => {
+      const { profile } = c.req.valid('json')
+      if (new Set(profile.accounts.map((a) => a.source)).size !== profile.accounts.length) {
+        return problem(c, 400, 'Invalid profile', { detail: 'One account per platform' })
+      }
+      const status = await library.status()
+      if (!status.available) {
+        return problem(c, 503, 'Library unavailable', { detail: status.reason })
+      }
+      await library.saveProfile(profile)
       return c.json({ stored: true as const }, 200)
     })
 }

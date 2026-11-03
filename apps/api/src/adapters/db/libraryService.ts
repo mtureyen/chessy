@@ -1,5 +1,5 @@
 import type { StoredReview } from '@chessy/history'
-import type { LibraryGame } from '@chessy/library'
+import type { LibraryGame, Profile } from '@chessy/library'
 
 // Types only: app.ts (and through it the web app's typed client) sees this file, not the
 // database code behind it.
@@ -14,4 +14,6 @@ export interface LibraryService {
   saveGames(games: LibraryGame[]): Promise<void>
   missingGames(ids: readonly string[]): Promise<string[]>
   saveReview(review: StoredReview): Promise<void>
+  profile(): Promise<Profile | undefined>
+  saveProfile(profile: Profile): Promise<void>
 }
