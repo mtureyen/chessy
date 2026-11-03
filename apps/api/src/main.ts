@@ -5,6 +5,8 @@ import {
   defaultPoolSize,
   resolveStockfishPath,
 } from './adapters/engine/native'
+import { openDatabase } from './adapters/db/database'
+import { DatabaseLibraryService } from './adapters/db/service'
 import { createMaiaService } from './adapters/humanMoves/maia'
 import { ChessComGameSource } from './adapters/sources/chesscom'
 import { LichessGameSource } from './adapters/sources/lichess'
@@ -26,10 +28,13 @@ const app = createApp({
     hashMb: config.ENGINE_HASH_MB,
   }),
   humanMoves: createMaiaService(config.MAIA_MODEL_PATH),
+  library: new DatabaseLibraryService(
+    config.DATABASE_URL ? () => openDatabase(config.DATABASE_URL!) : undefined,
+  ),
 })
 
 console.log(
-  `chessy-api ${pkg.version} listening on http://localhost:${config.PORT} (${config.NODE_ENV}, sources: ${config.CHESSY_SOURCES}, engine: ${stockfishPath} ×${poolSize})`,
+  `chessy-api ${pkg.version} listening on http://localhost:${config.PORT} (${config.NODE_ENV}, sources: ${config.CHESSY_SOURCES}, engine: ${stockfishPath} ×${poolSize}, history: ${config.DATABASE_URL ? 'database' : 'off'})`,
 )
 
 export default { port: config.PORT, fetch: app.fetch }
