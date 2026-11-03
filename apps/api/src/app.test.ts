@@ -7,7 +7,7 @@ import {
 } from '@chessy/library'
 import { sampleReview } from '@chessy/history/testing'
 import { sampleGame, sampleSourceGame } from '@chessy/library/testing'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { openDatabase } from './adapters/db/database'
 import { DatabaseLibraryService } from './adapters/db/service'
 import type { EngineService, EngineStatus } from './adapters/engine/service'
@@ -63,10 +63,11 @@ const humanMoves: HumanMoveService = {
   }),
 }
 
+const library = new DatabaseLibraryService(() => openDatabase('pglite:memory'))
 const app = createApp({
   engine,
   humanMoves,
-  library: new DatabaseLibraryService(() => openDatabase('pglite:memory')),
+  library,
   version: '9.9.9',
   startedAt: 1_000,
   now: () => 61_000,
@@ -332,6 +333,8 @@ describe('GET /api/v1/sources/{source}/games/{id}', () => {
 })
 
 describe('library routes', () => {
+  // Starting the embedded database takes a few seconds on slow machines: not inside a test.
+  beforeAll(() => library.status(), 60_000)
   const post = (path: string, body: unknown) =>
     app.request(`/api/v1/library${path}`, {
       method: 'POST',
