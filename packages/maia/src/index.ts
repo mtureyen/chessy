@@ -13,5 +13,10 @@ export {
 } from './domain/encoding'
 export { decodePrediction, type HumanMove, type HumanMovePrediction } from './domain/prediction'
 export type { MaiaInput, MaiaModel, MaiaOutput } from './ports/maiaModel'
-export { predictHumanMoves, type HumanMoveRequest } from './usecases/predictHumanMoves'
+export {
+  moveProbabilities,
+  predictHumanMoves,
+  type HumanMoveRequest,
+  type MoveProbabilityQuery,
+} from './usecases/predictHumanMoves'
 export { OnnxMaiaModel, type OnnxRuntime, type OnnxSession } from './adapters/onnxMaiaModel'
