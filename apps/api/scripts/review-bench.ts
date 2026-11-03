@@ -3,6 +3,7 @@
  * reviewGame over games where chess.com marked one move brilliant, and reports how many of those
  * we find and how many other moves we call brilliant.
  *
+ *   bun run review:bench --references references.json [--dump facts.json]
  *   bun run review:bench <dataset.json> [--split tune|check|all] [--nodes 500000]
  *                        [--parallel 8] [--out results.json] [--no-maia] [--dump facts.json]
  *
@@ -13,6 +14,9 @@
  * e.g. Chessigma's brilliant benchmark (chessigma.com/benchmarks/brilliant, "Download the
  * dataset"); it is not part of this repo. Even-numbered games are for tuning the rules, odd ones
  * for checking them, so rules aren't fitted to the very games they are judged on.
+ *
+ * With --references (from `bun run bench:references`) every move is compared with a reference
+ * label instead: agreement overall, and found/precision per class.
  *
  * Evaluations are cached in apps/api/.bench/, so only the first run waits for the engine and
  * later runs measure a rule change in seconds.
@@ -27,6 +31,7 @@ import {
   reviewGame,
   type EvalCache,
   type HumanMoveModel,
+  MOVE_CLASSES,
   type MoveClass,
   type MoveFacts,
   type PositionEval,
@@ -48,6 +53,8 @@ const { values: args, positionals } = parseArgs({
     'no-maia': { type: 'boolean', default: false },
     /** Every move's facts, for trying rule changes offline. */
     dump: { type: 'string' },
+    /** Reference labels per move (bench:references) to compare every move with. */
+    references: { type: 'string' },
   },
 })
 
@@ -127,10 +134,9 @@ interface GameResult {
 
 async function main() {
   const [datasetPath] = positionals
-  if (!datasetPath) throw new Error('usage: review-bench <dataset.json> [--split tune|check|all]')
-  const dataset: { pgn: string; ply: string | number }[] = JSON.parse(
-    readFileSync(datasetPath, 'utf8'),
-  )
+  if (!datasetPath && !args.references) {
+    throw new Error('usage: review-bench <dataset.json> | --references references.json')
+  }
   const nodes = Number(args.nodes)
   mkdirSync(BENCH_DIR, { recursive: true })
   const cache = new FileEvalCache(`${BENCH_DIR}evals-${nodes}.json`)
@@ -145,6 +151,17 @@ async function main() {
   )
   const evaluator = new EnginePoolEvaluator(engines)
   const humanMoves = args['no-maia'] ? undefined : await maiaModel(`${BENCH_DIR}maia.json`)
+  const deps = { evaluator, cache, book, ...(humanMoves && { humanMoves }) }
+  if (args.references) {
+    await compareReferences(deps, nodes, JSON.parse(readFileSync(args.references, 'utf8')))
+    cache.save()
+    humanMoves?.save()
+    for (const engine of engines) engine.dispose()
+    return
+  }
+  const dataset: { pgn: string; ply: string | number }[] = JSON.parse(
+    readFileSync(datasetPath!, 'utf8'),
+  )
   const picked = dataset
     .map((entry, index) => ({ ...entry, index }))
     .filter(
@@ -205,6 +222,104 @@ async function main() {
   report(results)
   if (args.out) writeFileSync(args.out, JSON.stringify(results, null, 1))
   if (args.dump) writeFileSync(args.dump, JSON.stringify(dumped))
+}
+
+/** How Chessigma's move icons name chess.com's classes; Chessigma also has "forced" (= best). */
+const REFERENCE_CLASSES: Record<string, MoveClass> = {
+  brilliant: 'brilliant',
+  sigma: 'brilliant',
+  very_good: 'great',
+  great: 'great',
+  best: 'best',
+  forced: 'best',
+  excellent: 'excellent',
+  good: 'good',
+  book: 'book',
+  inaccuracy: 'inaccuracy',
+  mistake: 'mistake',
+  miss: 'miss',
+  blunder: 'blunder',
+}
+
+interface ReferenceGame {
+  url: string
+  pgn: string
+  ratings: { white?: number; black?: number }
+  labels: { ply: number; uci: string; label: string }[]
+}
+
+/** Reviews the reference games and compares every move's class with its reference label. */
+async function compareReferences(
+  deps: Parameters<typeof reviewGame>[0],
+  nodes: number,
+  games: ReferenceGame[],
+) {
+  const pairs: {
+    ours: MoveClass
+    reference: MoveClass
+    facts: MoveFacts
+    game: string
+    ply: number
+    /** The mover's rating. */
+    rating?: number
+  }[] = []
+  const unknown = new Set<string>()
+  for (const [i, entry] of games.entries()) {
+    const { game } = importPgn(entry.pgn)
+    game.toStart()
+    const line = game.line()
+    const ratings = Object.fromEntries(Object.entries(entry.ratings).filter(([, r]) => r))
+    const review = await reviewGame(
+      deps,
+      { startFen: game.root.fen, moves: line.map((node) => node.move!.uci), ratings },
+      { nodes },
+    )
+    for (const label of entry.labels) {
+      const reference = REFERENCE_CLASSES[label.label]
+      const ours = review.moves[label.ply - 1]
+      if (!reference) unknown.add(label.label)
+      if (!reference || !ours || ours.uci !== label.uci) continue
+      const rating = entry.ratings[ours.color]
+      pairs.push({
+        ours: ours.classification,
+        reference,
+        facts: ours.facts,
+        game: entry.url,
+        ply: label.ply,
+        ...(rating && { rating }),
+      })
+    }
+    process.stdout.write(`\r${i + 1}/${games.length} games`)
+  }
+  const agree = pairs.filter((p) => p.ours === p.reference).length
+  console.log(
+    `\n\n${games.length} games, ${pairs.length} moves: same class for ${pct(agree, pairs.length)}`,
+  )
+  if (unknown.size) console.log(`unknown reference labels: ${[...unknown].join(', ')}`)
+  console.log('\nclass        reference   ours   both   found  precision')
+  for (const cls of MOVE_CLASSES) {
+    const reference = pairs.filter((p) => p.reference === cls).length
+    const ours = pairs.filter((p) => p.ours === cls).length
+    const both = pairs.filter((p) => p.ours === cls && p.reference === cls).length
+    console.log(
+      `${cls.padEnd(12)} ${String(reference).padStart(9)} ${String(ours).padStart(6)} ${String(both).padStart(6)}   ${(reference ? pct(both, reference) : '–').padStart(5)}  ${(ours ? pct(both, ours) : '–').padStart(9)}`,
+    )
+  }
+  console.log('\nreference → ours, for the rarer classes:')
+  for (const cls of ['brilliant', 'great', 'miss', 'blunder'] as MoveClass[]) {
+    const counts = new Map<MoveClass, number>()
+    for (const p of pairs.filter((p) => p.reference === cls))
+      counts.set(p.ours, (counts.get(p.ours) ?? 0) + 1)
+    console.log(
+      `  ${cls.padEnd(9)} → ${
+        [...counts]
+          .sort((a, b) => b[1] - a[1])
+          .map(([c, n]) => `${c} ${n}`)
+          .join(', ') || '–'
+      }`,
+    )
+  }
+  if (args.dump) writeFileSync(args.dump, JSON.stringify(pairs))
 }
 
 function report(results: GameResult[]) {
