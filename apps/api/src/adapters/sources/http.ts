@@ -7,13 +7,17 @@ export interface HttpSourceOptions {
   userAgent: string
 }
 
-/** GET with the platform's error conventions mapped to library errors. */
+/**
+ * GET with the platform's error conventions mapped to library errors. A 404 means the user is
+ * unknown, unless `notFound` says what else is missing.
+ */
 export async function get(
   source: SourceId,
   url: string,
   username: string,
   { fetch: doFetch = fetch, userAgent }: HttpSourceOptions,
   accept = 'application/json',
+  notFound: () => Error = () => new UserNotFoundError(source, username),
 ): Promise<Response> {
   let res: Response
   try {
@@ -24,7 +28,7 @@ export async function get(
       `network error: ${error instanceof Error ? error.message : String(error)}`,
     )
   }
-  if (res.status === 404) throw new UserNotFoundError(source, username)
+  if (res.status === 404) throw notFound()
   if (res.status === 429) {
     // lichess asks clients to wait a full minute after a 429.
     const retryAfter = Number(res.headers.get('Retry-After')) || 60

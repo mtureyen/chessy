@@ -26,6 +26,13 @@ export class CachedGameSource implements GameSource {
     this.now = now
   }
 
+  /** Not cached, but queued like every request to the platform. */
+  game(id: string, options: { username?: string }): Promise<SourceGame> {
+    const game = this.queue.then(() => this.inner.game(id, options))
+    this.queue = game.catch(() => undefined)
+    return game
+  }
+
   recentGames(username: string, options: { max: number }): Promise<SourceGame[]> {
     const key = `${username.toLowerCase()}:${options.max}`
     const hit = this.cache.get(key)

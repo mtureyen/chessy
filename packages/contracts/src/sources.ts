@@ -61,3 +61,38 @@ export const recentGamesRoute = createRoute({
     502: problem('The platform could not be reached or failed'),
   },
 })
+
+export const sourceGameRoute = createRoute({
+  method: 'get',
+  path: '/sources/{source}/games/{id}',
+  tags: ['sources'],
+  summary: 'One game by the id in its page URL',
+  description:
+    "lichess: the 8-character game id. chess.com: the game number; chess.com has no lookup by game, so the given user's games of the last months are searched.",
+  request: {
+    params: z.object({
+      source: SourceIdSchema,
+      id: z
+        .string()
+        .regex(/^[A-Za-z0-9]{1,20}$/)
+        .openapi({ example: 'HqjDTU4A' }),
+    }),
+    query: z.object({
+      username: z
+        .string()
+        .regex(/^[A-Za-z0-9_-]{2,30}$/)
+        .optional()
+        .openapi({ example: '8sly' }),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'The game',
+      content: { 'application/json': { schema: z.object({ game: SourceGameSchema }) } },
+    },
+    400: problem('Invalid source, id or username'),
+    404: problem('No such game, or not among the user’s games; or the user does not exist'),
+    429: problem('The platform asked us to slow down; see Retry-After'),
+    502: problem('The platform could not be reached or failed'),
+  },
+})

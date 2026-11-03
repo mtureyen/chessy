@@ -5,6 +5,12 @@
 declare global {
   function structuredClone<T>(value: T): T
   function setTimeout(handler: () => void, timeout?: number): unknown
+  /** The WHATWG URL parser (browsers, Bun and Node all have it); only the parts we use. */
+  class URL {
+    constructor(url: string, base?: string)
+    readonly hostname: string
+    readonly pathname: string
+  }
 }
 
 export {}

@@ -13,6 +13,15 @@ export const RECORDED_USERS = { lichess: 'DrNykterstein', chesscom: 'hikaru' } a
  */
 export const recordedFetch: Fetch = async (url) => {
   const { pathname } = new URL(url)
+  const lichessGame = /^\/game\/export\/([^/]+)$/.exec(pathname)?.[1]
+  if (lichessGame) {
+    const line = fixture('lichess-games.ndjson')
+      .split('\n')
+      .find((l) => l.includes(`"id":"${lichessGame}"`))
+    return line
+      ? new Response(line, { headers: { 'Content-Type': 'application/json' } })
+      : new Response('Not found', { status: 404 })
+  }
   const lichessUser = /^\/api\/games\/user\/([^/]+)$/.exec(pathname)?.[1]
   if (lichessUser) {
     return lichessUser.toLowerCase() === RECORDED_USERS.lichess.toLowerCase()
