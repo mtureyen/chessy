@@ -8,6 +8,7 @@ import {
 import { describe, expect, it } from 'vitest'
 import { botLevel } from '../domain/levels'
 import { seededRandom } from '../domain/random'
+import type { HumanMovePolicy, HumanMoveRequest } from '../ports/humanMovePolicy'
 import { BotMoveCancelledError, chooseBotMove } from './chooseBotMove'
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -53,6 +54,21 @@ function cancellable() {
 
 const request = { fen: START, level: botLevel(5), random: seededRandom(1) }
 
+/** A human-move model that always says "d2d4", or fails. */
+function fakeHuman(answer: 'd2d4' | 'fail' | (() => void)) {
+  const requests: HumanMoveRequest[] = []
+  const human: HumanMovePolicy = {
+    name: 'FakeMaia',
+    async predict(request) {
+      requests.push(request)
+      if (answer === 'fail') throw new Error('HTTP 503')
+      if (typeof answer === 'function') answer()
+      return { moves: [{ move: 'd2d4', probability: 1 }], expectedScore: 0.48 }
+    },
+  }
+  return { human, requests }
+}
+
 describe('chooseBotMove', () => {
   it('asks for the level’s budget and candidates, then picks from the lines', async () => {
     const { engine, requests } = fakeEngine({
@@ -95,5 +111,43 @@ describe('chooseBotMove', () => {
     const { engine, requests } = fakeEngine({})
     await expect(chooseBotMove({ engine }, { ...request, fen: MATED })).rejects.toThrow(/over/)
     expect(requests).toHaveLength(0)
+  })
+
+  it('plays a human-like level’s move from the human-move model, as a human of its rating', async () => {
+    const { engine, requests: searches } = fakeEngine({ bestMove: 'e2e4' })
+    const { human, requests } = fakeHuman('d2d4')
+    const level = botLevel(3)
+    const choice = await chooseBotMove({ engine, human }, { ...request, level })
+    expect(choice).toEqual({ move: 'd2d4', by: 'human', winChance: 48, candidates: [] })
+    expect(requests).toEqual([{ fen: START, eloSelf: level.human!.elo, eloOppo: level.human!.elo }])
+    expect(searches).toHaveLength(0)
+  })
+
+  it('lets the engine play when the model fails, or for levels without a human style', async () => {
+    const failing = fakeHuman('fail')
+    const { engine } = fakeEngine({ bestMove: 'e2e4' })
+    const fallback = await chooseBotMove(
+      { engine, human: failing.human },
+      { ...request, level: botLevel(3) },
+    )
+    expect(fallback).toMatchObject({ move: 'e2e4', by: 'engine' })
+
+    const { human, requests } = fakeHuman('d2d4')
+    const strongest = await chooseBotMove({ engine, human }, { ...request, level: botLevel(8) })
+    expect(strongest.move).toBe('e2e4')
+    expect(requests).toHaveLength(0)
+  })
+
+  it('stops when cancelled while the model answers', async () => {
+    const { engine, requests: searches } = fakeEngine({ bestMove: 'e2e4' })
+    const controller = cancellable()
+    const { human } = fakeHuman(() => controller.abort())
+    await expect(
+      chooseBotMove(
+        { engine, human },
+        { ...request, level: botLevel(3), signal: controller.signal },
+      ),
+    ).rejects.toBeInstanceOf(BotMoveCancelledError)
+    expect(searches).toHaveLength(0)
   })
 })

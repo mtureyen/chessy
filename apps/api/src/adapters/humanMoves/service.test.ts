@@ -44,6 +44,18 @@ describe('MaiaHumanMoveService', () => {
     expect(counts).toMatchObject({ runs: 2, overlapping: false })
   })
 
+  it('predicts every legal move in the same queue as the probabilities', async () => {
+    const { model, counts } = fakeModel()
+    const service = new MaiaHumanMoveService(async () => model)
+    const [prediction] = await Promise.all([
+      service.predict({ fen: START, eloSelf: 1100 }),
+      service.moveProbabilities([{ fen: START, move: 'e2e4', eloSelf: 1500, eloOppo: 1500 }]),
+    ])
+    expect(prediction.moves).toHaveLength(20)
+    expect(prediction.moves[0]).toMatchObject({ move: 'e2e4' })
+    expect(counts).toMatchObject({ runs: 2, overlapping: false })
+  })
+
   it('reports a failed load as unavailable and tries again later', async () => {
     const { model } = fakeModel()
     let missing = true

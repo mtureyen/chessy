@@ -1,5 +1,11 @@
 import type { HumanMoveQuery } from '@chessy/analysis'
-import { moveProbabilities, type MaiaModel } from '@chessy/maia'
+import {
+  moveProbabilities,
+  predictHumanMoves,
+  type HumanMovePrediction,
+  type HumanMoveRequest,
+  type MaiaModel,
+} from '@chessy/maia'
 
 export type HumanMovesStatus =
   { available: true; name: string } | { available: false; reason: string }
@@ -8,6 +14,7 @@ export type HumanMovesStatus =
 export interface HumanMoveService {
   status(): Promise<HumanMovesStatus>
   moveProbabilities(queries: readonly HumanMoveQuery[]): Promise<number[]>
+  predict(request: HumanMoveRequest): Promise<HumanMovePrediction>
 }
 
 /**
@@ -35,7 +42,16 @@ export class MaiaHumanMoveService implements HumanMoveService {
   }
 
   moveProbabilities(queries: readonly HumanMoveQuery[]): Promise<number[]> {
-    const run = this.queue.then(async () => moveProbabilities(await this.loaded(), queries))
+    return this.enqueue(async () => moveProbabilities(await this.loaded(), queries))
+  }
+
+  predict(request: HumanMoveRequest): Promise<HumanMovePrediction> {
+    return this.enqueue(async () => (await predictHumanMoves(await this.loaded(), [request]))[0]!)
+  }
+
+  /** One model run at a time on the single session. */
+  private enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const run = this.queue.then(task)
     this.queue = run.catch(() => undefined)
     return run
   }

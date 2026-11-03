@@ -23,12 +23,30 @@ export interface BotLevel {
    * UCI_Elo, so a rough guide to human ratings rather than a measurement of them.
    */
   rating?: number
+  /**
+   * Plays like a human of a rating (a human-move model such as Maia) instead of from the engine's
+   * ranking, when such a model is available; the engine settings above are the fallback.
+   */
+  human?: HumanStyle
+}
+
+/** How a human-like level samples from the human-move model (see `sampleHumanMove`). */
+export interface HumanStyle {
+  /** The rating the model imitates. */
+  elo: number
+  /** Above 1: less common moves more often (weaker); below 1: the most common ones (stronger). */
+  temperature: number
+  /** Only moves within this share of the probability mass, most likely first. */
+  topP: number
 }
 
 /**
  * Levels 1–8, weakest first. Parameters and ratings come from engine matches on the browser's
  * engine (`bun run bots:calibrate`, Nov 2026): 520 games between the levels, 60 against
  * Stockfish at UCI_Elo 1400/1800/2200. Standard errors are ±35–60.
+ * Levels 1–6 play human-like when the human-move model is there; their `human` settings are a
+ * first estimate from Maia's measured strength (input 1100 played ~1380, 1900 ~1730, sampled),
+ * not yet calibrated.
  */
 export const BOT_LEVELS: readonly BotLevel[] = [
   {
@@ -40,6 +58,7 @@ export const BOT_LEVELS: readonly BotLevel[] = [
     maxLoss: 100,
     seesMateIn: 1,
     rating: 474,
+    human: { elo: 600, temperature: 2, topP: 0.95 },
   },
   {
     level: 2,
@@ -50,6 +69,7 @@ export const BOT_LEVELS: readonly BotLevel[] = [
     maxLoss: 85,
     seesMateIn: 1,
     rating: 680,
+    human: { elo: 800, temperature: 1.6, topP: 0.95 },
   },
   {
     level: 3,
@@ -60,6 +80,7 @@ export const BOT_LEVELS: readonly BotLevel[] = [
     maxLoss: 65,
     seesMateIn: 1,
     rating: 1054,
+    human: { elo: 1000, temperature: 1.3, topP: 0.95 },
   },
   {
     level: 4,
@@ -70,6 +91,7 @@ export const BOT_LEVELS: readonly BotLevel[] = [
     maxLoss: 45,
     seesMateIn: 2,
     rating: 1355,
+    human: { elo: 1100, temperature: 1, topP: 0.98 },
   },
   {
     level: 5,
@@ -80,6 +102,7 @@ export const BOT_LEVELS: readonly BotLevel[] = [
     maxLoss: 35,
     seesMateIn: 2,
     rating: 1692,
+    human: { elo: 1800, temperature: 0.9, topP: 0.98 },
   },
   {
     level: 6,
@@ -90,6 +113,7 @@ export const BOT_LEVELS: readonly BotLevel[] = [
     maxLoss: 27,
     seesMateIn: 3,
     rating: 1898,
+    human: { elo: 1900, temperature: 0.6, topP: 0.98 },
   },
   {
     level: 7,

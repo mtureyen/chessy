@@ -1,4 +1,4 @@
-import { whiteWinChance, type EngineLine } from '@chessy/analysis'
+import { whiteWinChance, type EngineLine, type Score } from '@chessy/analysis'
 import type { Color } from '@chessy/chess'
 import type { BotLevel } from './levels'
 import { pickWeighted, type Random } from './random'
@@ -8,7 +8,10 @@ export interface Candidate {
   move: string
   /** Winning chance for the bot after this move, in percent. */
   winChance: number
-  /** Win-% given away compared with the best move. */
+  /**
+   * What the move gives away compared with the best one: win-%, or centipawns / 10 when that is
+   * more (see `lossOf`).
+   */
   loss: number
   /** Chance the bot plays it (0–1). */
   probability: number
@@ -16,9 +19,23 @@ export interface Candidate {
 
 export interface BotChoice {
   move: string
-  /** Every move the bot considered, best first, with the chance it had. */
+  /** How the move was chosen: from the engine's ranking, or as a human of the level's rating. */
+  by: 'engine' | 'human'
+  /**
+   * The bot's winning chance as it sees it, in percent: the engine's, or for a human-like move
+   * the result humans of these ratings tend to get from here.
+   */
+  winChance?: number
+  /** Every move the engine ranked, best first, with the chance it had (engine choices only). */
   candidates: Candidate[]
 }
+
+/**
+ * Centipawns per point of loss. Win-% alone flattens out in decided positions (a lost side loses
+ * almost no win-% by also dropping a piece), so the bot would play at random there.
+ */
+const CENTIPAWNS_PER_POINT = 10
+const CENTIPAWN_CAP = 1500
 
 /**
  * Picks the bot's move from the engine's ranked lines. Each move is weighted by
@@ -40,27 +57,48 @@ export function selectMove(
     const white = whiteWinChance(line.score)
     return turn === 'white' ? white : 100 - white
   }
-  const bestWin = win(best)
-  const options = ranked
-    .map((line) => ({
-      move: line.pv[0]!,
-      winChance: win(line),
-      loss: Math.max(0, bestWin - win(line)),
-    }))
-    .filter((option, index) => index === 0 || option.loss <= level.maxLoss)
+  const options = ranked.map((line) => ({
+    move: line.pv[0]!,
+    winChance: win(line),
+    loss: lossOf(line, best, turn),
+  }))
+  const playable = options.filter((option, index) => index === 0 || option.loss <= level.maxLoss)
 
   const { score } = best
   const forcedMate =
     score.type === 'mate' && score.winner === turn && score.moves <= level.seesMateIn
   const weights = forcedMate
-    ? options.map((_, index) => (index === 0 ? 1 : 0))
-    : options.map((option) => Math.exp(-option.loss / level.temperature))
+    ? playable.map((_, index) => (index === 0 ? 1 : 0))
+    : playable.map((option) => Math.exp(-option.loss / level.temperature))
   const total = weights.reduce((sum, w) => sum + w, 0)
-  const candidates = options.map((option, index) => ({
+  const candidates = playable.map((option, index) => ({
     ...option,
     probability: weights[index]! / total,
   }))
-  return { move: candidates[pickWeighted(weights, random)]!.move, candidates }
+  return {
+    move: candidates[pickWeighted(weights, random)]!.move,
+    by: 'engine',
+    winChance: candidates[0]!.winChance,
+    candidates,
+  }
+}
+
+/**
+ * What playing `line` instead of `best` gives away: win-%, or centipawns / 10 if more. With a
+ * forced mate of its own only win-% counts, so a weak level can still miss a long mate.
+ */
+function lossOf(line: EngineLine, best: EngineLine, turn: Color): number {
+  const win = (score: Score) => (turn === 'white' ? 1 : -1) * whiteWinChance(score)
+  const winLoss = Math.max(0, win(best.score) - win(line.score))
+  if (best.score.type === 'mate' && best.score.winner === turn) return winLoss
+  const centipawns = (score: Score) => {
+    const white =
+      score.type === 'mate'
+        ? (score.winner === 'white' ? 1 : -1) * CENTIPAWN_CAP
+        : Math.max(-CENTIPAWN_CAP, Math.min(CENTIPAWN_CAP, score.value))
+    return turn === 'white' ? white : -white
+  }
+  return Math.max(winLoss, (centipawns(best.score) - centipawns(line.score)) / CENTIPAWNS_PER_POINT)
 }
 
 /** Lines in rank order, one per first move (engines can repeat a move across MultiPV updates). */
