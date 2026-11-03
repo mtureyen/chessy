@@ -51,7 +51,8 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   const [multiPv, setMultiPv] = useState(3)
   const [tab, setTab] = useState<'moves' | 'review'>(initial.review ? 'review' : 'moves')
 
-  const review = useGameReview(view.root)
+  const ratings = useMemo(() => ratingsFromHeaders(headers), [headers])
+  const review = useGameReview(view.root, ratings)
   useAutoReview(initial.review === true && !boot.error, view.root, review.start)
   const reviewed =
     review.state.status === 'done' ? reviewedNodes(view.root, review.state.review) : undefined
@@ -252,6 +253,17 @@ function currentPlyOnMainline(
     if (move) return move.ply
   }
   return 0
+}
+
+/** The players' ratings from the PGN (WhiteElo/BlackElo), for judging how hard moves were. */
+function ratingsFromHeaders(headers: PgnHeaders): { white?: number; black?: number } {
+  const rating = (tag: string) => {
+    const value = Number(headers[tag])
+    return Number.isInteger(value) && value > 0 ? value : undefined
+  }
+  const white = rating('WhiteElo')
+  const black = rating('BlackElo')
+  return { ...(white && { white }), ...(black && { black }) }
 }
 
 /** Player bars from the PGN headers (names, ratings, titles) and the clocks in the tree. */

@@ -1,4 +1,4 @@
-import { EvaluationCancelledError, type GameReview } from '@chessy/analysis'
+import { EvaluationCancelledError, type GameReview, type ReviewInput } from '@chessy/analysis'
 import type { MoveNode } from '@chessy/chess'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReviewEngine } from '@/app/services'
@@ -17,7 +17,7 @@ const IDLE: ReviewState = { status: 'idle' }
  * Runs a review of the current main line. Each state remembers the game (root) it belongs to,
  * so loading another game shows "idle" right away; the running review is cancelled.
  */
-export function useGameReview(root: MoveNode) {
+export function useGameReview(root: MoveNode, ratings?: ReviewInput['ratings']) {
   const { review: service } = useServices()
   const [entry, setEntry] = useState<{ root: MoveNode; state: ReviewState }>({ root, state: IDLE })
   const running = useRef<AbortController | null>(null)
@@ -34,7 +34,7 @@ export function useGameReview(root: MoveNode) {
       set({ status: 'running', done: 0, total: moves.length + 1 })
       service
         .run(
-          { startFen: root.fen, moves },
+          { startFen: root.fen, moves, ...(ratings && { ratings }) },
           {
             engine,
             nodes,
@@ -48,7 +48,7 @@ export function useGameReview(root: MoveNode) {
           set({ status: 'error', message: error instanceof Error ? error.message : String(error) })
         })
     },
-    [root, service],
+    [root, ratings, service],
   )
 
   const cancel = useCallback(() => {
