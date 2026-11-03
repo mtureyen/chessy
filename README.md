@@ -17,6 +17,7 @@ packages/
   analysis/     engine port (UCI), evaluations, game review (accuracy, move classes)
   library/      the user's games: import from lichess / chess.com, storage port
   play/         games against bots: levels, move choice, saving finished games
+  maia/         Maia-3: which move a human of a given rating would play (runtime-neutral)
   contracts/    API contract (zod + OpenAPI), shared by api and web
   config/       shared TypeScript config
 ```
@@ -62,6 +63,14 @@ The bots run on the browser's engine under Node, the reference engine natively, 
 `node` and `bun run engine:native`. A full run takes about half an hour; see the script for
 options.
 
+### Maia (human-like moves, prototype)
+
+[Maia-3](https://github.com/CSSLab/maia3) predicts the move a human of a given rating would play.
+`bun run --cwd apps/api maia:fetch` downloads the model the official Maia platform serves to
+browsers (pinned, checksum-verified); `bun run --cwd apps/api maia:spike latency | match
+<games.json> | strength` measures its speed, how often it predicts real moves, and its strength
+against the bot levels.
+
 ## Contributing
 
 Branch, commit and PR conventions: [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -69,4 +78,5 @@ Branch, commit and PR conventions: [CONTRIBUTING.md](CONTRIBUTING.md).
 ## License
 
 Chessy is licensed under the [GNU Affero General Public License v3.0](LICENSE). It builds on
-GPL-3.0 libraries (chessops, chessground, Stockfish).
+GPL-3.0 libraries (chessops, chessground, Stockfish) and on Maia-3 by the University of Toronto
+Computational Social Science Lab (AGPL-3.0).
