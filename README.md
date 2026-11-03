@@ -64,7 +64,13 @@ The bots run on the browser's engine under Node, the reference engine natively, 
 `node` and `bun run engine:native`. A full run takes about half an hour; see the script for
 options.
 
-### Maia (human-like moves, prototype)
+Levels 1–6 play human-like when the API has the Maia model (below): they sample from what a
+player of a set rating would play. `--human-levels` measures them that way, and
+`--human rating:temperature:top-p,…` adds players with other settings, to find the ones that hit
+a level's rating. Maia runs on the script's single thread, so `--shard i/n` splits a run across
+several processes; `--refit` fits their result files together.
+
+### Maia (human-like moves)
 
 [Maia-3](https://github.com/CSSLab/maia3) predicts the move a human of a given rating would play.
 `bun run --cwd apps/api maia:fetch` downloads the model the official Maia platform serves to
