@@ -1,13 +1,12 @@
 import { Chessground } from 'chessground'
 import type { Api } from 'chessground/api'
 import 'chessground/assets/chessground.base.css'
-import 'chessground/assets/chessground.brown.css'
-import 'chessground/assets/chessground.cburnett.css'
 import type { Config } from 'chessground/config'
 import type { DrawShape } from 'chessground/draw'
 import type { Key } from 'chessground/types'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Color, Move, SquareName } from '@chessy/chess'
+import { useBoardAppearance } from './appearanceStore'
 import './Board.css'
 import { PromotionDialog } from './PromotionDialog'
 
@@ -48,6 +47,7 @@ export function Board(props: BoardProps) {
   const api = useRef<Api | null>(null)
   const latest = useRef(props)
   const [promotion, setPromotion] = useState<{ from: SquareName; to: SquareName }>()
+  const { coordinates } = useBoardAppearance()
 
   useLayoutEffect(() => {
     latest.current = props
@@ -78,6 +78,14 @@ export function Board(props: BoardProps) {
       api.current = null
     }
   }, [])
+
+  // chessground draws coordinates (on by default) once; turning them off or on needs a redraw.
+  useEffect(() => {
+    const cg = api.current
+    if (!cg || cg.state.coordinates === coordinates) return
+    cg.set({ coordinates })
+    cg.redrawAll()
+  }, [coordinates])
 
   // Only push when board-relevant props change, so unrelated re-renders don't reset the board.
   const { fen, orientation, turnColor, dests, check } = props

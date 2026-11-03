@@ -5,8 +5,10 @@ import { createRoot } from 'react-dom/client'
 import { createServices } from './app/services'
 import { ServicesProvider } from './app/ServicesProvider'
 import { router } from './app/router'
+import { applyBoardAppearance } from './shared/board/appearanceStore'
 import './styles/index.css'
 
+applyBoardAppearance()
 const services = createServices()
 const queryClient = new QueryClient()
 

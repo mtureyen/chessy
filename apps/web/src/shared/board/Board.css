@@ -50,21 +50,95 @@
   padding-left: 0.3em;
 }
 
-/* Brown theme: light squares get the dark color and vice versa. */
+/* Coordinates in the opposite square colour: light squares get the dark colour and vice versa. */
 .board .cg-wrap coords coord {
-  color: #b58863;
+  color: var(--board-dark);
 }
 .board .cg-wrap coords.ranks coord:nth-child(even),
 .board .cg-wrap coords.files coord:nth-child(odd) {
-  color: #f0d9b5;
+  color: var(--board-light);
 }
 .board .cg-wrap coords.ranks.black coord:nth-child(even),
 .board .cg-wrap coords.files.black coord:nth-child(odd) {
-  color: #b58863;
+  color: var(--board-dark);
 }
 .board .cg-wrap coords.ranks.black coord:nth-child(odd),
 .board .cg-wrap coords.files.black coord:nth-child(even) {
-  color: #f0d9b5;
+  color: var(--board-light);
+}
+
+/*
+ * Theme: square colours and pieces come from CSS variables on the document root (see
+ * appearanceStore.ts). Squares are a conic gradient over one 2×2 tile, repeated: it starts at the
+ * tile's top-right square (dark), so the board's top-left square (a8, or h1 flipped) is light.
+ */
+cg-board {
+  background: repeating-conic-gradient(var(--board-dark) 0 25%, var(--board-light) 0 50%) 0 0 / 25%
+    25%;
+}
+
+cg-board square.last-move,
+cg-board square.selected {
+  background-color: var(--board-highlight);
+}
+
+cg-board square.move-dest {
+  background: radial-gradient(rgb(0 0 0 / 0.16) 19%, transparent 20%);
+}
+
+cg-board square.oc.move-dest {
+  background: radial-gradient(transparent 79%, rgb(0 0 0 / 0.16) 80%);
+}
+
+cg-board square.move-dest:hover {
+  background: rgb(0 0 0 / 0.08);
+}
+
+cg-board square.check {
+  background: radial-gradient(
+    ellipse at center,
+    rgb(255 0 0) 0%,
+    rgb(231 0 0) 25%,
+    rgb(169 0 0 / 0) 89%,
+    rgb(158 0 0 / 0) 100%
+  );
+}
+
+.cg-wrap piece.white.king {
+  background-image: var(--piece-white-king);
+}
+.cg-wrap piece.white.queen {
+  background-image: var(--piece-white-queen);
+}
+.cg-wrap piece.white.rook {
+  background-image: var(--piece-white-rook);
+}
+.cg-wrap piece.white.bishop {
+  background-image: var(--piece-white-bishop);
+}
+.cg-wrap piece.white.knight {
+  background-image: var(--piece-white-knight);
+}
+.cg-wrap piece.white.pawn {
+  background-image: var(--piece-white-pawn);
+}
+.cg-wrap piece.black.king {
+  background-image: var(--piece-black-king);
+}
+.cg-wrap piece.black.queen {
+  background-image: var(--piece-black-queen);
+}
+.cg-wrap piece.black.rook {
+  background-image: var(--piece-black-rook);
+}
+.cg-wrap piece.black.bishop {
+  background-image: var(--piece-black-bishop);
+}
+.cg-wrap piece.black.knight {
+  background-image: var(--piece-black-knight);
+}
+.cg-wrap piece.black.pawn {
+  background-image: var(--piece-black-pawn);
 }
 
 .cg-wrap.promotion-dialog {
