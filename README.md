@@ -68,4 +68,5 @@ Branch, commit and PR conventions: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-Chessy builds on GPL-3.0 libraries (chessops, chessground, Stockfish). If it is published, it will be licensed accordingly.
+Chessy is licensed under the [GNU Affero General Public License v3.0](LICENSE). It builds on
+GPL-3.0 libraries (chessops, chessground, Stockfish).
