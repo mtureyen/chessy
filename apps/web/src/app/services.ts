@@ -10,6 +10,7 @@ import {
 } from '@chessy/analysis'
 import {
   importRecentGames,
+  openGame,
   type GameRepository,
   type GameSource,
   type ImportReport,
@@ -41,6 +42,8 @@ export interface Services {
     settings: SettingsStore
     sources: Record<SourceId, GameSource>
     importRecentGames: (source: SourceId, username: string) => Promise<ImportReport>
+    /** Brings the game behind a lichess / chess.com page URL into the library. */
+    openGame: (url: string) => Promise<LibraryGame>
   }
   play: {
     chooseBotMove: (request: BotMoveRequest) => Promise<BotChoice>
@@ -114,6 +117,11 @@ export function createServices(): Services {
             now,
           },
           { username },
+        ),
+      openGame: async (url) =>
+        openGame(
+          { sources, repository: games, newId, now },
+          { url, usernames: (await settings.load()).usernames },
         ),
     },
   }

@@ -1,0 +1,15 @@
+.open-game {
+  max-width: 40rem;
+  margin: 3rem auto;
+  padding: 0 1.25rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.open-game-failed p {
+  color: var(--text);
+}
+
+.open-game-failed a {
+  color: var(--accent);
+}

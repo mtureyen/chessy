@@ -36,7 +36,15 @@ const gamesRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/library/LibraryPage'), 'LibraryPage'),
 })
 
-const routeTree = rootRoute.addChildren([playRoute, botRoute, analysisRoute, gamesRoute])
+const openRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/open',
+  validateSearch: (search: Record<string, unknown>): { url?: string } =>
+    typeof search.url === 'string' && search.url ? { url: search.url } : {},
+  component: lazyRouteComponent(() => import('@/features/library/OpenGamePage'), 'OpenGamePage'),
+})
+
+const routeTree = rootRoute.addChildren([playRoute, botRoute, analysisRoute, gamesRoute, openRoute])
 
 export const router = createRouter({ routeTree, defaultPreload: 'intent' })
 
