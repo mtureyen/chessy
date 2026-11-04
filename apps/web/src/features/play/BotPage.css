@@ -204,3 +204,30 @@
   padding: 0;
   border: 0;
 }
+
+.bot-resume {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+}
+
+.bot-resume div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.bot-resume span {
+  color: var(--text-muted);
+}
+
+.bot-setup .bot-resume .bot-play {
+  flex: none;
+  width: auto;
+  padding: 0.45rem 0.9rem;
+}

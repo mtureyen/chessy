@@ -1,6 +1,7 @@
 import { createGame, exportPgn, type Color, type PgnHeaders } from '@chessy/chess'
 import { useNavigate } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useServices } from '@/app/servicesContext'
 import { Board } from '@/shared/board/Board'
 import { GameStatusBar } from '@/shared/game/GameStatusBar'
 import { MoveTree } from '@/shared/game/MoveTree'
@@ -10,12 +11,46 @@ import { useGame } from '@/shared/game/useGame'
 import { useGameKeyboard } from '@/shared/game/useGameKeyboard'
 import '@/shared/game/GamePanel.css'
 
-/** Local two-player game on one screen. The board freezes once the game is over. */
+const newRecord = () => ({ id: crypto.randomUUID(), startedAt: new Date().toISOString() })
+
+/**
+ * Local two-player game on one screen. The board freezes once the game is over. A finished game
+ * is saved to the library by itself; "Save" keeps one midway, and from then on every move.
+ */
 export function PlayPage() {
   const { game, view, update, replace } = useGame({ freezeWhenOver: true })
   const [headers, setHeaders] = useState<PgnHeaders>({})
   const [orientation, setOrientation] = useState<Color>('white')
   const navigate = useNavigate()
+  const { play } = useServices()
+  const [record, setRecord] = useState(newRecord)
+  const [saved, setSaved] = useState<'no' | 'saving' | 'yes' | 'failed'>('no')
+  const saves = useRef<Promise<unknown>>(Promise.resolve())
+
+  const end = view.line.at(-1) ?? view.root
+  const plies = end.ply
+  const over = game.status(end).kind !== 'ongoing'
+  const save = () => {
+    setSaved('saving')
+    const next = saves.current.then(() => play.saveLocalGame({ game, headers, record }))
+    saves.current = next.catch(() => undefined)
+    next.then(() => setSaved('yes')).catch(() => setSaved('failed'))
+  }
+  // Saves a finished game, and every move of a game saved before. Read through a ref: the effect
+  // runs on a new move or the end, not when `saved` changes.
+  const latest = useRef({ save, saved })
+  useEffect(() => {
+    latest.current = { save, saved }
+  })
+  useEffect(() => {
+    if (plies > 0 && (over || latest.current.saved === 'yes')) latest.current.save()
+  }, [plies, over])
+  const startOver = (next: ReturnType<typeof createGame>, nextHeaders: PgnHeaders) => {
+    replace(next)
+    setHeaders(nextHeaders)
+    setRecord(newRecord())
+    setSaved('no')
+  }
 
   const flip = () => setOrientation((o) => (o === 'white' ? 'black' : 'white'))
   useGameKeyboard(
@@ -52,13 +87,7 @@ export function PlayPage() {
         <div className="controls">
           <NavigationControls view={view} update={update} />
           <div className="actions">
-            <button
-              type="button"
-              onClick={() => {
-                replace(createGame())
-                setHeaders({})
-              }}
-            >
+            <button type="button" onClick={() => startOver(createGame(), {})}>
               New game
             </button>
             <button
@@ -73,6 +102,14 @@ export function PlayPage() {
             </button>
             <button
               type="button"
+              disabled={plies === 0 || saved === 'saving'}
+              title="Keep this game in your games"
+              onClick={save}
+            >
+              {saved === 'yes' ? 'Saved' : 'Save'}
+            </button>
+            <button
+              type="button"
               title="Open this game on the analysis board"
               onClick={() =>
                 navigate({ to: '/analysis', search: { pgn: exportPgn(game, headers) } })
@@ -83,14 +120,22 @@ export function PlayPage() {
           </div>
         </div>
 
+        {saved === 'yes' && (
+          <p className="message message-info play-saved" role="status">
+            Saved to your games{over ? '.' : ', updated with every move.'}
+          </p>
+        )}
+        {saved === 'failed' && (
+          <p className="message message-error play-saved" role="alert">
+            Could not save the game.
+          </p>
+        )}
+
         <PgnPanel
           game={game}
           fen={view.fen}
           headers={headers}
-          onLoad={(loaded, loadedHeaders) => {
-            replace(loaded)
-            setHeaders(loadedHeaders)
-          }}
+          onLoad={(loaded, loadedHeaders) => startOver(loaded, loadedHeaders)}
         />
       </aside>
     </div>

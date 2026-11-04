@@ -1,4 +1,4 @@
-import type { Color, Move } from '@chessy/chess'
+import { createGame, importPgn, type Color, type GameState, type Move } from '@chessy/chess'
 import type { LibraryGame } from '@chessy/library'
 import {
   acceptsDraw,
@@ -15,6 +15,8 @@ import {
   type BotGameSetup,
   type ClockState,
   type Termination,
+  type TimeControl,
+  type UnfinishedBotGame,
 } from '@chessy/play'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
@@ -31,13 +33,24 @@ const now = () => performance.now()
 
 /**
  * A game against the bot, optionally on a clock. The bot always plays at the end of the game,
- * also while the user looks back at earlier moves. A finished game is saved once.
+ * also while the user looks back at earlier moves. The game is saved after every move under one
+ * record (so it can be resumed: `resume`), and once more when it's over.
  */
-export function useBotGame(setup: BotGameSetup, seed: number) {
+export function useBotGame(setup: BotGameSetup, seed: number, resume?: UnfinishedBotGame) {
   const { play } = useServices()
-  const { game, view, update } = useGame({ freezeWhenOver: true })
+  const { game, view, update } = useGame({
+    freezeWhenOver: true,
+    initial: () => (resume ? importPgn(resume.record.pgn).game : createGame()),
+  })
   const [random] = useState(() => seededRandom(seed))
-  const [clock, setClockState] = useState(() => setup.timeControl && createClock(setup.timeControl))
+  const [record] = useState(() =>
+    resume
+      ? { id: resume.record.id, startedAt: resume.record.playedAt }
+      : { id: crypto.randomUUID(), startedAt: new Date().toISOString() },
+  )
+  const [clock, setClockState] = useState(
+    () => setup.timeControl && resumedClock(setup.timeControl, game),
+  )
   // The clock is read from callbacks that outlive a render (bot replies, timers).
   const clockRef = useRef(clock)
   const [termination, setTermination] = useState<Termination>()
@@ -47,6 +60,13 @@ export function useBotGame(setup: BotGameSetup, seed: number) {
   const [attempt, setAttempt] = useState(0)
   const [save, setSave] = useState<SaveState>({ status: 'idle' })
   const saving = useRef(false)
+  /** Saves run one after another, so a move's save can't land after the final one. */
+  const saves = useRef<Promise<unknown>>(Promise.resolve())
+  const enqueueSave = useCallback(<T>(task: () => Promise<T>): Promise<T> => {
+    const next = saves.current.then(task)
+    saves.current = next.catch(() => undefined)
+    return next
+  }, [])
 
   const setClock = useCallback((next: ClockState | undefined) => {
     clockRef.current = next
@@ -129,13 +149,21 @@ export function useBotGame(setup: BotGameSetup, seed: number) {
     return () => clearTimeout(timer)
   }, [clock, over, endFen, finish])
 
+  // While it's played: after every move, so a game left midway can be resumed.
+  const plies = end.ply
+  useEffect(() => {
+    if (over || plies === 0) return
+    enqueueSave(() => play.saveBotGame({ game, setup, record })).catch(() => undefined)
+  }, [plies, over, game, setup, record, play, enqueueSave])
+
   useEffect(() => {
     // A ref, not state: StrictMode runs effects twice, the game must be saved once.
     if (!over || saving.current) return
     saving.current = true
     setSave({ status: 'saving' })
-    play
-      .saveBotGame({ game, setup, ...(termination && { termination }) })
+    enqueueSave(() =>
+      play.saveBotGame({ game, setup, record, ...(termination && { termination }) }),
+    )
       .then((saved) => setSave({ status: 'saved', game: saved }))
       .catch((error: unknown) =>
         setSave({
@@ -143,7 +171,7 @@ export function useBotGame(setup: BotGameSetup, seed: number) {
           message: error instanceof Error ? error.message : String(error),
         }),
       )
-  }, [over, game, setup, termination, play])
+  }, [over, game, setup, record, termination, play, enqueueSave])
 
   return {
     game,
@@ -175,4 +203,22 @@ export function useBotGame(setup: BotGameSetup, seed: number) {
     // White's first move is ply 1, Black's ply 2.
     canTakeback: !over && !clock && end.ply >= (setup.color === 'white' ? 1 : 2),
   }
+}
+
+/**
+ * The clock of a game, from the time each side had left after their last move (PGN `[%clk]`);
+ * a fresh clock for a new game. It runs again once both sides have moved, paused meanwhile.
+ */
+function resumedClock(control: TimeControl, game: GameState): ClockState {
+  const clock = createClock(control)
+  game.toEnd()
+  const line = game.line()
+  const remaining = { ...clock.remaining }
+  for (const node of line) {
+    if (node.clock !== undefined)
+      remaining[node.ply % 2 === 1 ? 'white' : 'black'] = node.clock * 1000
+  }
+  const ply = line.at(-1)?.ply ?? 0
+  const turn: Color = ply % 2 === 0 ? 'white' : 'black'
+  return { control, remaining, ...(ply >= 2 && { running: { color: turn, since: now() } }) }
 }

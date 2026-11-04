@@ -39,6 +39,7 @@ export {
   type Termination,
 } from './domain/session'
 export {
+  parsePgnTimeControl,
   pgnTimeControl,
   speedOf,
   TIME_CONTROLS,
@@ -56,10 +57,14 @@ export {
   type BotMoveRequest,
 } from './usecases/chooseBotMove'
 export {
+  BOT_LEVEL_TAG,
+  findUnfinishedBotGame,
   recordBotGame,
   type FinishedBotGame,
+  type UnfinishedBotGame,
   type RecordBotGameDeps,
 } from './usecases/recordBotGame'
+export { LOCAL_PLAYERS, recordLocalGame, type LocalGame } from './usecases/recordLocalGame'
 export {
   botPlayer,
   enginePlayer,
