@@ -122,6 +122,47 @@
   color: #fff;
 }
 
+.game-outcome-unfinished {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.game-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.game-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.game-tabs button:hover {
+  color: var(--text);
+}
+
+.game-tabs button[aria-selected='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.game-tab-count {
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
 .game-main {
   min-width: 0;
 }
