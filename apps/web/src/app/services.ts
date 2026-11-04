@@ -10,12 +10,14 @@ import {
 } from '@chessy/analysis'
 import {
   buildProfile,
+  importHistory,
   importRecentGames,
   mirrorLibrary,
   MirroredGameRepository,
   openGame,
   type GameRepository,
   type GameSource,
+  type HistoryImportProgress,
   type ImportReport,
   type LibraryGame,
   type LinkedAccount,
@@ -51,6 +53,22 @@ export interface Services {
     importRecentGames: (source: SourceId, username: string) => Promise<ImportReport>
     /** Brings the game behind a lichess / chess.com page URL into the library. */
     openGame: (url: string) => Promise<LibraryGame>
+    /**
+     * Brings a user's whole history (or, with `since`, what's new) into the library, a page at a
+     * time; resumes at `cursor`. Each page also reaches the server's history.
+     */
+    importHistory: (
+      source: SourceId,
+      username: string,
+      options: {
+        since?: string
+        cursor?: string
+        onPage?: (progress: HistoryImportProgress) => void
+        cancelled?: () => boolean
+      },
+    ) => Promise<HistoryImportProgress & { complete: boolean }>
+    /** When the newest stored game from a platform was played, to catch up from there. */
+    newestGame: (source: SourceId) => Promise<string | undefined>
   }
   play: {
     /** The server's human-move model (e.g. "Maia-3") that human-like levels play with, if any. */
@@ -204,6 +222,12 @@ export function createServices(): Services {
           { sources, repository: games, newId, now },
           { url, usernames: (await settings.load()).usernames },
         ),
+      importHistory: (source, username, options) =>
+        importHistory(
+          { source: sources[source], repository: games, newId, now },
+          { username, ...options },
+        ),
+      newestGame: async (source) => (await games.list({ source, limit: 1 }))[0]?.playedAt,
     },
   }
 }

@@ -80,3 +80,9 @@
   line-height: 1;
   cursor: pointer;
 }
+
+.profile-chip-import {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}

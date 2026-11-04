@@ -150,3 +150,39 @@
   color: var(--text-muted);
   font-size: 0.85rem;
 }
+
+.linked-account {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.import-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.import-progress {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 14rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.import-bar {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.import-bar div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 200ms ease;
+}
