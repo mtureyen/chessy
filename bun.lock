@@ -102,6 +102,17 @@
         "@chessy/config": "workspace:*",
       },
     },
+    "packages/coach": {
+      "name": "@chessy/coach",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "^4.6.7",
+      },
+      "devDependencies": {
+        "@chessy/config": "workspace:*",
+        "vitest": "^5.0.5",
+      },
+    },
     "packages/config": {
       "name": "@chessy/config",
       "version": "0.0.0",
@@ -173,6 +184,8 @@
     "@chessy/api": ["@chessy/api@workspace:apps/api"],
 
     "@chessy/chess": ["@chessy/chess@workspace:packages/chess"],
+
+    "@chessy/coach": ["@chessy/coach@workspace:packages/coach"],
 
     "@chessy/config": ["@chessy/config@workspace:packages/config"],
 
