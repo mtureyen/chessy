@@ -17,6 +17,12 @@ const EnvSchema = z.object({
    * `pglite:<folder>` for an embedded one. Unset: the server keeps no history.
    */
   DATABASE_URL: z.string().min(1).optional(),
+  /** The coach on Claude through the API (key: ANTHROPIC_API_KEY); `off` leaves it out. */
+  COACH_CLAUDE_API: z.enum(['on', 'off']).default('on'),
+  COACH_CLAUDE_MODEL: z.string().min(1).default('claude-opus-5-5'),
+  COACH_CLAUDE_LABEL: z.string().min(1).default('Claude Opus 5.5'),
+  /** How hard Claude thinks per answer: more is slower and costs more. */
+  COACH_CLAUDE_EFFORT: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('medium'),
 })
 
 export type Config = z.infer<typeof EnvSchema>

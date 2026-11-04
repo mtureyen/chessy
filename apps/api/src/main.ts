@@ -5,6 +5,8 @@ import {
   defaultPoolSize,
   resolveStockfishPath,
 } from './adapters/engine/native'
+import { createCoachAgents } from './adapters/coach/agents'
+import { evaluatePositionTool } from './adapters/coach/tools/evaluatePosition'
 import { openDatabase } from './adapters/db/database'
 import { DatabaseLibraryService } from './adapters/db/service'
 import { createMaiaService } from './adapters/humanMoves/maia'
@@ -18,23 +20,35 @@ import { loadConfig, type Config } from './config'
 const config = loadConfig(process.env)
 const stockfishPath = resolveStockfishPath(config.STOCKFISH_PATH)
 const poolSize = config.ENGINE_POOL_SIZE ?? defaultPoolSize()
+const engine = createNativeEngineService({
+  path: stockfishPath,
+  poolSize,
+  hashMb: config.ENGINE_HASH_MB,
+})
+const coach = createCoachAgents(
+  {
+    anthropic: config.COACH_CLAUDE_API === 'on' && {
+      model: config.COACH_CLAUDE_MODEL,
+      label: config.COACH_CLAUDE_LABEL,
+      effort: config.COACH_CLAUDE_EFFORT,
+    },
+  },
+  [evaluatePositionTool(engine)],
+)
 const app = createApp({
   version: pkg.version,
   startedAt: Date.now(),
   sources: createSources(config),
-  engine: createNativeEngineService({
-    path: stockfishPath,
-    poolSize,
-    hashMb: config.ENGINE_HASH_MB,
-  }),
+  engine,
   humanMoves: createMaiaService(config.MAIA_MODEL_PATH),
   library: new DatabaseLibraryService(
     config.DATABASE_URL ? () => openDatabase(config.DATABASE_URL!) : undefined,
   ),
+  coach,
 })
 
 console.log(
-  `chessy-api ${pkg.version} listening on http://localhost:${config.PORT} (${config.NODE_ENV}, sources: ${config.CHESSY_SOURCES}, engine: ${stockfishPath} ×${poolSize}, history: ${config.DATABASE_URL ? 'database' : 'off'})`,
+  `chessy-api ${pkg.version} listening on http://localhost:${config.PORT} (${config.NODE_ENV}, sources: ${config.CHESSY_SOURCES}, engine: ${stockfishPath} ×${poolSize}, history: ${config.DATABASE_URL ? 'database' : 'off'}, coach: ${coach.map((a) => a.id).join(', ') || 'off'})`,
 )
 
 export default { port: config.PORT, fetch: app.fetch }
