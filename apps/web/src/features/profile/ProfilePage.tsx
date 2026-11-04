@@ -1,5 +1,6 @@
 import { sourceName, type LinkedAccount } from '@chessy/library'
 import { Link } from '@tanstack/react-router'
+import { ImportStatus } from './ImportStatus'
 import { PlayerCard } from './PlayerCard'
 import { usePlayer, useProfile } from './useProfile'
 import './Profile.css'
@@ -42,11 +43,17 @@ export function ProfilePage() {
 
 function LinkedAccountCard({ account }: { account: LinkedAccount }) {
   const player = usePlayer(account.source, account.username)
-  if (player.data) return <PlayerCard player={player.data} />
   return (
-    <p className="message message-info">
-      {sourceName(account.source)}: {account.username}
-      {player.isError && ' (could not be loaded right now)'}
-    </p>
+    <div className="linked-account">
+      {player.data ? (
+        <PlayerCard player={player.data} />
+      ) : (
+        <p className="message message-info">
+          {sourceName(account.source)}: {account.username}
+          {player.isError && ' (could not be loaded right now)'}
+        </p>
+      )}
+      <ImportStatus account={account} />
+    </div>
   )
 }

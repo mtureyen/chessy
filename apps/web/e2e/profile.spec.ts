@@ -58,3 +58,24 @@ test('the welcome banner can be closed for good', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Set up profile' })).toBeVisible()
   await expect(banner).toBeHidden()
 })
+
+test('a linked account brings in its whole history, then only new games', async ({ page }) => {
+  await page.goto('/welcome')
+  const chesscom = page.getByLabel('chess.com', { exact: true })
+  await chesscom.fill('hikaru')
+  await chesscom.press('Enter')
+  await expect(page.getByTestId('player-chesscom')).toBeVisible()
+  await page.getByRole('button', { name: 'Set up my profile' }).click()
+
+  // Starts by itself: both recorded months, five standard games.
+  const status = page.getByTestId('import-chesscom')
+  await expect(status).toContainText('All games imported: 5 games, 5 new.')
+  await page.getByRole('link', { name: 'Games' }).click()
+  await expect(page.getByTestId('game-row')).toHaveCount(5)
+
+  // Next time only what's new.
+  await page.goto('/profile')
+  await expect(status).toContainText(/All games imported on|Up to date/)
+  await status.getByRole('button', { name: 'Import new games' }).click()
+  await expect(status).toContainText(/new games imported|Up to date: no new games/)
+})

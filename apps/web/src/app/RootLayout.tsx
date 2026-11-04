@@ -1,6 +1,7 @@
 import { Link, Outlet } from '@tanstack/react-router'
 import { ApiStatus } from './ApiStatus'
 import { BoardSettings } from './BoardSettings'
+import { HistorySync } from '@/features/profile/HistorySync'
 import { ProfileChip } from '@/features/profile/ProfileChip'
 import { WelcomeBanner } from '@/features/profile/WelcomeBanner'
 import './RootLayout.css'
@@ -31,6 +32,7 @@ export function RootLayout() {
         <ProfileChip />
       </header>
       <WelcomeBanner />
+      <HistorySync />
       <main className="app-main">
         <Outlet />
       </main>

@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useRunningImport } from './historyImport'
 import { usePlayer, useProfile } from './useProfile'
 import './ProfileChip.css'
 
@@ -7,6 +8,7 @@ export function ProfileChip() {
   const profile = useProfile()
   const chesscom = profile.data?.accounts.find((a) => a.source === 'chesscom')
   const player = usePlayer('chesscom', chesscom?.username)
+  const importing = useRunningImport()
   if (profile.isPending) return null
   if (!profile.data) {
     return (
@@ -26,6 +28,14 @@ export function ProfileChip() {
         </span>
       )}
       <span className="profile-chip-name">{displayName}</span>
+      {importing && (
+        <span className="profile-chip-import" title="Importing your games">
+          ↓{' '}
+          {importing.progress.total
+            ? `${importing.progress.done}/${importing.progress.total}`
+            : importing.fetched}
+        </span>
+      )}
     </Link>
   )
 }
