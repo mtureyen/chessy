@@ -18,6 +18,7 @@ packages/
   analysis/     engine port (UCI), evaluations, game review (accuracy, move classes)
   library/      the user's games: import from lichess / chess.com, storage port
   history/      finished games and reviews kept for the long run (the server's copy)
+  coach/        the AI coach: provider-neutral model port, tools, tool loop, conversations
   play/         games against bots: levels, move choice, saving finished games
   maia/         Maia-3: which move a human of a given rating would play (runtime-neutral)
   contracts/    API contract (zod + OpenAPI), shared by api and web
@@ -59,6 +60,18 @@ The schema is applied on start (migrations in `apps/api/drizzle/`, changes via
 `bun run --cwd apps/api db:generate`). `DATABASE_URL=pglite:<folder>` runs an embedded Postgres
 instead, without Docker; tests and E2E use `pglite:memory`. `bun run --cwd apps/api db:check`
 checks the adapters against a real PostgreSQL (as CI does).
+
+### AI coach
+
+The coach answers questions about positions and games. It states only what its tools return
+(engine evaluations for now), so it doesn't make up lines. Behind it are interchangeable
+`LlmClient`s (`packages/coach`), one tool loop for all of them, and the API's agents:
+
+- **Claude through the API**: put `ANTHROPIC_API_KEY` into `apps/api/.env`; `COACH_CLAUDE_MODEL`
+  (default `claude-opus-5-5`) and `COACH_CLAUDE_EFFORT` (default `medium`) tune it.
+
+`bun run --cwd apps/api coach:check` asks it a real question and shows the answer, the tools it
+used and the tokens it cost.
 
 ### Native engine (optional, much faster reviews)
 

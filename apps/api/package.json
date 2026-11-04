@@ -20,11 +20,14 @@
     "review:bench": "bun scripts/review-bench.ts",
     "bench:references": "bun scripts/collect-references.ts",
     "db:generate": "drizzle-kit generate",
-    "db:check": "bun scripts/check-postgres.ts"
+    "db:check": "bun scripts/check-postgres.ts",
+    "coach:check": "bun scripts/check-coach.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.1.0",
     "@chessy/analysis": "workspace:*",
     "@chessy/chess": "workspace:*",
+    "@chessy/coach": "workspace:*",
     "@chessy/contracts": "workspace:*",
     "@chessy/history": "workspace:*",
     "@chessy/library": "workspace:*",

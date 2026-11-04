@@ -5,9 +5,12 @@ import {
   type GameSource,
   type SourceGame,
 } from '@chessy/library'
+import { InMemoryConversationStore, LoopAgent } from '@chessy/coach'
+import { scriptedClient } from '@chessy/coach/testing'
 import { sampleReview } from '@chessy/history/testing'
 import { sampleGame, sampleSourceGame } from '@chessy/library/testing'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { evaluatePositionTool } from './adapters/coach/tools/evaluatePosition'
 import { openDatabase } from './adapters/db/database'
 import { DatabaseLibraryService } from './adapters/db/service'
 import type { EngineService, EngineStatus } from './adapters/engine/service'
@@ -47,6 +50,7 @@ function fakeSource(
   }
 }
 
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 const games: SourceGame[] = [sampleSourceGame(), sampleSourceGame()]
 const requests: { username: string; max: number }[] = []
 
@@ -79,10 +83,24 @@ const humanMoves: HumanMoveService = {
 }
 
 const library = new DatabaseLibraryService(() => openDatabase('pglite:memory'))
+const coachModel = scriptedClient([
+  { text: 'Let me look. ', toolCalls: [{ name: 'evaluate_position', input: { fen: START_FEN } }] },
+  { text: 'Both sides are equal.' },
+])
+const coach = [
+  new LoopAgent({
+    id: 'scripted',
+    label: 'Scripted coach',
+    client: coachModel.client,
+    tools: [evaluatePositionTool(engine)],
+    conversations: new InMemoryConversationStore(),
+  }),
+]
 const app = createApp({
   engine,
   humanMoves,
   library,
+  coach,
   version: '9.9.9',
   startedAt: 1_000,
   now: () => 61_000,
@@ -115,6 +133,8 @@ describe('api', () => {
     const doc = (await res.json()) as { paths: Record<string, unknown>; servers: { url: string }[] }
     expect(doc.servers[0]?.url).toBe('/api/v1')
     expect(Object.keys(doc.paths).sort()).toEqual([
+      '/coach',
+      '/coach/messages',
       '/engine',
       '/engine/evaluations',
       '/health',
@@ -390,6 +410,7 @@ describe('library routes', () => {
       engine,
       humanMoves,
       library: new DatabaseLibraryService(undefined),
+      coach: [],
       version: '9.9.9',
       startedAt: 0,
       sources: {
@@ -468,5 +489,57 @@ describe('profile and players', () => {
       accounts: [...profile.accounts, { source: 'chesscom', username: 'x2' }],
     }
     expect((await put({ profile: twice })).status).toBe(400)
+  })
+})
+
+describe('coach routes', () => {
+  const ask = (body: unknown) =>
+    app.request('/api/v1/coach/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  const conversationId = '0b7e5f8a-6a5c-4d3e-9c1b-2a4f6e8d0c11'
+
+  it('lists the agents', async () => {
+    const res = await app.request('/api/v1/coach')
+    expect(await res.json()).toEqual({
+      agents: [{ id: 'scripted', label: 'Scripted coach', available: true }],
+    })
+  })
+
+  it('streams the answer as server-sent events, tools included', async () => {
+    const res = await ask({
+      conversationId,
+      question: 'Who is better?',
+      context: { fen: START_FEN },
+    })
+    expect(res.headers.get('content-type')).toContain('text/event-stream')
+    const events = (await res.text())
+      .split('\n')
+      .filter((line) => line.startsWith('data: '))
+      .map((line) => JSON.parse(line.slice(6)) as { type: string; delta?: string; name?: string })
+    // The answer streams word by word; around the pieces: the tool, then the end.
+    expect(events.map((e) => e.type).filter((type) => type !== 'text')).toEqual([
+      'tool',
+      'tool_result',
+      'done',
+    ])
+    expect(events[0]!.type).toBe('text')
+    expect(
+      events
+        .filter((e) => e.type === 'text')
+        .map((e) => e.delta)
+        .join(''),
+    ).toBe('Let me look. Both sides are equal.')
+    // The tool result the model got came from the engine, in SAN.
+    const toolTurn = coachModel.requests[1]!.messages[2] as { results: { content: string }[] }
+    expect(JSON.parse(toolTurn.results[0]!.content)).toMatchObject({ sideToMove: 'white' })
+  })
+
+  it('rejects bad questions and unknown agents', async () => {
+    expect((await ask({ conversationId, question: '' })).status).toBe(400)
+    expect((await ask({ conversationId: 'x', question: 'Hi' })).status).toBe(400)
+    expect((await ask({ conversationId, question: 'Hi', agent: 'gpt' })).status).toBe(404)
   })
 })
