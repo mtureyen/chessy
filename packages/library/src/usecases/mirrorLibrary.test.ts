@@ -55,6 +55,30 @@ describe('MirroredGameRepository', () => {
   })
 })
 
+describe('MirroredGameRepository uploads', () => {
+  it('reach the mirror in the order of the saves, also when an upload is slow', async () => {
+    const order: string[] = []
+    let releaseFirst!: () => void
+    const firstDone = new Promise<void>((resolve) => (releaseFirst = resolve))
+    const mirror: LibraryMirror = {
+      missing: async () => [],
+      async upload(games) {
+        if (games[0]!.result === '*') await firstDone
+        order.push(games[0]!.result)
+      },
+    }
+    const repo = new MirroredGameRepository(new InMemoryGameRepository(), mirror)
+    const game = sampleGame({ result: '*' })
+    await repo.saveAll([game])
+    await repo.saveAll([{ ...game, result: '1-0' }])
+    await settle()
+    expect(order).toEqual([])
+    releaseFirst()
+    await settle()
+    expect(order).toEqual(['*', '1-0'])
+  })
+})
+
 describe('mirrorLibrary', () => {
   it('uploads only the games the mirror lacks, in batches', async () => {
     const games = new InMemoryGameRepository()
