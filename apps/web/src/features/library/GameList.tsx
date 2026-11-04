@@ -13,16 +13,20 @@ interface GameListProps {
   games: LibraryGame[]
   /** The user's own accounts; their games get a win/loss/draw badge and their name is highlighted. */
   usernames: Partial<Record<SourceId, string>>
+  /** Only some kinds of games are shown (changes the empty message). */
+  filtered?: boolean
   onDelete: (id: string) => void
 }
 
 const OUTCOME_LABELS = { win: 'Won', loss: 'Lost', draw: 'Draw' } as const
 
-export function GameList({ games, usernames, onDelete }: GameListProps) {
+export function GameList({ games, usernames, filtered = false, onDelete }: GameListProps) {
   if (games.length === 0) {
     return (
       <p className="game-list-empty">
-        No games yet. Import your recent games from lichess or chess.com.
+        {filtered
+          ? 'No games of this kind yet.'
+          : 'No games yet. Import your recent games from lichess or chess.com.'}
       </p>
     )
   }
@@ -33,8 +37,14 @@ export function GameList({ games, usernames, onDelete }: GameListProps) {
         const outcome = me ? outcomeFor(game, me) : 'unknown'
         return (
           <li key={game.id} className="game-row" data-testid="game-row">
-            <span className={`game-outcome game-outcome-${outcome}`}>
-              {outcome === 'unknown' ? game.result.replace('1/2', '½') : OUTCOME_LABELS[outcome]}
+            <span
+              className={`game-outcome game-outcome-${game.result === '*' ? 'unfinished' : outcome}`}
+            >
+              {game.result === '*'
+                ? 'Unfinished'
+                : outcome === 'unknown'
+                  ? game.result.replace('1/2', '½')
+                  : OUTCOME_LABELS[outcome]}
             </span>
             <div className="game-main">
               <Link to="/analysis" search={{ game: game.id }} className="game-players">

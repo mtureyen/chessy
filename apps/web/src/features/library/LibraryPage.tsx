@@ -1,8 +1,11 @@
 import type { SourceId } from '@chessy/library'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useServices } from '@/app/servicesContext'
 import '@/features/analysis/PlayerBar.css'
+import { categoryOf } from './categories'
 import { GameList } from './GameList'
+import { GameTabs, type GameFilter } from './GameTabs'
 import { ImportForm } from './ImportForm'
 import './LibraryPage.css'
 
@@ -16,6 +19,9 @@ export function LibraryPage() {
     queryFn: () => library.settings.load(),
   })
   const games = useQuery({ queryKey: ['games'], queryFn: () => library.games.list() })
+  const [filter, setFilter] = useState<GameFilter>('all')
+  const shown =
+    filter === 'all' ? games.data : games.data?.filter((game) => categoryOf(game) === filter)
 
   const importGames = useMutation({
     mutationFn: ({ source, username }: { source: SourceId; username: string }) =>
@@ -59,9 +65,13 @@ export function LibraryPage() {
         )}
       </section>
 
-      {games.data && (
+      {games.data && games.data.length > 0 && (
+        <GameTabs games={games.data} value={filter} onChange={setFilter} />
+      )}
+      {shown && (
         <GameList
-          games={games.data}
+          games={shown}
+          filtered={filter !== 'all'}
           usernames={settings.data?.usernames ?? {}}
           onDelete={(id) => removeGame.mutate(id)}
         />
