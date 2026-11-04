@@ -1,6 +1,6 @@
 import type { SourceGame, SourceId } from '../domain/game'
 import type { PlayerProfile } from '../domain/player'
-import type { GameSource } from '../ports/gameSource'
+import type { GameSource, HistoryPage } from '../ports/gameSource'
 
 export interface CachedGameSourceOptions {
   ttlMs?: number
@@ -32,6 +32,13 @@ export class CachedGameSource implements GameSource {
     const game = this.queue.then(() => this.inner.game(id, options))
     this.queue = game.catch(() => undefined)
     return game
+  }
+
+  /** Not cached (a page is fetched once per import), but queued like every request. */
+  history(username: string, options: { cursor?: string; since?: string }): Promise<HistoryPage> {
+    const page = this.queue.then(() => this.inner.history(username, options))
+    this.queue = page.catch(() => undefined)
+    return page
   }
 
   /** Not cached, but queued like every request to the platform. */

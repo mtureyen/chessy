@@ -144,3 +144,53 @@ export const playerRoute = createRoute({
     502: problem('The platform could not be reached or failed'),
   },
 })
+
+export const historyRoute = createRoute({
+  method: 'get',
+  path: '/sources/{source}/users/{username}/history',
+  tags: ['sources'],
+  summary: "A page of a user's whole game history, newest first",
+  description:
+    "Start without `cursor`, then pass each page's `next` until there is none. chess.com: a month per page; lichess: 200 games per page. `since` (ISO time) limits it to games played since then. Standard chess only; requests to each platform run one at a time.",
+  request: {
+    params: z.object({
+      source: SourceIdSchema,
+      username: z
+        .string()
+        .regex(/^[A-Za-z0-9_-]{2,30}$/)
+        .openapi({ example: '8sly' }),
+    }),
+    query: z.object({
+      cursor: z
+        .string()
+        .regex(/^\d+:[\d/,]*$/)
+        .max(4000)
+        .optional()
+        .openapi({ example: '39:2026/09,2026/08' }),
+      since: z.string().datetime().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'The page',
+      content: {
+        'application/json': {
+          schema: z
+            .object({
+              games: z.array(SourceGameSchema),
+              next: z.string().optional(),
+              progress: z.object({
+                done: z.number().int(),
+                total: z.number().int().optional(),
+              }),
+            })
+            .openapi('HistoryPage'),
+        },
+      },
+    },
+    400: problem('Invalid source, username, cursor or time'),
+    404: problem('The user does not exist on that platform'),
+    429: problem('The platform asked us to slow down; see Retry-After'),
+    502: problem('The platform could not be reached or failed'),
+  },
+})

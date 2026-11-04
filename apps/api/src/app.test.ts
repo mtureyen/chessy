@@ -29,6 +29,12 @@ function fakeSource(
         username ? `not among ${username}'s games` : undefined,
       )
     },
+    async history(username, { cursor }) {
+      if (username === 'ghost') throw new UserNotFoundError(id, username)
+      return cursor
+        ? { games: [games[1]!], progress: { done: 2, total: 2 } }
+        : { games: [games[0]!], next: '2:2026/09', progress: { done: 1, total: 2 } }
+    },
     async player(username) {
       if (username === 'ghost') throw new UserNotFoundError(id, username)
       return {
@@ -123,6 +129,7 @@ describe('api', () => {
       '/sources/{source}/games/{id}',
       '/sources/{source}/users/{username}',
       '/sources/{source}/users/{username}/games',
+      '/sources/{source}/users/{username}/history',
     ])
   })
 
@@ -398,6 +405,24 @@ describe('library routes', () => {
       body: JSON.stringify({ games: [game] }),
     })
     expect(save.status).toBe(503)
+  })
+})
+
+describe('GET /api/v1/sources/{source}/users/{username}/history', () => {
+  it('pages through a history and checks cursor and time', async () => {
+    const first = await (await app.request('/api/v1/sources/chesscom/users/8sly/history')).json()
+    expect(first).toMatchObject({ next: '2:2026/09', progress: { done: 1, total: 2 } })
+    const second = await app.request(
+      '/api/v1/sources/chesscom/users/8sly/history?cursor=2:2026/09&since=2026-01-01T00:00:00.000Z',
+    )
+    expect(await second.json()).toMatchObject({ progress: { done: 2, total: 2 } })
+    expect((await app.request('/api/v1/sources/chesscom/users/8sly/history?cursor=x')).status).toBe(
+      400,
+    )
+    expect(
+      (await app.request('/api/v1/sources/chesscom/users/8sly/history?since=yesterday')).status,
+    ).toBe(400)
+    expect((await app.request('/api/v1/sources/chesscom/users/ghost/history')).status).toBe(404)
   })
 })
 

@@ -1,5 +1,5 @@
 import { InvalidUsernameError } from '../domain/errors'
-import { isValidUsername, type LibraryGame } from '../domain/game'
+import { isValidUsername, type LibraryGame, type SourceGame } from '../domain/game'
 import type { GameRepository } from '../ports/gameRepository'
 import type { GameSource } from '../ports/gameSource'
 
@@ -29,6 +29,17 @@ export async function importRecentGames(
   if (!isValidUsername(username)) throw new InvalidUsernameError(username)
 
   const fetched = await deps.source.recentGames(username, { max: input.max ?? 20 })
+  return storeGames(deps, fetched)
+}
+
+/**
+ * Stores fetched games: ones already in the library keep their id and import date and get the
+ * fresh data, new ones get an id.
+ */
+export async function storeGames(
+  deps: Omit<ImportRecentGamesDeps, 'source'>,
+  fetched: readonly SourceGame[],
+): Promise<ImportReport> {
   const games: LibraryGame[] = []
   let added = 0
   for (const game of fetched) {
