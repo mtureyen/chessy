@@ -1,6 +1,7 @@
 import {
   GameNotFoundError,
   type GameSource,
+  type HistoryPage,
   type PlayerInfo,
   type PlayerProfile,
   type RatedSpeed,
@@ -50,6 +51,9 @@ const RATED_SPEEDS: readonly RatedSpeed[] = [
   'correspondence',
 ]
 
+/** Games per history page (lichess streams them; this keeps each request short). */
+const HISTORY_PAGE = 200
+
 /** Variants our rules core can replay; everything else (chess960, atomic, …) is skipped. */
 const SUPPORTED_VARIANTS = new Set(['standard', 'fromPosition'])
 
@@ -92,6 +96,45 @@ export class LichessGameSource implements GameSource {
         ? [toSourceGame(parsed.data)]
         : []
     })
+  }
+
+  /**
+   * The whole history in pages of HISTORY_PAGE games, newest first. The cursor is
+   * "<until ms>:<games so far>": the next page ends just before the oldest game of this one.
+   */
+  async history(
+    username: string,
+    { cursor, since }: { cursor?: string; since?: string },
+  ): Promise<HistoryPage> {
+    const base = this.options.baseUrl ?? 'https://lichess.org'
+    const [until, done = 0] = cursor ? cursor.split(':').map(Number) : []
+    const query = new URLSearchParams({
+      max: String(HISTORY_PAGE),
+      pgnInJson: 'true',
+      clocks: 'true',
+      opening: 'true',
+      ...(until !== undefined && { until: String(until) }),
+      ...(since && { since: String(Date.parse(since)) }),
+    })
+    const url = `${base}/api/games/user/${encodeURIComponent(username)}?${query}`
+    const res = await get('lichess', url, username, this.options, 'application/x-ndjson')
+    const lines = (await res.text()).split('\n').filter((line) => line.trim())
+    const raw = lines.map((line) => JSON.parse(line) as unknown)
+    const games = raw.flatMap((game) => {
+      const parsed = LichessGameSchema.safeParse(game)
+      return parsed.success && SUPPORTED_VARIANTS.has(parsed.data.variant)
+        ? [toSourceGame(parsed.data)]
+        : []
+    })
+    // Paged by every game, also the variants that are left out.
+    const oldest = z.object({ createdAt: z.number() }).safeParse(raw.at(-1))
+    const fetched = done + raw.length
+    return {
+      games,
+      ...(raw.length === HISTORY_PAGE &&
+        oldest.success && { next: `${oldest.data.createdAt - 1}:${fetched}` }),
+      progress: { done: fetched },
+    }
   }
 
   /** One game via https://lichess.org/api#tag/Games/operation/gamePgn (as JSON). */

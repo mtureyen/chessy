@@ -28,13 +28,14 @@ export type { PlayerProfile, RatedSpeed } from './domain/player'
 export { accountOn, buildProfile, sideOf, type LinkedAccount, type Profile } from './domain/profile'
 export type { ProfileStore } from './ports/profileStore'
 export type { GameRepository, ListGamesOptions } from './ports/gameRepository'
-export type { GameSource } from './ports/gameSource'
+export type { GameSource, HistoryPage } from './ports/gameSource'
 export type { LibrarySettings, SettingsStore } from './ports/settingsStore'
 export {
   importRecentGames,
   type ImportRecentGamesDeps,
   type ImportReport,
 } from './usecases/importRecentGames'
+export { importHistory, type HistoryImportProgress } from './usecases/importHistory'
 export { openGame, UnsupportedGameUrlError, type OpenGameDeps } from './usecases/openGame'
 export { CachedGameSource, type CachedGameSourceOptions } from './adapters/cachedGameSource'
 export { InMemoryGameRepository } from './adapters/inMemoryGameRepository'

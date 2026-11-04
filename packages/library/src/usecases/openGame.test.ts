@@ -21,6 +21,9 @@ function source(id: 'lichess' | 'chesscom', game: SourceGame) {
     player: async () => {
       throw new Error('not used')
     },
+    history: async () => {
+      throw new Error('not used')
+    },
   }
   return { src, asked }
 }

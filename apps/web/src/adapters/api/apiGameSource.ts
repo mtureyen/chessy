@@ -4,6 +4,7 @@ import {
   SourceUnavailableError,
   UserNotFoundError,
   type GameSource,
+  type HistoryPage,
   type PlayerProfile,
   type SourceGame,
   type SourceId,
@@ -81,6 +82,32 @@ export class ApiGameSource implements GameSource {
     if (res.status === 200) return (await res.json()).player
     if (res.status === 404) throw new UserNotFoundError(this.id, username)
     if (res.status === 400) throw new InvalidUsernameError(username)
+    throw new SourceUnavailableError(this.id, `HTTP ${res.status}`)
+  }
+
+  async history(
+    username: string,
+    { cursor, since }: { cursor?: string; since?: string },
+  ): Promise<HistoryPage> {
+    let res
+    try {
+      res = await this.api.api.v1.sources[':source'].users[':username'].history.$get({
+        param: { source: this.id, username },
+        query: { ...(cursor && { cursor }), ...(since && { since }) },
+      })
+    } catch (error) {
+      throw new SourceUnavailableError(this.id, `Chessy API unreachable: ${String(error)}`)
+    }
+    if (res.status === 200) return await res.json()
+    if (res.status === 404) throw new UserNotFoundError(this.id, username)
+    if (res.status === 400) throw new InvalidUsernameError(username)
+    if (res.status === 429) {
+      throw new SourceUnavailableError(
+        this.id,
+        'rate limited',
+        Number(res.headers.get('Retry-After')) || 60,
+      )
+    }
     throw new SourceUnavailableError(this.id, `HTTP ${res.status}`)
   }
 }

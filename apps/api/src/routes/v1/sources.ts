@@ -1,4 +1,4 @@
-import { playerRoute, recentGamesRoute, sourceGameRoute } from '@chessy/contracts'
+import { historyRoute, playerRoute, recentGamesRoute, sourceGameRoute } from '@chessy/contracts'
 import {
   GameNotFoundError,
   SourceUnavailableError,
@@ -30,6 +30,19 @@ export function sourceRoutes({ sources }: SourcesDeps) {
       const { username } = c.req.valid('query')
       try {
         return c.json({ game: await sources[source].game(id, username ? { username } : {}) }, 200)
+      } catch (error) {
+        return sourceProblem(c, error)
+      }
+    })
+    .openapi(historyRoute, async (c) => {
+      const { source, username } = c.req.valid('param')
+      const { cursor, since } = c.req.valid('query')
+      try {
+        const page = await sources[source].history(username, {
+          ...(cursor && { cursor }),
+          ...(since && { since }),
+        })
+        return c.json(page, 200)
       } catch (error) {
         return sourceProblem(c, error)
       }

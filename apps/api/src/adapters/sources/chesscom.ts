@@ -1,6 +1,7 @@
 import {
   GameNotFoundError,
   type GameSource,
+  type HistoryPage,
   type PlayerInfo,
   type PlayerProfile,
   type RatedSpeed,
@@ -94,6 +95,47 @@ export class ChessComGameSource implements GameSource {
       if (games.length >= max) break
     }
     return games.slice(0, max).map(toSourceGame)
+  }
+
+  /**
+   * The whole history a month at a time, newest first. The cursor carries the months still to
+   * fetch ("<total>:2026/09,2026/08,…"), so the archive list is fetched only once.
+   */
+  async history(
+    username: string,
+    { cursor, since }: { cursor?: string; since?: string },
+  ): Promise<HistoryPage> {
+    const base = this.options.baseUrl ?? 'https://api.chess.com'
+    const user = `${base}/pub/player/${encodeURIComponent(username.toLowerCase())}`
+    let total: number
+    let months: string[]
+    if (cursor) {
+      const [count, list = ''] = cursor.split(':')
+      total = Number(count)
+      months = list.split(',').filter(Boolean)
+    } else {
+      const { archives } = ArchivesSchema.parse(await this.json(`${user}/games/archives`, username))
+      const from = since?.slice(0, 7).replace('-', '/')
+      months = archives
+        .map((url) => url.split('/games/')[1] ?? '')
+        .filter((month) => /^\d{4}\/\d{2}$/.test(month) && (!from || month >= from))
+        .reverse()
+      total = months.length
+    }
+    const [month, ...rest] = months
+    if (!month) return { games: [], progress: { done: total, total } }
+    const raw = MonthSchema.parse(await this.json(`${user}/games/${month}`, username))
+    const games = raw.games
+      .map((game) => ChessComGameSchema.safeParse(game))
+      .flatMap((parsed) => (parsed.success && parsed.data.rules === 'chess' ? [parsed.data] : []))
+      .sort((a, b) => b.end_time - a.end_time)
+      .map(toSourceGame)
+      .filter((game) => !since || game.playedAt >= since)
+    return {
+      games,
+      ...(rest.length > 0 && { next: `${total}:${rest.join(',')}` }),
+      progress: { done: total - rest.length, total },
+    }
   }
 
   /**

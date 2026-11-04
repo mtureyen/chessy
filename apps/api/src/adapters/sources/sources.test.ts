@@ -289,3 +289,48 @@ describe('player profiles', () => {
     ).rejects.toBeInstanceOf(UserNotFoundError)
   })
 })
+
+describe('whole histories', () => {
+  it('pages through chess.com month by month, newest first, fetching the archive list once', async () => {
+    const { fetch, requests } = spyFetch()
+    const source = new ChessComGameSource({ fetch, userAgent })
+    const first = await source.history('Hikaru', {})
+    expect(first.progress).toEqual({ done: 1, total: 2 })
+    expect(first.next).toBe('2:2026/09')
+    expect(first.games.map((g) => g.playedAt)).toEqual(
+      [...first.games.map((g) => g.playedAt)].sort().reverse(),
+    )
+    const second = await source.history('Hikaru', { cursor: first.next! })
+    expect(second).toMatchObject({ progress: { done: 2, total: 2 } })
+    expect(second.next).toBeUndefined()
+    expect(first.games.length + second.games.length).toBe(5)
+    expect(requests.map((r) => new URL(r.url).pathname)).toEqual([
+      '/pub/player/hikaru/games/archives',
+      '/pub/player/hikaru/games/2026/10',
+      '/pub/player/hikaru/games/2026/09',
+    ])
+  })
+
+  it('catches up on chess.com: only months and games since a date', async () => {
+    const { fetch, requests } = spyFetch()
+    const source = new ChessComGameSource({ fetch, userAgent })
+    const page = await source.history('hikaru', { since: '2026-10-15T00:00:00.000Z' })
+    expect(page.progress).toEqual({ done: 1, total: 1 })
+    expect(page.games.every((g) => g.playedAt >= '2026-10-15T00:00:00.000Z')).toBe(true)
+    expect(requests).toHaveLength(2) // archives + October only
+  })
+
+  it('pages lichess by time, asking for games before the last page’s oldest', async () => {
+    const { fetch, requests } = spyFetch()
+    const page = await new LichessGameSource({ fetch, userAgent }).history('DrNykterstein', {
+      cursor: '1760000000000:200',
+      since: '2026-01-01T00:00:00.000Z',
+    })
+    const query = new URL(requests[0]!.url).searchParams
+    expect(query.get('until')).toBe('1760000000000')
+    expect(query.get('since')).toBe(String(Date.parse('2026-01-01T00:00:00.000Z')))
+    expect(query.get('max')).toBe('200')
+    expect(page.next).toBeUndefined() // fewer than a full page: the end
+    expect(page.progress.done).toBe(200 + lichessLines.length)
+  })
+})

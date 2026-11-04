@@ -26,6 +26,9 @@ function setup(games: SourceGame[] | Error) {
     player: async () => {
       throw new Error('not used')
     },
+    history: async () => {
+      throw new Error('not used')
+    },
   }
   let id = 0
   const deps = {

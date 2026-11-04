@@ -19,6 +19,7 @@ function controllableSource() {
       }),
     game: async (id) => sampleSourceGame({ externalId: id }),
     player: async (username) => ({ source: 'lichess', username, url: '', ratings: {} }),
+    history: async () => ({ games: [], progress: { done: 1, total: 1 } }),
   }
   return { source, calls }
 }
