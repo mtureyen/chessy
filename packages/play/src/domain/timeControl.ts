@@ -35,3 +35,10 @@ export function speedOf({ initialMs, incrementMs }: TimeControl): Speed {
 export function pgnTimeControl({ initialMs, incrementMs }: TimeControl): string {
   return `${initialMs / 1000}+${incrementMs / 1000}`
 }
+
+/** The inverse of pgnTimeControl: "300+3" → 5 minutes + 3 seconds; undefined for anything else. */
+export function parsePgnTimeControl(tag: string | undefined): TimeControl | undefined {
+  const match = /^(\d+)\+(\d+)$/.exec(tag ?? '')
+  if (!match) return undefined
+  return { initialMs: Number(match[1]) * 1000, incrementMs: Number(match[2]) * 1000 }
+}

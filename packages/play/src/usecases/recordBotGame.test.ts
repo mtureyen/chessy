@@ -2,7 +2,8 @@ import { createGame, importPgn } from '@chessy/chess'
 import { InMemoryGameRepository } from '@chessy/library'
 import { describe, expect, it } from 'vitest'
 import { botLevel } from '../domain/levels'
-import { recordBotGame } from './recordBotGame'
+import { findUnfinishedBotGame, recordBotGame } from './recordBotGame'
+import { recordLocalGame } from './recordLocalGame'
 
 function foolsMate() {
   const game = createGame()
@@ -114,5 +115,71 @@ describe('recordBotGame', () => {
     expect(importPgn(timedOut.pgn).headers.Termination).toBe(
       'Game drawn by timeout vs insufficient material',
     )
+  })
+})
+
+describe('unfinished bot games', () => {
+  it('are saved under one record while being played and found again to resume', async () => {
+    const repository = new InMemoryGameRepository()
+    let ids = 0
+    const d = { ...deps(repository), newId: () => `game-${++ids}` }
+    const game = createGame()
+    game.play('e4')
+    const setup = {
+      level: botLevel(4),
+      color: 'black' as const,
+      timeControl: { initialMs: 300_000, incrementMs: 3000 },
+    }
+    const first = await recordBotGame(d, { game, setup })
+    expect(first.result).toBe('*')
+
+    game.play('e5')
+    const again = await recordBotGame(d, {
+      game,
+      setup,
+      record: { id: first.id, startedAt: first.playedAt },
+    })
+    expect(again.id).toBe(first.id)
+    expect(await repository.list()).toHaveLength(1)
+
+    const unfinished = await findUnfinishedBotGame({ repository })
+    expect(unfinished?.record.id).toBe(first.id)
+    expect(unfinished?.setup).toEqual(setup)
+  })
+
+  it('leave finished games and other unfinished ones alone', async () => {
+    const repository = new InMemoryGameRepository()
+    await recordBotGame(deps(repository), {
+      game: foolsMate(),
+      setup: { level: botLevel(3), color: 'white' },
+    })
+    const local = createGame()
+    local.play('d4')
+    await recordLocalGame({ ...deps(repository), newId: () => 'local-1' }, { game: local })
+    expect(await findUnfinishedBotGame({ repository })).toBeUndefined()
+  })
+})
+
+describe('recordLocalGame', () => {
+  it('saves a game played on one board, again under the same record', async () => {
+    const repository = new InMemoryGameRepository()
+    const game = createGame()
+    game.play('e4')
+    const saved = await recordLocalGame(deps(repository), { game })
+    expect(saved).toMatchObject({
+      source: 'chessy',
+      white: { name: 'White' },
+      black: { name: 'Black' },
+      result: '*',
+      speed: 'unlimited',
+    })
+    for (const san of ['e5', 'Bc4', 'Nc6', 'Qh5', 'Nf6', 'Qxf7#']) game.play(san)
+    const finished = await recordLocalGame(deps(repository), {
+      game,
+      record: { id: saved.id, startedAt: saved.playedAt },
+    })
+    expect(finished.result).toBe('1-0')
+    expect(await repository.list()).toHaveLength(1)
+    expect(importPgn(finished.pgn).headers).toMatchObject({ Event: 'Local game', Result: '1-0' })
   })
 })

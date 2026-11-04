@@ -28,10 +28,14 @@ import {
 } from '@chessy/library'
 import {
   chooseBotMove,
+  findUnfinishedBotGame,
   recordBotGame,
+  recordLocalGame,
   type BotChoice,
   type BotMoveRequest,
   type FinishedBotGame,
+  type LocalGame,
+  type UnfinishedBotGame,
 } from '@chessy/play'
 import { ApiGameSource } from '@/adapters/api/apiGameSource'
 import { RemoteLibrary } from '@/adapters/api/remoteLibrary'
@@ -74,8 +78,12 @@ export interface Services {
     /** The server's human-move model (e.g. "Maia-3") that human-like levels play with, if any. */
     humanModel: () => Promise<string | undefined>
     chooseBotMove: (request: BotMoveRequest) => Promise<BotChoice>
-    /** Saves a finished bot game to the library. */
-    saveBotGame: (finished: FinishedBotGame) => Promise<LibraryGame>
+    /** Saves a bot game to the library: while it's played (to resume it) and once it's over. */
+    saveBotGame: (game: FinishedBotGame) => Promise<LibraryGame>
+    /** The latest bot game left unfinished, to resume. */
+    unfinishedBotGame: () => Promise<UnfinishedBotGame | undefined>
+    /** Saves a game played on the local board, finished or not. */
+    saveLocalGame: (game: LocalGame) => Promise<LibraryGame>
   }
   profile: {
     /** The user's profile: this browser's, else the server's copy (kept here then); null if none. */
@@ -141,7 +149,9 @@ export function createServices(): Services {
         const human = request.level.human ? await botHuman() : undefined
         return chooseBotMove({ engine: botEngine, ...(human && { human }) }, request)
       },
-      saveBotGame: (finished) => recordBotGame({ repository: games, newId, now }, finished),
+      saveBotGame: (game) => recordBotGame({ repository: games, newId, now }, game),
+      unfinishedBotGame: () => findUnfinishedBotGame({ repository: games }),
+      saveLocalGame: (game) => recordLocalGame({ repository: games, newId, now }, game),
     },
     review: {
       serverEngine: () =>

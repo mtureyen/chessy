@@ -1,4 +1,4 @@
-import type { Color } from '@chessy/chess'
+import { importPgn, type Color } from '@chessy/chess'
 import {
   approximateRating,
   BOT_LEVELS,
@@ -11,6 +11,7 @@ import {
   type BotGameSetup,
   type ColorChoice,
   type Termination,
+  type UnfinishedBotGame,
 } from '@chessy/play'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -43,8 +44,45 @@ function useHumanModel() {
 interface Match {
   setup: BotGameSetup
   seed: number
+  /** A saved unfinished game this match continues. */
+  resume?: UnfinishedBotGame
   /** Changes per game, so a rematch starts with fresh state. */
   id: number
+}
+
+/** A bot game left midway, offered to continue (a new game leaves it unfinished in the history). */
+function ResumeCard({
+  game,
+  onResume,
+}: {
+  game: UnfinishedBotGame
+  onResume: (game: UnfinishedBotGame) => void
+}) {
+  const moves = useMemo(() => {
+    const { game: replay } = importPgn(game.record.pgn)
+    replay.toStart()
+    return Math.ceil(replay.line().length / 2)
+  }, [game])
+  const { level, timeControl } = game.setup
+  return (
+    <div className="bot-resume" data-testid="resume-bot-game">
+      <div>
+        <strong>Unfinished game</strong>
+        <span>
+          {[
+            `vs ${botName(level)}`,
+            `${moves} ${moves === 1 ? 'move' : 'moves'}`,
+            timeControl
+              ? `${timeControl.initialMs / 60_000}+${timeControl.incrementMs / 1000}`
+              : 'no clock',
+          ].join(' · ')}
+        </span>
+      </div>
+      <button type="button" className="bot-play" onClick={() => onResume(game)}>
+        Resume
+      </button>
+    </div>
+  )
 }
 
 /** Play against a bot: pick a level and a side, play, then review the game. */
@@ -55,6 +93,12 @@ export function BotPage() {
   const [clockChoice, setClockChoice] = useState(-1)
   const [match, setMatch] = useState<Match>()
   const humanModel = useHumanModel()
+  const { play } = useServices()
+  const unfinished = useQuery({
+    queryKey: ['unfinished-bot-game'],
+    queryFn: async () => (await play.unfinishedBotGame()) ?? null,
+    enabled: !match,
+  })
 
   const start = ({ color, ...setup }: Omit<BotGameSetup, 'color'> & { color: ColorChoice }) => {
     const seed = Math.floor(Math.random() * 2 ** 32)
@@ -65,12 +109,21 @@ export function BotPage() {
     }))
   }
 
+  const resume = (game: UnfinishedBotGame) =>
+    setMatch((previous) => ({
+      setup: game.setup,
+      seed: Math.floor(Math.random() * 2 ** 32),
+      resume: game,
+      id: (previous?.id ?? 0) + 1,
+    }))
+
   if (match) {
     return (
       <BotGame
         key={match.id}
         setup={match.setup}
         seed={match.seed}
+        {...(match.resume && { resume: match.resume })}
         onRematch={() => start({ ...match.setup, color: opposite(match.setup.color) })}
         onNewGame={() => setMatch(undefined)}
       />
@@ -92,6 +145,7 @@ export function BotPage() {
       </section>
       <aside className="panel bot-setup">
         <h2>Play vs bot</h2>
+        {unfinished.data && <ResumeCard game={unfinished.data} onResume={resume} />}
         <fieldset className="bot-levels">
           <legend>Level</legend>
           {BOT_LEVELS.map((l) => (
@@ -162,12 +216,13 @@ export function BotPage() {
 interface BotGameProps {
   setup: BotGameSetup
   seed: number
+  resume?: UnfinishedBotGame
   onRematch: () => void
   onNewGame: () => void
 }
 
-function BotGame({ setup, seed, onRematch, onNewGame }: BotGameProps) {
-  const bot = useBotGame(setup, seed)
+function BotGame({ setup, seed, resume, onRematch, onNewGame }: BotGameProps) {
+  const bot = useBotGame(setup, seed, resume)
   const { game, view, update } = bot
   const humanModel = useHumanModel()
   const [orientation, setOrientation] = useState<Color>(setup.color)
