@@ -9,7 +9,9 @@ import { fileURLToPath } from 'node:url'
 import { CoachRegistry } from './adapters/coach/agents'
 import { evaluatePositionTool } from './adapters/coach/tools/evaluatePosition'
 import { humanMovesTool } from './adapters/coach/tools/humanMoves'
+import { searchGamesTool } from './adapters/coach/tools/searchGames'
 import { showOnBoardTool } from './adapters/coach/tools/showOnBoard'
+import { statsTool } from './adapters/coach/tools/stats'
 import { openDatabase } from './adapters/db/database'
 import { FileSettingsService } from './adapters/settings/fileSettingsService'
 import { FileSettingsStore } from './adapters/settings/fileSettingsStore'
@@ -30,9 +32,19 @@ const engine = createNativeEngineService({
   poolSize,
   hashMb: config.ENGINE_HASH_MB,
 })
-// The coach follows the settings page (apps/api/.chessy/settings.json) over .env, live.
 const humanMoves = createMaiaService(config.MAIA_MODEL_PATH)
-const coachTools = [evaluatePositionTool(engine), humanMovesTool(humanMoves), showOnBoardTool()]
+const library = new DatabaseLibraryService(
+  config.DATABASE_URL ? () => openDatabase(config.DATABASE_URL!) : undefined,
+)
+const history = { history: library, profile: () => library.profile() }
+const coachTools = [
+  evaluatePositionTool(engine),
+  humanMovesTool(humanMoves),
+  searchGamesTool(history),
+  statsTool(history),
+  showOnBoardTool(),
+]
+// The coach follows the settings page (apps/api/.chessy/settings.json) over .env, live.
 const coach = new CoachRegistry(coachTools, {
   // Claude Code reaches the tools here over MCP; the API listens on 127.0.0.1 at least.
   baseUrl: `http://127.0.0.1:${config.PORT}`,
@@ -52,9 +64,7 @@ const app = createApp({
   sources: createSources(config),
   engine,
   humanMoves,
-  library: new DatabaseLibraryService(
-    config.DATABASE_URL ? () => openDatabase(config.DATABASE_URL!) : undefined,
-  ),
+  library,
   coach,
   mcp: coach.mcp,
   settings,
