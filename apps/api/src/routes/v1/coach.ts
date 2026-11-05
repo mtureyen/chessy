@@ -1,6 +1,6 @@
 import type { CoachAgent } from '@chessy/coach'
 import type { CoachDirectory } from '../../adapters/coach/coachDirectory'
-import { coachAgentsRoute, coachQuestionRoute } from '@chessy/contracts'
+import { coachAgentsRoute, coachQuestionRoute, type CoachEventBody } from '@chessy/contracts'
 import { streamSSE } from 'hono/streaming'
 import { problem } from '../../http/problem'
 import { createRouter } from '../../http/router'
@@ -56,7 +56,13 @@ export function coachRoutes({ coach }: { coach: CoachDirectory }) {
         )
         try {
           await chosen.answer({ ...question, signal: c.req.raw.signal }, (event) =>
-            write(() => stream.writeSSE({ event: event.type, data: JSON.stringify(event) })),
+            write(() =>
+              // The contract's event shape; the coach's own type must fit it.
+              stream.writeSSE({
+                event: event.type,
+                data: JSON.stringify(event satisfies CoachEventBody),
+              }),
+            ),
           )
         } finally {
           clearInterval(keepAlive)
