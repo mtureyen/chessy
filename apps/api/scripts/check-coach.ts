@@ -14,6 +14,7 @@ import { CoachRegistry } from '../src/adapters/coach/agents'
 import { effectiveCoach } from '../src/adapters/settings/coachSettings'
 import { FileSettingsStore } from '../src/adapters/settings/fileSettingsStore'
 import { createCoachTools } from '../src/adapters/coach/tools'
+import { createServerReviewer } from '../src/adapters/review/serverReviewer'
 import { openDatabase } from '../src/adapters/db/database'
 import { DatabaseLibraryService } from '../src/adapters/db/service'
 import { createMaiaService } from '../src/adapters/humanMoves/maia'
@@ -51,10 +52,18 @@ const stored = await new FileSettingsStore(
 const library = new DatabaseLibraryService(
   config.DATABASE_URL ? () => openDatabase(config.DATABASE_URL!) : undefined,
 )
+const humanMoves = createMaiaService(config.MAIA_MODEL_PATH)
 const tools = createCoachTools({
   engine,
-  humanMoves: createMaiaService(config.MAIA_MODEL_PATH),
-  history: { history: library, profile: () => library.profile() },
+  humanMoves,
+  library,
+  review: createServerReviewer({
+    engine,
+    humanMoves,
+    bookPath:
+      config.OPENING_BOOK_PATH ??
+      fileURLToPath(new URL('../../web/public/openings/book.json', import.meta.url)),
+  }),
 })
 const registry = new CoachRegistry(tools, {
   baseUrl: `http://127.0.0.1:${server.port}`,

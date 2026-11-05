@@ -8,6 +8,7 @@ import {
 import { fileURLToPath } from 'node:url'
 import { CoachRegistry } from './adapters/coach/agents'
 import { createCoachTools } from './adapters/coach/tools'
+import { createServerReviewer } from './adapters/review/serverReviewer'
 import { openDatabase } from './adapters/db/database'
 import { FileSettingsService } from './adapters/settings/fileSettingsService'
 import { FileSettingsStore } from './adapters/settings/fileSettingsStore'
@@ -35,7 +36,14 @@ const library = new DatabaseLibraryService(
 const coachTools = createCoachTools({
   engine,
   humanMoves,
-  history: { history: library, profile: () => library.profile() },
+  library,
+  review: createServerReviewer({
+    engine,
+    humanMoves,
+    bookPath:
+      config.OPENING_BOOK_PATH ??
+      fileURLToPath(new URL('../../web/public/openings/book.json', import.meta.url)),
+  }),
 })
 // The coach follows the settings page (apps/api/.chessy/settings.json) over .env, live.
 const coach = new CoachRegistry(coachTools, {
