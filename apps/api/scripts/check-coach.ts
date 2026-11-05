@@ -7,7 +7,7 @@
  * Uses the same configuration as the API (apps/api/.env: ANTHROPIC_API_KEY, COACH_*) and needs
  * the native engine for the evaluation tool (`bun run engine:native`).
  */
-import { createCoachAgents } from '../src/adapters/coach/agents'
+import { coachConfig, createCoachAgents } from '../src/adapters/coach/agents'
 import { evaluatePositionTool } from '../src/adapters/coach/tools/evaluatePosition'
 import {
   createNativeEngineService,
@@ -24,16 +24,7 @@ const engine = createNativeEngineService({
   poolSize: Math.min(2, defaultPoolSize()),
   hashMb: config.ENGINE_HASH_MB,
 })
-const agents = createCoachAgents(
-  {
-    anthropic: config.COACH_CLAUDE_API === 'on' && {
-      model: config.COACH_CLAUDE_MODEL,
-      label: config.COACH_CLAUDE_LABEL,
-      effort: config.COACH_CLAUDE_EFFORT,
-    },
-  },
-  [evaluatePositionTool(engine)],
-)
+const agents = createCoachAgents(coachConfig(config), [evaluatePositionTool(engine)])
 const agent = wanted ? agents.find((a) => a.id === wanted) : agents[0]
 if (!agent) throw new Error(`No coach agent ${wanted ?? ''} (have: ${agents.map((a) => a.id)})`)
 const status = await agent.status()

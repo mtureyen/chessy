@@ -5,7 +5,7 @@ import {
   defaultPoolSize,
   resolveStockfishPath,
 } from './adapters/engine/native'
-import { createCoachAgents } from './adapters/coach/agents'
+import { coachConfig, createCoachAgents } from './adapters/coach/agents'
 import { evaluatePositionTool } from './adapters/coach/tools/evaluatePosition'
 import { openDatabase } from './adapters/db/database'
 import { DatabaseLibraryService } from './adapters/db/service'
@@ -25,16 +25,7 @@ const engine = createNativeEngineService({
   poolSize,
   hashMb: config.ENGINE_HASH_MB,
 })
-const coach = createCoachAgents(
-  {
-    anthropic: config.COACH_CLAUDE_API === 'on' && {
-      model: config.COACH_CLAUDE_MODEL,
-      label: config.COACH_CLAUDE_LABEL,
-      effort: config.COACH_CLAUDE_EFFORT,
-    },
-  },
-  [evaluatePositionTool(engine)],
-)
+const coach = createCoachAgents(coachConfig(config), [evaluatePositionTool(engine)])
 const app = createApp({
   version: pkg.version,
   startedAt: Date.now(),

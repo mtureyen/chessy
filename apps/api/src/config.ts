@@ -23,6 +23,18 @@ const EnvSchema = z.object({
   COACH_CLAUDE_LABEL: z.string().min(1).default('Claude Opus 5.5'),
   /** How hard Claude thinks per answer: more is slower and costs more. */
   COACH_CLAUDE_EFFORT: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('medium'),
+  /** The coach on a local model in Ollama (start Ollama with OLLAMA_CONTEXT_LENGTH=16384). */
+  COACH_OLLAMA: z.enum(['on', 'off']).default('off'),
+  COACH_OLLAMA_URL: z.string().url().default('http://localhost:11434/v1'),
+  COACH_OLLAMA_MODEL: z.string().min(1).default('qwen3:14b'),
+  /**
+   * Any other OpenAI-compatible API (OpenAI, OpenRouter, Groq, LM Studio, …): set the URL to
+   * add it, e.g. https://openrouter.ai/api/v1.
+   */
+  COACH_OPENAI_URL: z.string().url().optional(),
+  COACH_OPENAI_MODEL: z.string().min(1).optional(),
+  COACH_OPENAI_KEY: z.string().min(1).optional(),
+  COACH_OPENAI_LABEL: z.string().min(1).optional(),
 })
 
 export type Config = z.infer<typeof EnvSchema>

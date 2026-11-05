@@ -69,8 +69,14 @@ The coach answers questions about positions and games. It states only what its t
 
 - **Claude through the API**: put `ANTHROPIC_API_KEY` into `apps/api/.env`; `COACH_CLAUDE_MODEL`
   (default `claude-opus-5-5`) and `COACH_CLAUDE_EFFORT` (default `medium`) tune it.
+- **A local model in [Ollama](https://ollama.com)**: `COACH_OLLAMA=on`, `COACH_OLLAMA_MODEL`
+  (default `qwen3:14b`; it needs a model that can call tools). Start Ollama with a larger context,
+  `OLLAMA_CONTEXT_LENGTH=16384 ollama serve`: its default is a few thousand tokens, and a longer
+  conversation would be cut off at the start without an error.
+- **Any other OpenAI-compatible API** (OpenAI, OpenRouter, Groq, LM Studio, …): `COACH_OPENAI_URL`,
+  `COACH_OPENAI_MODEL`, `COACH_OPENAI_KEY`.
 
-`bun run --cwd apps/api coach:check` asks it a real question and shows the answer, the tools it
+`bun run --cwd apps/api coach:check [ollama|openai-compatible]` asks a real question and shows the answer, the tools it
 used and the tokens it cost.
 
 ### Native engine (optional, much faster reviews)
