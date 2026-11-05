@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { sampleGame } from '../testing'
-import { isValidUsername, LOCAL_PLAYER_NAME, outcomeFor } from './game'
+import { categoryOf, isValidUsername, LOCAL_PLAYER_NAME, outcomeFor } from './game'
 
 describe('outcomeFor', () => {
   it('reads the result from the given player’s side, ignoring case', () => {
@@ -24,5 +24,24 @@ describe('isValidUsername', () => {
   it('accepts platform-style names only', () => {
     expect(['DrNykterstein', 'Zhigalko_Sergei', 'a-b', 'ab'].every(isValidUsername)).toBe(true)
     expect(['a', 'with space', 'x'.repeat(31), 'drop;table', ''].some(isValidUsername)).toBe(false)
+  })
+})
+
+describe('categoryOf', () => {
+  it('keeps platform games by platform and splits games played here', () => {
+    expect(categoryOf(sampleGame({ source: 'chesscom' }))).toBe('chesscom')
+    expect(categoryOf(sampleGame({ source: 'lichess' }))).toBe('lichess')
+    const bot = sampleGame({
+      source: 'chessy',
+      white: { name: 'Chessy bot (level 3)' },
+      black: { name: 'You' },
+    })
+    expect(categoryOf(bot)).toBe('bot')
+    const local = sampleGame({
+      source: 'chessy',
+      white: { name: 'White' },
+      black: { name: 'Black' },
+    })
+    expect(categoryOf(local)).toBe('local')
   })
 })

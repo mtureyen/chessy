@@ -51,6 +51,17 @@ export interface LibraryGame extends Omit<SourceGame, 'source' | 'url' | 'speed'
   importedAt: string
 }
 
+/** The kinds of games kept apart: by platform, and games played here against a bot or locally. */
+export type GameCategory = 'chesscom' | 'lichess' | 'bot' | 'local'
+
+/** Games played here are against a bot when "You" played, else two people on one board. */
+export function categoryOf(game: Pick<LibraryGame, 'source' | 'white' | 'black'>): GameCategory {
+  if (game.source !== 'chessy') return game.source
+  return game.white.name === LOCAL_PLAYER_NAME || game.black.name === LOCAL_PLAYER_NAME
+    ? 'bot'
+    : 'local'
+}
+
 export type Outcome = 'win' | 'loss' | 'draw' | 'unknown'
 
 /** The game's outcome from `username`'s point of view (case-insensitive); 'unknown' if they didn't play. */
