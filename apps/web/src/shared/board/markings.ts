@@ -25,6 +25,20 @@ export const MARK_BRUSHES: Record<MarkBrush, DrawBrush> = {
   yellow: { key: 'y', color: MARK_COLORS.yellow.arrow, opacity: 0.85, lineWidth: 12 },
 }
 
+/** The coach's colours as they look (its "green" is green), apart from the user's brushes. */
+export const COACH_BRUSHES = {
+  coachGreen: { key: 'cg', color: '#5f9e2f', opacity: 0.85, lineWidth: 12 },
+  coachRed: { key: 'cr', color: '#d64534', opacity: 0.85, lineWidth: 12 },
+  coachBlue: { key: 'cb', color: '#3f9fd8', opacity: 0.85, lineWidth: 12 },
+  coachYellow: { key: 'cy', color: '#e0b520', opacity: 0.9, lineWidth: 12 },
+} satisfies Record<string, DrawBrush>
+
+export type CoachColor = 'green' | 'red' | 'blue' | 'yellow'
+
+export function coachBrush(color: CoachColor): keyof typeof COACH_BRUSHES {
+  return `coach${color[0]!.toUpperCase()}${color.slice(1)}` as keyof typeof COACH_BRUSHES
+}
+
 /**
  * Turns the circles chessground just drew into square markings: a square marked again in the same
  * colour is cleared, in another colour recoloured. Returns the new markings and the shapes left
