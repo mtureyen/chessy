@@ -7,7 +7,15 @@ import type { Key } from 'chessground/types'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Color, Move, SquareName } from '@chessy/chess'
 import { useBoardAppearance } from './appearanceStore'
-import { MARK_BRUSHES, markClasses, takeSquareMarks, type MarkBrush } from './markings'
+import {
+  COACH_BRUSHES,
+  MARK_BRUSHES,
+  coachBrush,
+  markClasses,
+  takeSquareMarks,
+  type CoachColor,
+  type MarkBrush,
+} from './markings'
 import './Board.css'
 import { PromotionDialog } from './PromotionDialog'
 
@@ -25,6 +33,13 @@ export interface BoardProps {
   arrows?: BoardArrow[]
   /** A small round badge in a square's corner, e.g. a move classification. */
   badge?: BoardBadge
+  /** What the coach drew on this position: arrows and circled squares. */
+  drawing?: BoardDrawing
+}
+
+export interface BoardDrawing {
+  arrows: { from: string; to: string; color: CoachColor }[]
+  squares: { square: string; color: CoachColor }[]
 }
 
 export interface BoardBadge {
@@ -73,7 +88,7 @@ export function Board(props: BoardProps) {
       premovable: { enabled: false },
       highlight: { lastMove: true, check: true },
       drawable: {
-        brushes: MARK_BRUSHES,
+        brushes: { ...MARK_BRUSHES, ...COACH_BRUSHES },
         // chessground draws a right-clicked square as a circle: colour the square instead.
         onChange: (shapes) => {
           const taken = takeSquareMarks(shapes, marks.current)
@@ -128,15 +143,21 @@ export function Board(props: BoardProps) {
     }
   }, [fen, orientation, turnColor, dests, check, lastMove])
 
-  const { badge } = props
+  const { badge, drawing } = props
   const shapesKey = [
     ...(props.arrows ?? []).map((a) => `${a.kind}:${a.from}${a.to}`),
     badge ? `badge:${badge.square}${badge.svg}` : '',
+    ...(drawing?.arrows ?? []).map((a) => `coach:${a.from}${a.to}${a.color}`),
+    ...(drawing?.squares ?? []).map((s) => `coach:${s.square}${s.color}`),
   ].join(',')
   useEffect(() => {
     // setAutoShapes leaves the user's own drawings alone (cg.set with a fen would clear them).
-    const { arrows = [], badge } = latest.current
-    api.current?.setAutoShapes([...arrows.map(toShape), ...(badge ? [badgeShape(badge)] : [])])
+    const { arrows = [], badge, drawing } = latest.current
+    api.current?.setAutoShapes([
+      ...arrows.map(toShape),
+      ...(drawing ? coachShapes(drawing) : []),
+      ...(badge ? [badgeShape(badge)] : []),
+    ])
   }, [shapesKey])
 
   const cancelPromotion = () => {
@@ -166,6 +187,13 @@ export function Board(props: BoardProps) {
 /** Drawn in a 100×100 box whose origin is the square's top-left corner; the badge sits top-right. */
 function badgeShape({ square, svg }: BoardBadge): DrawShape {
   return { orig: square, customSvg: { html: `<g transform="translate(86 14)">${svg}</g>` } }
+}
+
+function coachShapes({ arrows, squares }: BoardDrawing): DrawShape[] {
+  return [
+    ...squares.map((s) => ({ orig: s.square as Key, brush: coachBrush(s.color) })),
+    ...arrows.map((a) => ({ orig: a.from as Key, dest: a.to as Key, brush: coachBrush(a.color) })),
+  ]
 }
 
 function toShape(arrow: BoardArrow): DrawShape {
