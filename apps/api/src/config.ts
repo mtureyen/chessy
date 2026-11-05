@@ -23,6 +23,11 @@ const EnvSchema = z.object({
   COACH_CLAUDE_LABEL: z.string().min(1).default('Claude Opus 5.5'),
   /** How hard Claude thinks per answer: more is slower and costs more. */
   COACH_CLAUDE_EFFORT: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('medium'),
+  /** The coach on Claude Code (`claude -p`), on the user's subscription; tools over MCP. */
+  COACH_CLAUDE_HEADLESS: z.enum(['on', 'off']).default('on'),
+  COACH_CLAUDE_COMMAND: z.string().min(1).default('claude'),
+  /** A model alias or id for Claude Code, e.g. "opus"; its own default otherwise. */
+  COACH_CLAUDE_HEADLESS_MODEL: z.string().min(1).optional(),
   /** The coach on a local model in Ollama (start Ollama with OLLAMA_CONTEXT_LENGTH=16384). */
   COACH_OLLAMA: z.enum(['on', 'off']).default('off'),
   COACH_OLLAMA_URL: z.string().url().default('http://localhost:11434/v1'),

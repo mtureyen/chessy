@@ -69,6 +69,11 @@ The coach answers questions about positions and games. It states only what its t
 
 - **Claude through the API**: put `ANTHROPIC_API_KEY` into `apps/api/.env`; `COACH_CLAUDE_MODEL`
   (default `claude-opus-5-5`) and `COACH_CLAUDE_EFFORT` (default `medium`) tune it.
+- **Claude Code on your Claude subscription** (`claude -p`, on by default when it's installed):
+  it gets no built-in tools at all (no shell, no files), only the coach's tools over MCP from the
+  API (`/api/v1/mcp/<token>`, open only while an answer runs), and works in an empty folder. The
+  API key is kept from it, so it never bills the API. `COACH_CLAUDE_HEADLESS_MODEL` picks a
+  model (e.g. `opus`).
 - **A local model in [Ollama](https://ollama.com)**: `COACH_OLLAMA=on`, `COACH_OLLAMA_MODEL`
   (default `qwen3:14b`; it needs a model that can call tools). Start Ollama with a larger context,
   `OLLAMA_CONTEXT_LENGTH=16384 ollama serve`: its default is a few thousand tokens, and a longer
@@ -76,7 +81,7 @@ The coach answers questions about positions and games. It states only what its t
 - **Any other OpenAI-compatible API** (OpenAI, OpenRouter, Groq, LM Studio, …): `COACH_OPENAI_URL`,
   `COACH_OPENAI_MODEL`, `COACH_OPENAI_KEY`.
 
-`bun run --cwd apps/api coach:check [ollama|openai-compatible]` asks a real question and shows the answer, the tools it
+`bun run --cwd apps/api coach:check [claude-headless|ollama|openai-compatible]` asks a real question and shows the answer, the tools it
 used and the tokens it cost.
 
 ### Native engine (optional, much faster reviews)

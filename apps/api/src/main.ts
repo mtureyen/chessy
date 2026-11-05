@@ -25,7 +25,11 @@ const engine = createNativeEngineService({
   poolSize,
   hashMb: config.ENGINE_HASH_MB,
 })
-const coach = createCoachAgents(coachConfig(config), [evaluatePositionTool(engine)])
+const { agents: coach, mcp } = createCoachAgents(
+  coachConfig(config),
+  [evaluatePositionTool(engine)],
+  { baseUrl: `http://localhost:${config.PORT}`, version: pkg.version },
+)
 const app = createApp({
   version: pkg.version,
   startedAt: Date.now(),
@@ -36,13 +40,16 @@ const app = createApp({
     config.DATABASE_URL ? () => openDatabase(config.DATABASE_URL!) : undefined,
   ),
   coach,
+  mcp,
 })
 
 console.log(
   `chessy-api ${pkg.version} listening on http://localhost:${config.PORT} (${config.NODE_ENV}, sources: ${config.CHESSY_SOURCES}, engine: ${stockfishPath} ×${poolSize}, history: ${config.DATABASE_URL ? 'database' : 'off'}, coach: ${coach.map((a) => a.id).join(', ') || 'off'})`,
 )
 
-export default { port: config.PORT, fetch: app.fetch }
+// Bun closes a connection after 10 s without data by default; a coach's tool call (an engine
+// search over MCP) can take longer. 255 s is Bun's maximum.
+export default { port: config.PORT, fetch: app.fetch, idleTimeout: 255 }
 
 function createSources(config: Config): Record<SourceId, GameSource> {
   const http = {

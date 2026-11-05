@@ -5,7 +5,8 @@
  *   bun run coach:check [agent id] ["question"]
  *
  * Uses the same configuration as the API (apps/api/.env: ANTHROPIC_API_KEY, COACH_*) and needs
- * the native engine for the evaluation tool (`bun run engine:native`).
+ * the native engine for the evaluation tool (`bun run engine:native`). Agents: claude-api (the
+ * default), claude-headless (your subscription), ollama, openai-compatible.
  */
 import { coachConfig, createCoachAgents } from '../src/adapters/coach/agents'
 import { evaluatePositionTool } from '../src/adapters/coach/tools/evaluatePosition'
@@ -24,7 +25,23 @@ const engine = createNativeEngineService({
   poolSize: Math.min(2, defaultPoolSize()),
   hashMb: config.ENGINE_HASH_MB,
 })
-const agents = createCoachAgents(coachConfig(config), [evaluatePositionTool(engine)])
+// Claude Code gets the tools over MCP: serve them here for the length of the check.
+let mcpHandler: ((request: Request, token: string) => Promise<Response>) | undefined
+const server = Bun.serve({
+  port: 0,
+  idleTimeout: 255, // an engine search for a tool call can take longer than Bun's 10 s default
+  fetch: (request) => {
+    const token = /\/api\/v1\/mcp\/([^/]+)$/.exec(new URL(request.url).pathname)?.[1]
+    return token && mcpHandler
+      ? mcpHandler(request, token)
+      : new Response('Not found', { status: 404 })
+  },
+})
+const { agents, mcp } = createCoachAgents(coachConfig(config), [evaluatePositionTool(engine)], {
+  baseUrl: `http://localhost:${server.port}`,
+  version: 'check',
+})
+mcpHandler = mcp.handle
 const agent = wanted ? agents.find((a) => a.id === wanted) : agents[0]
 if (!agent) throw new Error(`No coach agent ${wanted ?? ''} (have: ${agents.map((a) => a.id)})`)
 const status = await agent.status()

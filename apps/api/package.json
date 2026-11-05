@@ -35,6 +35,7 @@
     "@chessy/play": "workspace:*",
     "@electric-sql/pglite": "0.5.10",
     "@hono/zod-openapi": "^1.6.3",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "@scalar/hono-api-reference": "^0.12.14",
     "drizzle-orm": "0.45.4",
     "hono": "^4.13.14",
