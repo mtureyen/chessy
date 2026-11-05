@@ -10,7 +10,14 @@ import { scriptedClient } from '@chessy/coach/testing'
 import { sampleReview } from '@chessy/history/testing'
 import { sampleGame, sampleSourceGame } from '@chessy/library/testing'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { mkdtempSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { CoachRegistry } from './adapters/coach/agents'
 import { evaluatePositionTool } from './adapters/coach/tools/evaluatePosition'
+import { FileSettingsService } from './adapters/settings/fileSettingsService'
+import { FileSettingsStore } from './adapters/settings/fileSettingsStore'
+import { loadConfig } from './config'
 import { openDatabase } from './adapters/db/database'
 import { DatabaseLibraryService } from './adapters/db/service'
 import type { EngineService, EngineStatus } from './adapters/engine/service'
@@ -96,11 +103,22 @@ const coach = [
     conversations: new InMemoryConversationStore(),
   }),
 ]
+const settingsPath = join(mkdtempSync(join(tmpdir(), 'chessy-app-test-')), 'settings.json')
+const settingsRegistry = new CoachRegistry([], {
+  baseUrl: 'http://127.0.0.1:3000',
+  version: 'test',
+})
+const settings = new FileSettingsService(
+  loadConfig({ ANTHROPIC_API_KEY: 'sk-ant-from-env-0000000000-envk' }),
+  new FileSettingsStore(settingsPath),
+  settingsRegistry,
+)
 const app = createApp({
   engine,
   humanMoves,
   library,
-  coach,
+  coach: { agents: () => coach },
+  settings,
   version: '9.9.9',
   startedAt: 1_000,
   now: () => 61_000,
@@ -146,6 +164,7 @@ describe('api', () => {
       '/library/games/missing',
       '/library/reviews',
       '/profile',
+      '/settings/coach',
       '/sources/{source}/games/{id}',
       '/sources/{source}/users/{username}',
       '/sources/{source}/users/{username}/games',
@@ -410,7 +429,8 @@ describe('library routes', () => {
       engine,
       humanMoves,
       library: new DatabaseLibraryService(undefined),
-      coach: [],
+      coach: { agents: () => [] },
+      settings,
       version: '9.9.9',
       startedAt: 0,
       sources: {
@@ -541,5 +561,81 @@ describe('coach routes', () => {
     expect((await ask({ conversationId, question: '' })).status).toBe(400)
     expect((await ask({ conversationId: 'x', question: 'Hi' })).status).toBe(400)
     expect((await ask({ conversationId, question: 'Hi', agent: 'gpt' })).status).toBe(404)
+  })
+})
+
+describe('settings routes', () => {
+  const local = { Host: 'localhost:3000' }
+  const put = (body: unknown, headers: Record<string, string> = local) =>
+    app.request('/api/v1/settings/coach', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+    })
+
+  it('shows the coach settings, keys only as a hint', async () => {
+    const res = await app.request('/api/v1/settings/coach', { headers: local })
+    const view = (await res.json()) as { claudeApi: { apiKey: unknown } }
+    expect(view.claudeApi.apiKey).toEqual({ set: true, hint: 'sk-ant-…envk', source: 'env' })
+  })
+
+  it('keeps a new key in the settings file and never sends it back', async () => {
+    const key = 'sk-ant-api03-page-entered-key-wxyz'
+    const res = await put({ claudeApi: { apiKey: key, effort: 'high' }, ollama: { enabled: true } })
+    expect(res.status).toBe(200)
+    const text = await res.text()
+    expect(text).not.toContain('page-entered')
+    expect(JSON.parse(text)).toMatchObject({
+      claudeApi: {
+        effort: 'high',
+        apiKey: { set: true, hint: 'sk-ant-…wxyz', source: 'settings' },
+      },
+      ollama: { enabled: true },
+    })
+    expect(JSON.parse(readFileSync(settingsPath, 'utf8'))).toMatchObject({
+      coach: { claudeApi: { apiKey: key } },
+    })
+    expect(settingsRegistry.agents().map((a) => a.id)).toContain('ollama')
+
+    const removed = await put({ claudeApi: { apiKey: null } })
+    expect(
+      ((await removed.json()) as { claudeApi: { apiKey: { source: string } } }).claudeApi.apiKey
+        .source,
+    ).toBe('env')
+    expect((await put({ claudeApi: { effort: 'extreme' } })).status).toBe(400)
+  })
+
+  it('answers only requests to this machine', async () => {
+    expect(
+      (await app.request('/api/v1/settings/coach', { headers: { Host: 'evil.example' } })).status,
+    ).toBe(403)
+    expect((await app.request('/api/v1/settings/coach')).status).toBe(403) // no Host at all
+    expect((await put({ ollama: { enabled: false } }, { Host: 'evil.example:3000' })).status).toBe(
+      403,
+    )
+  })
+})
+
+describe('local host names only', () => {
+  it('turns away requests addressed to another name (DNS rebinding)', async () => {
+    const guarded = createApp({
+      engine,
+      humanMoves,
+      library: new DatabaseLibraryService(undefined),
+      coach: { agents: () => [] },
+      settings,
+      version: '9.9.9',
+      startedAt: 0,
+      sources: {
+        lichess: fakeSource('lichess', () => []),
+        chesscom: fakeSource('chesscom', () => []),
+      },
+      localHostNamesOnly: true,
+    })
+    const health = (host: string) => guarded.request('/api/v1/health', { headers: { Host: host } })
+    expect((await health('localhost:5173')).status).toBe(200)
+    expect((await health('127.0.0.1:3000')).status).toBe(200)
+    expect((await health('[::1]:3000')).status).toBe(200)
+    expect((await health('rebind.attacker.example:3000')).status).toBe(403)
   })
 })

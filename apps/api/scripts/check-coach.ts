@@ -4,11 +4,14 @@
  *
  *   bun run coach:check [agent id] ["question"]
  *
- * Uses the same configuration as the API (apps/api/.env: ANTHROPIC_API_KEY, COACH_*) and needs
+ * Uses the same configuration as the API (the settings page, else apps/api/.env) and needs
  * the native engine for the evaluation tool (`bun run engine:native`). Agents: claude-api (the
  * default), claude-headless (your subscription), ollama, openai-compatible.
  */
-import { coachConfig, createCoachAgents } from '../src/adapters/coach/agents'
+import { fileURLToPath } from 'node:url'
+import { CoachRegistry } from '../src/adapters/coach/agents'
+import { effectiveCoach } from '../src/adapters/settings/coachSettings'
+import { FileSettingsStore } from '../src/adapters/settings/fileSettingsStore'
 import { evaluatePositionTool } from '../src/adapters/coach/tools/evaluatePosition'
 import {
   createNativeEngineService,
@@ -37,11 +40,17 @@ const server = Bun.serve({
       : new Response('Not found', { status: 404 })
   },
 })
-const { agents, mcp } = createCoachAgents(coachConfig(config), [evaluatePositionTool(engine)], {
-  baseUrl: `http://localhost:${server.port}`,
+// The same settings as the API: the settings page's file over .env.
+const stored = await new FileSettingsStore(
+  config.SETTINGS_PATH ?? fileURLToPath(new URL('../.chessy/settings.json', import.meta.url)),
+).load()
+const registry = new CoachRegistry([evaluatePositionTool(engine)], {
+  baseUrl: `http://127.0.0.1:${server.port}`,
   version: 'check',
 })
-mcpHandler = mcp.handle
+registry.configure(effectiveCoach(config, stored.coach))
+const agents = registry.agents()
+mcpHandler = registry.mcp.handle
 const agent = wanted ? agents.find((a) => a.id === wanted) : agents[0]
 if (!agent) throw new Error(`No coach agent ${wanted ?? ''} (have: ${agents.map((a) => a.id)})`)
 const status = await agent.status()

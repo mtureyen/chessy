@@ -44,5 +44,7 @@ apps/web/public/openings/
 apps/api/.engine/
 apps/api/.maia/
 apps/api/.bench/
+# The settings page's file (API keys)
+apps/api/.chessy/
 # Bot calibration results (bun run bots:calibrate)
 calibration*.json
