@@ -2,6 +2,11 @@ import { z } from 'zod'
 
 const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
+  /**
+   * Where the API listens: this machine only by default. 0.0.0.0 opens it to the network, and with
+   * it everything the API can do (import, the coach with your keys); only on networks you trust.
+   */
+  HOST: z.string().min(1).default('127.0.0.1'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   /** `live` talks to lichess/chess.com; `recorded` answers from recorded responses (E2E, offline). */
   CHESSY_SOURCES: z.enum(['live', 'recorded']).default('live'),

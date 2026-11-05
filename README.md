@@ -43,7 +43,9 @@ bun run e2e                # Playwright (starts both apps if not running)
 bun run check:boundaries   # architecture rules
 ```
 
-API docs: http://localhost:3000/api/v1/docs (OpenAPI: `/api/v1/openapi.json`)
+API docs: http://localhost:3000/api/v1/docs (OpenAPI: `/api/v1/openapi.json`). The API only
+listens on this machine; `HOST=0.0.0.0` opens it to the network, and with it everything it can do
+(the coach with your keys included), so only on networks you trust.
 
 ### Game history (optional, PostgreSQL)
 
