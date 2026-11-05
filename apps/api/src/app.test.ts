@@ -5,6 +5,7 @@ import {
   type GameSource,
   type SourceGame,
 } from '@chessy/library'
+import { CoachEventSchema } from '@chessy/contracts'
 import { InMemoryConversationStore, LoopAgent } from '@chessy/coach'
 import { scriptedClient } from '@chessy/coach/testing'
 import { sampleReview } from '@chessy/history/testing'
@@ -546,6 +547,7 @@ describe('coach routes', () => {
       'done',
     ])
     expect(events[0]!.type).toBe('text')
+    expect(events.filter((e) => !CoachEventSchema.safeParse(e).success)).toEqual([])
     expect(
       events
         .filter((e) => e.type === 'text')

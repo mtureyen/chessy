@@ -34,6 +34,32 @@ export const CoachQuestionSchema = z
 
 export type CoachQuestionBody = z.infer<typeof CoachQuestionSchema>
 
+const DrawColor = z.enum(['green', 'red', 'blue', 'yellow'])
+
+/** Arrows and squares the coach draws: on `fen`, or on the position the question was asked in. */
+export const CoachDrawingSchema = z.object({
+  arrows: z.array(z.object({ from: z.string(), to: z.string(), color: DrawColor })),
+  squares: z.array(z.object({ square: z.string(), color: DrawColor })),
+  fen: z.string().optional(),
+})
+
+export type CoachDrawing = z.infer<typeof CoachDrawingSchema>
+
+/** One event of an answer's stream (the `data` of each server-sent event). */
+export const CoachEventSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('text'), delta: z.string() }),
+  z.object({ type: z.literal('tool'), name: z.string(), input: z.unknown() }),
+  z.object({ type: z.literal('tool_result'), name: z.string(), ok: z.boolean() }),
+  z.object({ type: z.literal('board'), drawing: CoachDrawingSchema }),
+  z.object({
+    type: z.literal('done'),
+    usage: z.object({ inputTokens: z.number(), outputTokens: z.number() }),
+  }),
+  z.object({ type: z.literal('error'), message: z.string() }),
+])
+
+export type CoachEventBody = z.infer<typeof CoachEventSchema>
+
 const problem = (description: string) => ({
   description,
   content: { 'application/problem+json': { schema: ProblemSchema } },
