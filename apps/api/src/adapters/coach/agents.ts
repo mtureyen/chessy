@@ -1,108 +1,109 @@
+import Anthropic from '@anthropic-ai/sdk'
 import {
   InMemoryConversationStore,
   LoopAgent,
   type CoachAgent,
   type CoachTool,
+  type ConversationStore,
+  type LlmClient,
 } from '@chessy/coach'
-import type { Config } from '../../config'
+import type { EffectiveCoach } from '../settings/coachSettings'
 import { AnthropicClient } from './anthropicClient'
+import type { CoachDirectory } from './coachDirectory'
 import { HeadlessClaudeAgent } from './headlessClaudeAgent'
 import { CoachRuns, handleMcpRequest } from './mcp'
 import type { McpEndpoint } from './mcpEndpoint'
 import { OpenAiCompatibleClient } from './openAiCompatibleClient'
 
-type Effort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
-
-export interface CoachConfig {
-  /** Claude through the API (ANTHROPIC_API_KEY); `false` leaves it out. */
-  anthropic: false | { model: string; label: string; effort: Effort }
-  /** Claude Code in headless mode, on the user's subscription. */
-  headless: false | { command: string; model?: string }
-  /** A local model in Ollama. */
-  ollama: false | { baseUrl: string; model: string }
-  /** Any other OpenAI-compatible API. */
-  openAiCompatible: false | { baseUrl: string; model: string; label: string; apiKey?: string }
-}
-
-/** The coach providers the environment asks for (see config.ts). */
-export function coachConfig(config: Config): CoachConfig {
-  const openAiModel = config.COACH_OPENAI_MODEL
-  return {
-    anthropic: config.COACH_CLAUDE_API === 'on' && {
-      model: config.COACH_CLAUDE_MODEL,
-      label: config.COACH_CLAUDE_LABEL,
-      effort: config.COACH_CLAUDE_EFFORT,
-    },
-    headless: config.COACH_CLAUDE_HEADLESS === 'on' && {
-      command: config.COACH_CLAUDE_COMMAND,
-      ...(config.COACH_CLAUDE_HEADLESS_MODEL && { model: config.COACH_CLAUDE_HEADLESS_MODEL }),
-    },
-    ollama: config.COACH_OLLAMA === 'on' && {
-      baseUrl: config.COACH_OLLAMA_URL,
-      model: config.COACH_OLLAMA_MODEL,
-    },
-    openAiCompatible:
-      config.COACH_OPENAI_URL && openAiModel
-        ? {
-            baseUrl: config.COACH_OPENAI_URL,
-            model: openAiModel,
-            label: config.COACH_OPENAI_LABEL ?? openAiModel,
-            ...(config.COACH_OPENAI_KEY && { apiKey: config.COACH_OPENAI_KEY }),
-          }
-        : false,
-  }
+/** Where this API listens and its version, for the MCP endpoint Claude Code gets tools from. */
+export interface ServerInfo {
+  baseUrl: string
+  version: string
 }
 
 /**
- * The coach agents this server offers, each with the same tools; the first available one is the
- * default. `server` says where this API listens and its version, for the MCP endpoint that
- * agents running their own loop (Claude Code) get the tools from.
+ * The coach's agents, rebuilt whenever its settings change (no restart). Conversations and
+ * running answers survive a rebuild; the default agent comes first, then the others.
  */
-export function createCoachAgents(
-  config: CoachConfig,
-  tools: CoachTool[],
-  server: { baseUrl: string; version: string } = { baseUrl: 'http://localhost:3000', version: '0' },
-): { agents: CoachAgent[]; mcp: McpEndpoint } {
-  const runs = new CoachRuns()
-  const mcp: McpEndpoint = {
-    handle: (request, token) =>
-      handleMcpRequest(request, token, { tools, runs, version: server.version }),
+export class CoachRegistry implements CoachDirectory {
+  readonly mcp: McpEndpoint
+  private readonly tools: CoachTool[]
+  private readonly server: ServerInfo
+  private readonly conversations: ConversationStore = new InMemoryConversationStore()
+  private readonly runs = new CoachRuns()
+  private current: CoachAgent[] = []
+
+  constructor(tools: CoachTool[], server: ServerInfo) {
+    this.tools = tools
+    this.server = server
+    this.mcp = {
+      handle: (request, token) =>
+        handleMcpRequest(request, token, { tools, runs: this.runs, version: server.version }),
+    }
   }
-  const conversations = new InMemoryConversationStore()
-  const agent = (
-    id: string,
-    label: string,
-    client: ConstructorParameters<typeof LoopAgent>[0]['client'],
-  ) => new LoopAgent({ id, label, client, tools, conversations })
+
+  configure(coach: EffectiveCoach): void {
+    const agents = createCoachAgents(coach, this.tools, this.server, {
+      conversations: this.conversations,
+      runs: this.runs,
+    })
+    const preferred = agents.find((agent) => agent.id === coach.defaultAgent)
+    this.current = preferred ? [preferred, ...agents.filter((a) => a !== preferred)] : agents
+  }
+
+  agents(): CoachAgent[] {
+    return this.current
+  }
+}
+
+/** The agents the settings switch on, each with the same tools. */
+export function createCoachAgents(
+  coach: EffectiveCoach,
+  tools: CoachTool[],
+  server: ServerInfo,
+  shared: { conversations: ConversationStore; runs: CoachRuns } = {
+    conversations: new InMemoryConversationStore(),
+    runs: new CoachRuns(),
+  },
+): CoachAgent[] {
+  const { conversations, runs } = shared
+  const loop = (id: string, label: string, client: LlmClient) =>
+    new LoopAgent({ id, label, client, tools, conversations })
   const agents: CoachAgent[] = []
-  if (config.anthropic) {
-    const { model, label, effort } = config.anthropic
+
+  const { claudeApi, claudeHeadless, ollama, openAiCompatible } = coach
+  if (claudeApi.enabled) {
+    const { model, label, effort, apiKey } = claudeApi
+    // Without a key of its own the SDK looks in the environment (and the `ant` login).
+    const client = apiKey ? new Anthropic({ apiKey }) : undefined
     agents.push(
-      agent('claude-api', `${label} (API)`, new AnthropicClient({ model, label, effort })),
+      loop(
+        'claude-api',
+        `${label} (API)`,
+        new AnthropicClient({ model, label, effort, ...(client && { client }) }),
+      ),
     )
   }
-  if (config.headless) {
-    const { command, model } = config.headless
+  if (claudeHeadless.enabled) {
     agents.push(
       new HeadlessClaudeAgent({
-        command,
-        ...(model && { model }),
+        command: claudeHeadless.command,
+        ...(claudeHeadless.model && { model: claudeHeadless.model }),
         tools,
         runs,
         mcpUrl: (token) => `${server.baseUrl}/api/v1/mcp/${token}`,
       }),
     )
   }
-  if (config.ollama) {
-    const { baseUrl, model } = config.ollama
-    const label = `${model} (Ollama, local)`
+  if (ollama.enabled) {
+    const label = `${ollama.model} (Ollama, local)`
     agents.push(
-      agent(
+      loop(
         'ollama',
         label,
         new OpenAiCompatibleClient({
-          baseUrl,
-          model,
+          baseUrl: ollama.url,
+          model: ollama.model,
           label,
           unreachableHint: 'is Ollama running?',
           missingModelHint: (name) => `Model ${name} is not installed: ollama pull ${name}`,
@@ -110,15 +111,16 @@ export function createCoachAgents(
       ),
     )
   }
-  if (config.openAiCompatible) {
-    const { baseUrl, model, label, apiKey } = config.openAiCompatible
+  if (openAiCompatible.enabled && openAiCompatible.url && openAiCompatible.model) {
+    const { url, model, apiKey } = openAiCompatible
+    const label = openAiCompatible.label ?? model
     agents.push(
-      agent(
+      loop(
         'openai-compatible',
         label,
-        new OpenAiCompatibleClient({ baseUrl, model, label, ...(apiKey && { apiKey }) }),
+        new OpenAiCompatibleClient({ baseUrl: url, model, label, ...(apiKey && { apiKey }) }),
       ),
     )
   }
-  return { agents, mcp }
+  return agents
 }

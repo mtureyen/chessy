@@ -22,6 +22,10 @@ const EnvSchema = z.object({
    * `pglite:<folder>` for an embedded one. Unset: the server keeps no history.
    */
   DATABASE_URL: z.string().min(1).optional(),
+  /** The settings page's file (API keys inside); default: apps/api/.chessy/settings.json. */
+  SETTINGS_PATH: z.string().min(1).optional(),
+  /** Claude's API key; the settings page can set one too (it wins). */
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
   /** The coach on Claude through the API (key: ANTHROPIC_API_KEY); `off` leaves it out. */
   COACH_CLAUDE_API: z.enum(['on', 'off']).default('on'),
   COACH_CLAUDE_MODEL: z.string().min(1).default('claude-opus-5-5'),
