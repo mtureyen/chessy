@@ -1,4 +1,10 @@
-import type { GameHistory, GameSummary, ReviewedMoveRow, StoredReview } from '@chessy/history'
+import type {
+  GameHistory,
+  GameLine,
+  GameSummary,
+  ReviewedMoveRow,
+  StoredReview,
+} from '@chessy/history'
 import type { LibraryGame, Profile } from '@chessy/library'
 import type { LibraryService, LibraryStatus } from './libraryService'
 import type { OpenDatabase } from './types'
@@ -53,6 +59,14 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
 
   async saveReview(review: StoredReview): Promise<void> {
     await (await this.connected()).reviews.save(review)
+  }
+
+  async game(id: string): Promise<LibraryGame | undefined> {
+    return (await this.connected()).games.get(id)
+  }
+
+  async findReview(line: GameLine): Promise<StoredReview | undefined> {
+    return (await this.connected()).reviews.find(line)
   }
 
   async profile(): Promise<Profile | undefined> {
