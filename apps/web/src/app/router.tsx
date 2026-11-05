@@ -56,6 +56,14 @@ const profileRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/profile/ProfilePage'), 'ProfilePage'),
 })
 
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  validateSearch: (search: Record<string, unknown>): { tab?: 'board' | 'coach' } =>
+    search.tab === 'board' || search.tab === 'coach' ? { tab: search.tab } : {},
+  component: lazyRouteComponent(() => import('@/features/settings/SettingsPage'), 'SettingsPage'),
+})
+
 const routeTree = rootRoute.addChildren([
   playRoute,
   botRoute,
@@ -64,6 +72,7 @@ const routeTree = rootRoute.addChildren([
   openRoute,
   welcomeRoute,
   profileRoute,
+  settingsRoute,
 ])
 
 export const router = createRouter({ routeTree, defaultPreload: 'intent' })

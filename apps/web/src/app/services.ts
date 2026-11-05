@@ -39,6 +39,7 @@ import {
 } from '@chessy/play'
 import { ApiGameSource } from '@/adapters/api/apiGameSource'
 import { RemoteLibrary } from '@/adapters/api/remoteLibrary'
+import { RemoteSettings } from '@/adapters/api/remoteSettings'
 import { createApiClient, type ApiClient } from '@/adapters/api/client'
 import { RemoteEvaluator } from '@/adapters/engine/remoteEvaluator'
 import { createBrowserEngine } from '@/adapters/engine/stockfish'
@@ -93,6 +94,8 @@ export interface Services {
     /** A platform account's public profile, e.g. to confirm "is this you?". */
     lookup: (source: SourceId, username: string) => Promise<PlayerProfile>
   }
+  /** The API's settings: only answered from this machine (they hold API keys). */
+  settings: Pick<RemoteSettings, 'coach' | 'updateCoach' | 'agents'>
   history: {
     /**
      * Sends the server's game history what it lacks (games saved while it was down); resolves
@@ -122,6 +125,7 @@ export function createServices(): Services {
   const { settings, evals } = local
   // Everything the library saves also goes to the server's game history (when it keeps one).
   const remoteLibrary = new RemoteLibrary(api)
+  const remoteSettings = new RemoteSettings(api)
   const games = new MirroredGameRepository(local.games, remoteLibrary)
   const sources: Record<SourceId, GameSource> = {
     lichess: new ApiGameSource('lichess', api),
@@ -170,6 +174,12 @@ export function createServices(): Services {
           .catch(() => undefined)
         return review
       },
+    },
+    // Plain functions (not the class's methods), so they can be handed around, e.g. as queryFn.
+    settings: {
+      coach: () => remoteSettings.coach(),
+      updateCoach: (update) => remoteSettings.updateCoach(update),
+      agents: () => remoteSettings.agents(),
     },
     profile: {
       load: async () => {
