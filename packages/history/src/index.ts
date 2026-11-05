@@ -26,3 +26,4 @@ export {
 export type { GameHistory } from './ports/gameHistory'
 export type { ReviewRepository, StoredReview } from './ports/reviewRepository'
 export { InMemoryReviewRepository } from './adapters/inMemoryReviewRepository'
+export { ensureReview, type EnsureReviewDeps } from './usecases/ensureReview'
