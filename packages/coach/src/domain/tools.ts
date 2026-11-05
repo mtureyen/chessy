@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { BoardDrawing } from './messages'
+import type { CoachContext } from './prompt'
 
 /** What a tool hands back: text for the model, and maybe something to draw for the user. */
 export interface ToolOutput {
@@ -18,7 +19,8 @@ export interface CoachTool {
   /** JSON Schema of the input object. */
   inputSchema: Record<string, unknown>
   parse(input: unknown): { ok: true; value: unknown } | { ok: false; error: string }
-  run(input: unknown): Promise<ToolOutput>
+  /** `context`: the situation the user asked in (their board, game, rating). */
+  run(input: unknown, context: CoachContext): Promise<ToolOutput>
 }
 
 /** A tool from a Zod schema: the schema gives both the JSON Schema and the input check. */
@@ -26,7 +28,7 @@ export function defineTool<S extends z.ZodObject>(spec: {
   name: string
   description: string
   input: S
-  run: (input: z.infer<S>) => Promise<ToolOutput>
+  run: (input: z.infer<S>, context: CoachContext) => Promise<ToolOutput>
 }): CoachTool {
   const { $schema: _dialect, ...inputSchema } = z.toJSONSchema(spec.input) as Record<
     string,
@@ -42,6 +44,6 @@ export function defineTool<S extends z.ZodObject>(spec: {
         ? { ok: true, value: parsed.data }
         : { ok: false, error: z.prettifyError(parsed.error) }
     },
-    run: (input) => spec.run(input as z.infer<S>),
+    run: (input, context) => spec.run(input as z.infer<S>, context),
   }
 }

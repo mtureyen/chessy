@@ -37,7 +37,7 @@ describe('evaluate_position', () => {
     const tool = evaluatePositionTool(engine)
     const input = tool.parse({ fen: START, lines: 2 })
     expect(input.ok).toBe(true)
-    const output = await tool.run((input as { value: unknown }).value)
+    const output = await tool.run((input as { value: unknown }).value, {})
     expect(JSON.parse(output.content)).toEqual({
       sideToMove: 'white',
       depth: 24,
@@ -51,11 +51,11 @@ describe('evaluate_position', () => {
 
   it('fails with a message the model can use', async () => {
     const tool = evaluatePositionTool(fakeEngine({ depth: 0, lines: [] }).engine)
-    await expect(tool.run({ fen: 'not a fen' })).rejects.toThrow()
+    await expect(tool.run({ fen: 'not a fen' }, {})).rejects.toThrow()
     const offline = evaluatePositionTool(
       fakeEngine({ depth: 0, lines: [] }, { available: false, reason: 'no binary' }).engine,
     )
-    await expect(offline.run({ fen: START })).rejects.toThrow(/no engine on this server/)
+    await expect(offline.run({ fen: START }, {})).rejects.toThrow(/no engine on this server/)
     expect(tool.parse({ fen: START, lines: 9 }).ok).toBe(false)
   })
 })

@@ -83,7 +83,7 @@ export class HeadlessClaudeAgent implements CoachAgent {
   /** Never throws: failures end the answer with an error event (a cancel ends it silently). */
   async answer(request: CoachRequest, onEvent: (event: CoachEvent) => void): Promise<void> {
     const { runs, tools, mcpUrl, model } = this.options
-    const token = runs.start(onEvent)
+    const token = runs.start(onEvent, request.context)
     const resume = this.sessions.has(request.conversationId)
     const args = [
       '-p',

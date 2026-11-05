@@ -84,14 +84,14 @@ describe('runToolLoop', () => {
     expect(requests.map((r) => r.tools)).toEqual([['echo'], ['echo'], ['echo'], []])
   })
 
-  it('passes drawings on and stops on refusals and when cancelled', async () => {
+  it('gives tools the context, passes drawings on and stops on refusals and when cancelled', async () => {
     const draw = defineTool({
       name: 'draw',
-      description: 'Draws an arrow.',
+      description: 'Draws an arrow from e2 to the square on the board.',
       input: z.object({}),
-      run: async () => ({
+      run: async (_input, context) => ({
         content: 'drawn',
-        board: { arrows: [{ from: 'e2', to: 'e4', color: 'green' }], squares: [] },
+        board: { arrows: [{ from: 'e2', to: context.fen ?? '?', color: 'green' }], squares: [] },
       }),
     })
     const { client } = scriptedClient([
@@ -99,7 +99,11 @@ describe('runToolLoop', () => {
       { text: 'See.' },
     ])
     const { events, onEvent } = collect()
-    await runToolLoop(client, { system: 's', messages: ask('Show me'), tools: [draw] }, onEvent)
+    await runToolLoop(
+      client,
+      { system: 's', messages: ask('Show me'), tools: [draw], context: { fen: 'e4' } },
+      onEvent,
+    )
     expect(events).toContainEqual({
       type: 'board',
       drawing: { arrows: [{ from: 'e2', to: 'e4', color: 'green' }], squares: [] },
