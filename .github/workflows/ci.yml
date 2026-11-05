@@ -13,6 +13,8 @@ jobs:
   check:
     name: Lint, boundaries, types, tests, build
     runs-on: ubuntu-latest
+    # Usually about a minute; a hang shouldn't hold a runner for GitHub's default six hours.
+    timeout-minutes: 15
     services:
       # Unit tests use an embedded Postgres; db:check runs the adapters on a real one too.
       postgres:
@@ -47,6 +49,8 @@ jobs:
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
+    # Usually about a minute; once the run kept going after every test had passed.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
