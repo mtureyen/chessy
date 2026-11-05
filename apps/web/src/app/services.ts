@@ -39,6 +39,7 @@ import {
 } from '@chessy/play'
 import { ApiGameSource } from '@/adapters/api/apiGameSource'
 import { RemoteLibrary } from '@/adapters/api/remoteLibrary'
+import { RemoteCoach } from '@/adapters/api/remoteCoach'
 import { RemoteSettings } from '@/adapters/api/remoteSettings'
 import { createApiClient, type ApiClient } from '@/adapters/api/client'
 import { RemoteEvaluator } from '@/adapters/engine/remoteEvaluator'
@@ -96,6 +97,11 @@ export interface Services {
   }
   /** The API's settings: only answered from this machine (they hold API keys). */
   settings: Pick<RemoteSettings, 'coach' | 'updateCoach' | 'agents'>
+  /** The AI coach: its agents, and questions answered as they are written. */
+  coach: {
+    agents: RemoteSettings['agents']
+    ask: RemoteCoach['ask']
+  }
   history: {
     /**
      * Sends the server's game history what it lacks (games saved while it was down); resolves
@@ -126,6 +132,7 @@ export function createServices(): Services {
   // Everything the library saves also goes to the server's game history (when it keeps one).
   const remoteLibrary = new RemoteLibrary(api)
   const remoteSettings = new RemoteSettings(api)
+  const remoteCoach = new RemoteCoach(api)
   const games = new MirroredGameRepository(local.games, remoteLibrary)
   const sources: Record<SourceId, GameSource> = {
     lichess: new ApiGameSource('lichess', api),
@@ -180,6 +187,10 @@ export function createServices(): Services {
       coach: () => remoteSettings.coach(),
       updateCoach: (update) => remoteSettings.updateCoach(update),
       agents: () => remoteSettings.agents(),
+    },
+    coach: {
+      agents: () => remoteSettings.agents(),
+      ask: (question, onEvent, signal) => remoteCoach.ask(question, onEvent, signal),
     },
     profile: {
       load: async () => {

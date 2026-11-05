@@ -1,13 +1,24 @@
 import type { ReviewedMove } from '@chessy/analysis'
 import {
   createGame,
+  exportPgn,
   importPgn,
   type Color,
   type GameState,
   type MoveNode,
   type PgnHeaders,
 } from '@chessy/chess'
-import { useMemo, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { CoachPanel } from '@/features/coach/CoachPanel'
+import {
+  findPosition,
+  MAX_PGN_LENGTH,
+  samePosition,
+  usualRating,
+  userRating,
+} from '@/features/coach/situation'
+import { useCoachChat, type PlacedDrawing } from '@/features/coach/useCoachChat'
+import { usePlayer, useProfile } from '@/features/profile/useProfile'
 import { ClassBadge } from '@/features/review/ClassBadge'
 import { classIconSvg } from '@/features/review/classIcons'
 import { LIST_BADGES } from '@/features/review/classes'
@@ -50,7 +61,37 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   const [orientation, setOrientation] = useState<Color>('white')
   const [engineEnabled, setEngineEnabled] = useState(true)
   const [multiPv, setMultiPv] = useState(3)
-  const [tab, setTab] = useState<'moves' | 'review'>(initial.review ? 'review' : 'moves')
+  const [tab, setTab] = useState<'moves' | 'review' | 'coach'>(initial.review ? 'review' : 'moves')
+  const profile = useProfile()
+  const account = profile.data?.accounts[0]
+  const player = usePlayer(account?.source ?? 'chesscom', account?.username)
+
+  // What the coach drew; the board shows it while it is on that position.
+  const [drawing, setDrawing] = useState<PlacedDrawing>()
+  const latestRoot = useRef(view.root)
+  useLayoutEffect(() => {
+    latestRoot.current = view.root
+  })
+  const showDrawing = useCallback(
+    (shown: PlacedDrawing) => {
+      setDrawing(shown)
+      const node = findPosition(latestRoot.current, shown.fen)
+      if (node) update((g) => g.goTo(node))
+    },
+    [update],
+  )
+  const chat = useCoachChat({ onDrawing: showDrawing })
+  const coachContext = () => {
+    const pgn = view.root.children.length > 0 ? exportPgn(game, headers) : undefined
+    // Their rating in this game, else their usual one on their platform.
+    const rating =
+      userRating(headers, profile.data) ?? (player.data && usualRating(player.data.ratings))
+    return {
+      fen: view.fen,
+      ...(pgn && pgn.length <= MAX_PGN_LENGTH && { pgn }),
+      ...(rating && { rating }),
+    }
+  }
 
   const ratings = useMemo(() => ratingsFromHeaders(headers), [headers])
   const review = useGameReview(view.root, ratings)
@@ -80,6 +121,8 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
     : []
 
   const players = playersFromHeaders(headers, view)
+  // The coach's drawing replaces the engine's arrows while the board is on its position.
+  const shownDrawing = drawing && samePosition(drawing.fen, view.fen) ? drawing : undefined
 
   const flip = () => setOrientation((o) => (o === 'white' ? 'black' : 'white'))
   useGameKeyboard(
@@ -106,7 +149,8 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
           dests={view.dests}
           lastMove={view.lastMove}
           check={view.check}
-          arrows={arrows}
+          arrows={shownDrawing ? [] : arrows}
+          drawing={shownDrawing}
           badge={
             currentReview && view.lastMove
               ? {
@@ -168,10 +212,26 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
               ? `Review ${Math.round((review.state.done / review.state.total) * 100)}%`
               : 'Review'}
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'coach'}
+            onClick={() => setTab('coach')}
+          >
+            {chat.answering && tab !== 'coach' ? 'Coach …' : 'Coach'}
+          </button>
         </div>
 
-        <div className="moves">
-          {tab === 'moves' ? (
+        <div className={tab === 'coach' ? 'moves moves-coach' : 'moves'}>
+          {tab === 'coach' ? (
+            <CoachPanel
+              chat={chat}
+              context={coachContext}
+              canShow={(fen) => findPosition(view.root, fen) !== undefined}
+              onShow={showDrawing}
+              orientation={orientation}
+            />
+          ) : tab === 'moves' ? (
             <MoveTree
               root={view.root}
               current={view.current}
