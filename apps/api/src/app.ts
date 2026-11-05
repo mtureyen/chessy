@@ -5,6 +5,7 @@ import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
 import { problem } from './http/problem'
 import { createRouter } from './http/router'
+import type { McpEndpoint } from './adapters/coach/mcpEndpoint'
 import type { LibraryService } from './adapters/db/libraryService'
 import type { EngineService } from './adapters/engine/service'
 import type { HumanMoveService } from './adapters/humanMoves/service'
@@ -25,6 +26,8 @@ export interface AppDeps {
   library: LibraryService
   /** The coach agents, the default first; none: the coach is off. */
   coach: CoachAgent[]
+  /** The coach's tools over MCP, for agents that run their own loop. */
+  mcp?: McpEndpoint
 }
 
 /** Builds the HTTP app from its dependencies. main.ts wires real ones, tests wire fakes. */
@@ -37,6 +40,7 @@ export function createApp({
   humanMoves,
   library,
   coach,
+  mcp,
 }: AppDeps) {
   const v1 = createRouter()
     .route('/', healthRoutes({ version, startedAt, now }))
@@ -52,6 +56,9 @@ export function createApp({
     servers: [{ url: API_V1_PREFIX }],
   })
   v1.get('/docs', Scalar({ url: `${API_V1_PREFIX}/openapi.json`, pageTitle: 'Chessy API' }))
+  // MCP for Claude Code (not in the OpenAPI document: a protocol of its own). Only a running
+  // answer's token opens it.
+  if (mcp) v1.all('/mcp/:token', (c) => mcp.handle(c.req.raw, c.req.param('token')))
 
   const app = new OpenAPIHono().route(API_V1_PREFIX, v1)
   app.notFound((c) =>
