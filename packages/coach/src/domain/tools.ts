@@ -30,10 +30,10 @@ export function defineTool<S extends z.ZodObject>(spec: {
   input: S
   run: (input: z.infer<S>, context: CoachContext) => Promise<ToolOutput>
 }): CoachTool {
-  const { $schema: _dialect, ...inputSchema } = z.toJSONSchema(spec.input) as Record<
-    string,
-    unknown
-  >
+  // The input as the model writes it: a field with a default is optional there.
+  const { $schema: _dialect, ...inputSchema } = z.toJSONSchema(spec.input, {
+    io: 'input',
+  }) as Record<string, unknown>
   return {
     name: spec.name,
     description: spec.description,
