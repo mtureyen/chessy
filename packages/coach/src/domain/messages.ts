@@ -23,12 +23,17 @@ export type ChatMessage =
   | { role: 'assistant'; text: string; toolCalls: ToolCall[]; providerState?: unknown }
   | { role: 'tool'; results: ToolResult[] }
 
-/** Arrows and coloured squares the coach puts on the user's board. */
+/**
+ * Arrows and coloured squares the coach puts on the user's board: on the position it shows, or
+ * on the one on the board when `fen` is absent.
+ */
 export interface BoardDrawing {
   arrows: { from: string; to: string; color: DrawColor }[]
   squares: { square: string; color: DrawColor }[]
+  fen?: string
 }
 
+/** The colours as the user sees them (the board maps them to its own brushes). */
 export type DrawColor = 'green' | 'red' | 'blue' | 'yellow'
 
 /** What the user sees of a coach answer as it happens. */
