@@ -17,6 +17,8 @@ const EnvSchema = z.object({
   ENGINE_HASH_MB: z.coerce.number().int().min(1).max(4096).default(64),
   /** Maia-3 ONNX model (human-like moves); default: apps/api/.maia/ from `bun run maia:fetch`. */
   MAIA_MODEL_PATH: z.string().min(1).optional(),
+  /** Opening book for reviews on the server; default: the web app's public/openings/book.json. */
+  OPENING_BOOK_PATH: z.string().min(1).optional(),
   /**
    * The game history's database: a PostgreSQL URL (see docker-compose.yml), or `pglite:memory` /
    * `pglite:<folder>` for an embedded one. Unset: the server keeps no history.
