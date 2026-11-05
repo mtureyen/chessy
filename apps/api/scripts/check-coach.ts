@@ -4,15 +4,19 @@
  *
  *   bun run coach:check [agent id] ["question"]
  *
- * Uses the same configuration as the API (the settings page, else apps/api/.env) and needs
- * the native engine for the evaluation tool (`bun run engine:native`). Agents: claude-api (the
- * default), claude-headless (your subscription), ollama, openai-compatible.
+ * Uses the same configuration and tools as the API (the settings page, else apps/api/.env):
+ * the native engine for the evaluation tool (`bun run engine:native`), Maia for human moves, and
+ * the database (DATABASE_URL) for the user's games. Agents: claude-api (the default),
+ * claude-headless (your subscription), ollama, openai-compatible.
  */
 import { fileURLToPath } from 'node:url'
 import { CoachRegistry } from '../src/adapters/coach/agents'
 import { effectiveCoach } from '../src/adapters/settings/coachSettings'
 import { FileSettingsStore } from '../src/adapters/settings/fileSettingsStore'
-import { evaluatePositionTool } from '../src/adapters/coach/tools/evaluatePosition'
+import { createCoachTools } from '../src/adapters/coach/tools'
+import { openDatabase } from '../src/adapters/db/database'
+import { DatabaseLibraryService } from '../src/adapters/db/service'
+import { createMaiaService } from '../src/adapters/humanMoves/maia'
 import {
   createNativeEngineService,
   defaultPoolSize,
@@ -44,7 +48,15 @@ const server = Bun.serve({
 const stored = await new FileSettingsStore(
   config.SETTINGS_PATH ?? fileURLToPath(new URL('../.chessy/settings.json', import.meta.url)),
 ).load()
-const registry = new CoachRegistry([evaluatePositionTool(engine)], {
+const library = new DatabaseLibraryService(
+  config.DATABASE_URL ? () => openDatabase(config.DATABASE_URL!) : undefined,
+)
+const tools = createCoachTools({
+  engine,
+  humanMoves: createMaiaService(config.MAIA_MODEL_PATH),
+  history: { history: library, profile: () => library.profile() },
+})
+const registry = new CoachRegistry(tools, {
   baseUrl: `http://127.0.0.1:${server.port}`,
   version: 'check',
 })
@@ -66,6 +78,7 @@ await agent.answer(
     if (event.type === 'text') process.stdout.write(event.delta)
     else if (event.type === 'tool')
       console.log(`\n[tool ${event.name} ${JSON.stringify(event.input)}]`)
+    else if (event.type === 'board') console.log(`\n[board ${JSON.stringify(event.drawing)}]`)
     else if (event.type === 'error') console.error(`\n[error] ${event.message}`)
     else if (event.type === 'done') {
       const seconds = ((Date.now() - started) / 1000).toFixed(1)
