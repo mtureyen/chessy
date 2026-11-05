@@ -7,6 +7,7 @@ import type { GameRepository } from '@chessy/library'
 import { sampleGame } from '@chessy/library/testing'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { gameLine, type GameLine } from './domain/line'
+import type { GameSummary } from './domain/playerGames'
 import type { ReviewRepository, StoredReview } from './ports/reviewRepository'
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -94,4 +95,21 @@ export function reviewRepositoryContract(
       expect(await reviews.forGame('unknown')).toBeUndefined()
     })
   })
+}
+
+/** A chess.com rapid game 8sly won with White, not reviewed. */
+export function sampleSummary(overrides: Partial<GameSummary> = {}): GameSummary {
+  return {
+    id: 'g1',
+    source: 'chesscom',
+    playedAt: '2026-10-01T12:00:00.000Z',
+    white: { name: '8sly', rating: 790 },
+    black: { name: 'rival', rating: 820 },
+    result: '1-0',
+    speed: 'rapid',
+    rated: true,
+    opening: { eco: 'C50', name: 'Italian Game Two Knights Defense' },
+    reviewed: false,
+    ...overrides,
+  }
 }

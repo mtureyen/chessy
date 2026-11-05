@@ -11,8 +11,10 @@ export {
 export {
   LOCAL_PLAYER_NAME,
   SOURCE_IDS,
+  categoryOf,
   isValidUsername,
   outcomeFor,
+  type GameCategory,
   type GameOrigin,
   type GameResult,
   type GameSpeed,
