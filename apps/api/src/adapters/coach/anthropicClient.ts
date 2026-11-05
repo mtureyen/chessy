@@ -62,11 +62,11 @@ export class AnthropicClient implements LlmClient {
         available: false,
         reason:
           error instanceof Anthropic.AuthenticationError
-            ? 'No valid Anthropic API key (ANTHROPIC_API_KEY)'
+            ? 'The Anthropic API key was rejected: check it in Settings → Coach'
             : error instanceof Anthropic.AnthropicError
               ? error.message
               : // A plain Error before any request: the SDK found no credentials at all.
-                'No Anthropic API key: set ANTHROPIC_API_KEY in apps/api/.env',
+                'No Anthropic API key: enter one in Settings → Coach',
       }))
     this.checked = { at: Date.now(), status }
     return status

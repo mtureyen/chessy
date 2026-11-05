@@ -161,7 +161,7 @@ describe('AnthropicClient', () => {
     const sdk = new Anthropic({ apiKey: null, baseURL: 'http://anthropic.test', maxRetries: 0 })
     expect(await new AnthropicClient({ client: sdk }).status()).toEqual({
       available: false,
-      reason: 'No Anthropic API key: set ANTHROPIC_API_KEY in apps/api/.env',
+      reason: 'No Anthropic API key: enter one in Settings → Coach',
     })
   })
 
@@ -179,7 +179,7 @@ describe('AnthropicClient', () => {
     })
     expect(await new AnthropicClient({ client: sdk }).status()).toEqual({
       available: false,
-      reason: 'No valid Anthropic API key (ANTHROPIC_API_KEY)',
+      reason: 'The Anthropic API key was rejected: check it in Settings → Coach',
     })
   })
 })
