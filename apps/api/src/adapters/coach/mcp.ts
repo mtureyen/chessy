@@ -1,19 +1,19 @@
-import type { CoachEvent, CoachTool } from '@chessy/coach'
+import type { CoachContext, CoachEvent, CoachTool } from '@chessy/coach'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 
 /**
  * Answers in progress by an agent that calls our tools over MCP (Claude Code), each under a
- * one-time token in the MCP URL: only a running answer can use the tools, and what a tool draws
- * on the board reaches that answer's stream.
+ * one-time token in the MCP URL: only a running answer can use the tools, its tools see the
+ * situation it was asked in, and what a tool draws on the board reaches that answer's stream.
  */
 export class CoachRuns {
-  private readonly runs = new Map<string, (event: CoachEvent) => void>()
+  private readonly runs = new Map<string, CoachRun>()
 
-  start(onEvent: (event: CoachEvent) => void): string {
+  start(onEvent: (event: CoachEvent) => void, context: CoachContext = {}): string {
     const token = crypto.randomUUID()
-    this.runs.set(token, onEvent)
+    this.runs.set(token, { onEvent, context })
     return token
   }
 
@@ -21,9 +21,14 @@ export class CoachRuns {
     this.runs.delete(token)
   }
 
-  listener(token: string): ((event: CoachEvent) => void) | undefined {
+  run(token: string): CoachRun | undefined {
     return this.runs.get(token)
   }
+}
+
+export interface CoachRun {
+  onEvent: (event: CoachEvent) => void
+  context: CoachContext
 }
 
 /**
@@ -35,8 +40,9 @@ export async function handleMcpRequest(
   token: string,
   { tools, runs, version }: { tools: CoachTool[]; runs: CoachRuns; version: string },
 ): Promise<Response> {
-  const onEvent = runs.listener(token)
-  if (!onEvent) return new Response('Unknown or finished run', { status: 404 })
+  const run = runs.run(token)
+  if (!run) return new Response('Unknown or finished run', { status: 404 })
+  const { onEvent, context } = run
 
   const server = new Server({ name: 'chessy', version }, { capabilities: { tools: {} } })
   server.setRequestHandler(ListToolsRequestSchema, () => ({
@@ -56,7 +62,7 @@ export async function handleMcpRequest(
     const input = tool.parse(params.arguments ?? {})
     if (!input.ok) return failure(`Invalid input: ${input.error}`)
     try {
-      const output = await tool.run(input.value)
+      const output = await tool.run(input.value, context)
       if (output.board) onEvent({ type: 'board', drawing: output.board })
       return { content: [{ type: 'text' as const, text: output.content }] }
     } catch (error) {

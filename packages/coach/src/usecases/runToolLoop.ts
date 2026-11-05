@@ -6,6 +6,7 @@ import type {
   ToolResult,
   Usage,
 } from '../domain/messages'
+import type { CoachContext } from '../domain/prompt'
 import type { CoachTool } from '../domain/tools'
 import type { LlmClient } from '../ports/llmClient'
 
@@ -25,6 +26,7 @@ export class CoachCancelledError extends Error {
  * (inputs checked against their schemas first), hand back the results, until it answers.
  * Appends every turn to `messages`; reports text, tool use and drawings through `onEvent`.
  * Ends early, without running tools, on a refusal or a tool call cut off at max tokens.
+ * Tools get `context`, the situation the question was asked in.
  */
 export async function runToolLoop(
   client: LlmClient,
@@ -32,12 +34,14 @@ export async function runToolLoop(
     system,
     messages,
     tools,
+    context = {},
     maxRounds = MAX_TOOL_ROUNDS,
     signal,
   }: {
     system: string
     messages: ChatMessage[]
     tools: CoachTool[]
+    context?: CoachContext
     maxRounds?: number
     signal?: CancelSignal
   },
@@ -69,7 +73,9 @@ export async function runToolLoop(
       return { usage }
     }
     if (signal?.aborted) throw new CoachCancelledError()
-    const results = await Promise.all(turn.toolCalls.map((call) => runTool(call, tools, onEvent)))
+    const results = await Promise.all(
+      turn.toolCalls.map((call) => runTool(call, tools, context, onEvent)),
+    )
     messages.push({ role: 'tool', results })
   }
 }
@@ -77,6 +83,7 @@ export async function runToolLoop(
 async function runTool(
   call: ToolCall,
   tools: CoachTool[],
+  context: CoachContext,
   onEvent: (event: CoachEvent) => void,
 ): Promise<ToolResult> {
   const tool = tools.find((t) => t.name === call.name)
@@ -89,7 +96,7 @@ async function runTool(
   const input = tool.parse(call.input)
   if (!input.ok) return fail(`Invalid input: ${input.error}`)
   try {
-    const output = await tool.run(input.value)
+    const output = await tool.run(input.value, context)
     if (output.board) onEvent({ type: 'board', drawing: output.board })
     onEvent({ type: 'tool_result', name: call.name, ok: true })
     return { callId: call.id, content: output.content }

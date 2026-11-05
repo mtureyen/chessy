@@ -43,6 +43,7 @@ export class LoopAgent implements CoachAgent {
           system: SYSTEM_PROMPT,
           messages,
           tools: this.tools,
+          ...(request.context && { context: request.context }),
           ...(request.signal && { signal: request.signal }),
         },
         onEvent,

@@ -1,17 +1,19 @@
-import { defineTool, SYSTEM_PROMPT, type CoachEvent } from '@chessy/coach'
+import { defineTool, SYSTEM_PROMPT, type CoachContext, type CoachEvent } from '@chessy/coach'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { HeadlessClaudeAgent, type ProcessRun, type RunProcess } from './headlessClaudeAgent'
 import { CoachRuns, handleMcpRequest } from './mcp'
 
+/** The context each call of the tool saw. */
+const drawnIn: CoachContext[] = []
 const draw = defineTool({
   name: 'show_on_board',
   description: 'Draws an arrow.',
   input: z.object({ from: z.string(), to: z.string() }),
-  run: async ({ from, to }) => ({
-    content: 'drawn',
-    board: { arrows: [{ from, to, color: 'green' }], squares: [] },
-  }),
+  run: async ({ from, to }, context) => {
+    drawnIn.push(context)
+    return { content: 'drawn', board: { arrows: [{ from, to, color: 'green' }], squares: [] } }
+  },
 })
 
 const line = (value: unknown) => JSON.stringify(value)
@@ -168,11 +170,13 @@ describe('HeadlessClaudeAgent', () => {
     expect(flag('--session-id')).toBe(conversationId)
     expect(args).toContain('--strict-mcp-config')
     expect(env.ANTHROPIC_API_KEY).toBeUndefined()
+    // The tool, called over MCP, saw the situation the question was asked in.
+    expect(drawnIn.at(-1)).toEqual({ fen: 'x' })
 
     // A follow-up resumes the session; the finished run's token no longer opens the tools.
     await agentWith(runs, run).answer({ conversationId, question: 'Why?' }, () => {})
     const token = JSON.parse(flag('--mcp-config')!).mcpServers.chessy.url.split('/').pop()
-    expect(runs.listener(token)).toBeUndefined()
+    expect(runs.run(token)).toBeUndefined()
   })
 
   it('resumes a conversation it started', async () => {
