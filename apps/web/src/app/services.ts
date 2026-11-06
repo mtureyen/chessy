@@ -101,6 +101,11 @@ export interface Services {
   settings: Pick<RemoteSettings, 'coach' | 'updateCoach' | 'agents'>
   /** The review of the user's recent games, which runs on the server. */
   reviewQueue: Pick<RemoteReviewQueue, 'status' | 'start' | 'pause' | 'resume'>
+  /** The user's mistakes as puzzles. */
+  training: {
+    list: RemoteLibrary['training']
+    record: RemoteLibrary['recordTraining']
+  }
   /** The AI coach: its agents, and questions answered as they are written. */
   coach: {
     agents: RemoteSettings['agents']
@@ -206,6 +211,10 @@ export function createServices(): Services {
       agents: () => remoteSettings.agents(),
     },
     reviewQueue: new RemoteReviewQueue(api),
+    training: {
+      list: () => remoteLibrary.training(),
+      record: (result) => remoteLibrary.recordTraining(result),
+    },
     coach: {
       agents: () => remoteSettings.agents(),
       ask: (question, onEvent, signal) => remoteCoach.ask(question, onEvent, signal),

@@ -1,5 +1,10 @@
 import type { GameReview } from '@chessy/analysis'
-import type { LibraryStatusBody } from '@chessy/contracts'
+import type {
+  LibraryStatusBody,
+  Problem,
+  TrainingBody,
+  TrainingResultBody,
+} from '@chessy/contracts'
 import type { GameLine } from '@chessy/history'
 import type { LibraryGame, LibraryMirror, Profile } from '@chessy/library'
 import type { ApiClient } from './client'
@@ -42,6 +47,21 @@ export class RemoteLibrary implements LibraryMirror {
     })
     if (res.status !== 200) return null
     return ((await res.json()) as unknown as { review: GameReview }).review
+  }
+
+  /** The user's mistakes as puzzles, and how far they are with them. */
+  async training(): Promise<TrainingBody> {
+    const res = await this.api.api.v1.training.$get()
+    if (res.status !== 200) {
+      const problem = (await res.json().catch(() => ({}))) as Partial<Problem>
+      throw new Error(problem.detail ?? problem.title ?? `HTTP ${res.status}`)
+    }
+    return (await res.json()) as TrainingBody
+  }
+
+  async recordTraining(result: TrainingResultBody): Promise<void> {
+    const res = await this.api.api.v1.training.results.$post({ json: result })
+    if (res.status !== 200) throw new Error(`Saving the result failed: HTTP ${res.status}`)
   }
 
   /** The profile kept on the server; undefined if there is none (or no database). */

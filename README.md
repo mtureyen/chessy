@@ -90,6 +90,8 @@ this machine. What the page sets, by provider: It states only what its tools ret
 
 After a review, **Walk me through it** has the coach go through your game stop by stop: how it went, the opening, your key moments on the board (the better move stays hidden until you ask for it) and the one thing to work on. It is written once from the stored review and kept, so opening it again is instant and free.
 
+**Train** turns the mistakes from your reviewed games into puzzles, when the position has one clearly best move. Solve one at the first try and it's done; miss it and it comes back after 1, 3 and then every 7 days.
+
 In a game against a bot the coach stays out of it: you can ask it once the game is over, about
 that game. With **Coach comments** switched on it says a sentence or two after your notable moves
 (the moves a review would point out), one at a time. A comment is written from the facts of that
