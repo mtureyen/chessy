@@ -10,9 +10,16 @@ export type {
   ToolResult,
   Usage,
 } from './domain/messages'
-export { questionText, SYSTEM_PROMPT, type CoachContext } from './domain/prompt'
+export {
+  COMMENT_PROMPT,
+  commentText,
+  questionText,
+  SYSTEM_PROMPT,
+  type CoachContext,
+  type CommentedMove,
+} from './domain/prompt'
 export { defineTool, type CoachTool, type ToolOutput } from './domain/tools'
-export type { CoachAgent, CoachRequest } from './ports/coachAgent'
+export type { CoachAgent, CoachRequest, CommentRequest } from './ports/coachAgent'
 export type { ConversationStore } from './ports/conversationStore'
 export type { ClientStatus, LlmClient, LlmTurn, TurnStop } from './ports/llmClient'
 export { InMemoryConversationStore } from './adapters/inMemoryConversationStore'

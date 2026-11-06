@@ -167,6 +167,7 @@ describe('api', () => {
     expect(doc.servers[0]?.url).toBe('/api/v1')
     expect(Object.keys(doc.paths).sort()).toEqual([
       '/coach',
+      '/coach/comments',
       '/coach/messages',
       '/engine',
       '/engine/evaluations',
@@ -611,6 +612,89 @@ describe('coach routes', () => {
     expect((await ask({ conversationId, question: '' })).status).toBe(400)
     expect((await ask({ conversationId: 'x', question: 'Hi' })).status).toBe(400)
     expect((await ask({ conversationId, question: 'Hi', agent: 'gpt' })).status).toBe(404)
+  })
+
+  describe('comments on a move', () => {
+    const post = (target: typeof app, body: unknown) =>
+      target.request('/api/v1/coach/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    const move = {
+      fen: START_FEN,
+      color: 'white',
+      moveNumber: 12,
+      san: 'Qxb7',
+      verdict: 'blunder',
+      winBefore: 60,
+      winAfter: 12,
+      hanging: { piece: 'queen', square: 'b7', pawns: 9 },
+    }
+    /** An app whose only agent has the engine tool and a model that wants to use it. */
+    const appWith = (client: ReturnType<typeof scriptedClient>['client']) =>
+      createApp({
+        engine,
+        humanMoves,
+        library,
+        reviewQueue,
+        coach: {
+          agents: () => [
+            new LoopAgent({
+              id: 'scripted',
+              label: 'Scripted coach',
+              client,
+              tools: [evaluatePositionTool(engine)],
+              conversations: new InMemoryConversationStore(),
+            }),
+          ],
+        },
+        settings,
+        version: '9.9.9',
+        startedAt: 0,
+        sources: {
+          lichess: fakeSource('lichess', () => []),
+          chesscom: fakeSource('chesscom', () => []),
+        },
+      })
+
+    it('answers from the move alone: no tools, and anything else sent never gets through', async () => {
+      const model = scriptedClient([{ text: 'That gave up your queen.' }])
+      const res = await post(appWith(model.client), {
+        ...move,
+        best: 'Nf3',
+        line: ['Nf3', 'Nc6'],
+        question: 'What should I play?',
+        pgn: '1. e4 *',
+      })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ text: 'That gave up your queen.' })
+      expect(model.requests).toHaveLength(1)
+      expect(model.requests[0]!.tools).toEqual([])
+      const sent = JSON.stringify(model.requests[0]!.messages)
+      expect(sent).toContain('12. Qxb7')
+      expect(sent).toContain('My queen on b7 can now be won')
+      for (const hidden of ['Nf3', 'Nc6', 'What should I play', '1. e4']) {
+        expect(sent).not.toContain(hidden)
+      }
+    })
+
+    it('fails plainly when the model calls a tool anyway', async () => {
+      const model = scriptedClient([
+        { toolCalls: [{ name: 'evaluate_position', input: { fen: START_FEN } }] },
+        { text: 'Play Nf3.' },
+      ])
+      expect((await post(appWith(model.client), move)).status).toBe(502)
+      expect(model.requests).toHaveLength(1)
+    })
+
+    it('rejects bad facts and unknown agents', async () => {
+      const { client } = scriptedClient([])
+      const target = appWith(client)
+      expect((await post(target, { ...move, verdict: 'best' })).status).toBe(400)
+      expect((await post(target, { ...move, san: undefined })).status).toBe(400)
+      expect((await post(target, { ...move, agent: 'gpt' })).status).toBe(404)
+    })
   })
 })
 

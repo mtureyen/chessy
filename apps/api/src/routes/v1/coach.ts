@@ -1,12 +1,37 @@
 import type { CoachAgent } from '@chessy/coach'
 import type { CoachDirectory } from '../../adapters/coach/coachDirectory'
-import { coachAgentsRoute, coachQuestionRoute, type CoachEventBody } from '@chessy/contracts'
+import {
+  coachAgentsRoute,
+  coachCommentRoute,
+  coachQuestionRoute,
+  type CoachEventBody,
+} from '@chessy/contracts'
 import { streamSSE } from 'hono/streaming'
 import { problem } from '../../http/problem'
 import { createRouter } from '../../http/router'
 
 /** A comment line this often keeps the stream open while a tool runs (proxies close idle ones). */
 const KEEP_ALIVE_MS = 15_000
+
+/** The wanted agent, or the first available one; what is wrong when there is none. */
+async function readyAgent(
+  agents: CoachAgent[],
+  wanted: string | undefined,
+): Promise<
+  { agent: CoachAgent } | { status: 404 | 503; title: string; detail: string; agent?: undefined }
+> {
+  const candidates = wanted ? agents.filter((a) => a.id === wanted) : agents
+  if (candidates.length === 0) {
+    return { status: 404, title: 'No such agent', detail: wanted ?? 'no agents configured' }
+  }
+  let reason = ''
+  for (const candidate of candidates) {
+    const status = await candidate.status()
+    if (status.available) return { agent: candidate }
+    reason ||= status.reason
+  }
+  return { status: 503, title: 'Coach unavailable', detail: reason }
+}
 
 export function coachRoutes({ coach }: { coach: CoachDirectory }) {
   return createRouter()
@@ -26,24 +51,10 @@ export function coachRoutes({ coach }: { coach: CoachDirectory }) {
     })
     .openapi(coachQuestionRoute, async (c) => {
       const { agent: wanted, ...question } = c.req.valid('json')
-      const agents = coach.agents()
-      const candidates = wanted ? agents.filter((a) => a.id === wanted) : agents
-      if (candidates.length === 0) {
-        return problem(c, 404, 'No such agent', { detail: wanted ?? 'no agents configured' })
-      }
-      let agent: CoachAgent | undefined
-      let reason = ''
-      for (const candidate of candidates) {
-        const status = await candidate.status()
-        if (status.available) {
-          agent = candidate
-          break
-        }
-        reason ||= status.reason
-      }
-      if (!agent) return problem(c, 503, 'Coach unavailable', { detail: reason })
+      const found = await readyAgent(coach.agents(), wanted)
+      if (!found.agent) return problem(c, found.status, found.title, { detail: found.detail })
 
-      const chosen = agent
+      const chosen = found.agent
       // Typed as the contract's text/event-stream body.
       return streamSSE(c, async (stream) => {
         let writes: Promise<unknown> = Promise.resolve()
@@ -69,5 +80,18 @@ export function coachRoutes({ coach }: { coach: CoachDirectory }) {
         }
         await writes
       }) as unknown as ReturnType<typeof c.text>
+    })
+    .openapi(coachCommentRoute, async (c) => {
+      const { agent: wanted, ...move } = c.req.valid('json')
+      const found = await readyAgent(coach.agents(), wanted)
+      if (!found.agent) return problem(c, found.status, found.title, { detail: found.detail })
+      try {
+        const text = await found.agent.comment({ ...move, signal: c.req.raw.signal })
+        return c.json({ text }, 200)
+      } catch (error) {
+        return problem(c, 502, 'No comment', {
+          detail: error instanceof Error ? error.message : String(error),
+        })
+      }
     })
 }

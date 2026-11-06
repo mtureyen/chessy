@@ -17,13 +17,17 @@ export interface ScriptedTurn {
 
 /** A client that plays back scripted turns and records what it was asked. */
 export function scriptedClient(turns: ScriptedTurn[]) {
-  const requests: { messages: ChatMessage[]; tools: string[] }[] = []
+  const requests: { system: string; messages: ChatMessage[]; tools: string[] }[] = []
   let next = 0
   const client: LlmClient = {
     name: 'Scripted',
     status: async () => ({ available: true }),
-    async turn({ messages, tools }, onText) {
-      requests.push({ messages: structuredClone(messages), tools: tools.map((t) => t.name) })
+    async turn({ system, messages, tools }, onText) {
+      requests.push({
+        system,
+        messages: structuredClone(messages),
+        tools: tools.map((t) => t.name),
+      })
       const turn = turns[next++] ?? { text: '' }
       for (const word of (turn.text ?? '').split(/(?<= )/)) if (word) onText(word)
       const toolCalls = (turn.toolCalls ?? []).map((call, i) => ({

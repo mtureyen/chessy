@@ -1,7 +1,7 @@
 import type { CoachEvent } from '../domain/messages'
-import { questionText, SYSTEM_PROMPT } from '../domain/prompt'
+import { COMMENT_PROMPT, commentText, questionText, SYSTEM_PROMPT } from '../domain/prompt'
 import type { CoachTool } from '../domain/tools'
-import type { CoachAgent, CoachRequest } from '../ports/coachAgent'
+import type { CoachAgent, CoachRequest, CommentRequest } from '../ports/coachAgent'
 import type { ConversationStore } from '../ports/conversationStore'
 import type { ClientStatus, LlmClient } from '../ports/llmClient'
 import { CoachCancelledError, runToolLoop } from './runToolLoop'
@@ -54,5 +54,21 @@ export class LoopAgent implements CoachAgent {
       if (error instanceof CoachCancelledError) return
       onEvent({ type: 'error', message: error instanceof Error ? error.message : String(error) })
     }
+  }
+
+  /** One turn outside the tool loop: this path holds no tools and touches no conversation. */
+  async comment({ signal, ...move }: CommentRequest): Promise<string> {
+    const turn = await this.client.turn(
+      {
+        system: COMMENT_PROMPT,
+        messages: [{ role: 'user', text: commentText(move) }],
+        tools: [],
+        ...(signal && { signal }),
+      },
+      () => {},
+    )
+    const text = turn.text.trim()
+    if (turn.stop !== 'end' || !text) throw new Error(`No comment (${turn.stop})`)
+    return text
   }
 }

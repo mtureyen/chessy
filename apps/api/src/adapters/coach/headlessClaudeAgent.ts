@@ -2,13 +2,17 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
+  COMMENT_PROMPT,
+  commentText,
   questionText,
   SYSTEM_PROMPT,
+  type CancelSignal,
   type ClientStatus,
   type CoachAgent,
   type CoachEvent,
   type CoachRequest,
   type CoachTool,
+  type CommentRequest,
 } from '@chessy/coach'
 import type { CoachRuns } from './mcp'
 
@@ -39,6 +43,14 @@ export interface HeadlessClaudeOptions {
   run?: RunProcess
 }
 
+/** What a run of Claude Code gets on top of what every run does. */
+interface ClaudeRun {
+  prompt: string
+  system: string
+  extraArgs: string[]
+  signal?: CancelSignal
+}
+
 /** How long a status check is believed (it starts a process). */
 const STATUS_TTL_MS = 60_000
 const MCP_SERVER = 'chessy'
@@ -47,6 +59,7 @@ const MCP_SERVER = 'chessy'
  * The coach on Claude Code in headless mode (`claude -p`), on the user's Claude subscription.
  * Claude Code runs its own tool loop; it gets only our tools, over MCP (no shell, no files: its
  * built-in tools are off), works in an empty folder, and keeps each conversation as a session.
+ * A comment during a game runs without our tools as well.
  */
 export class HeadlessClaudeAgent implements CoachAgent {
   readonly id = 'claude-headless'
@@ -82,42 +95,94 @@ export class HeadlessClaudeAgent implements CoachAgent {
 
   /** Never throws: failures end the answer with an error event (a cancel ends it silently). */
   async answer(request: CoachRequest, onEvent: (event: CoachEvent) => void): Promise<void> {
-    const { runs, tools, mcpUrl, model } = this.options
+    const { runs, tools, mcpUrl } = this.options
     const token = runs.start(onEvent, request.context)
     const resume = this.sessions.has(request.conversationId)
+    try {
+      const finished = await this.runClaude(
+        {
+          prompt: questionText(request.question, request.context),
+          system: SYSTEM_PROMPT,
+          // Only ours, over MCP, all of them allowed without asking.
+          extraArgs: [
+            '--mcp-config',
+            JSON.stringify({ mcpServers: { [MCP_SERVER]: { type: 'http', url: mcpUrl(token) } } }),
+            '--allowedTools',
+            tools.map((tool) => `mcp__${MCP_SERVER}__${tool.name}`).join(','),
+            ...(resume
+              ? ['--resume', request.conversationId]
+              : ['--session-id', request.conversationId]),
+          ],
+          ...(request.signal && { signal: request.signal }),
+        },
+        onEvent,
+      )
+      if (finished) this.sessions.add(request.conversationId)
+    } finally {
+      runs.end(token)
+    }
+  }
+
+  /**
+   * No run token, no MCP server and nothing allowed: Claude Code has no tool to call here, and
+   * with no session to resume the comment stays out of every conversation.
+   */
+  async comment({ signal, ...move }: CommentRequest): Promise<string> {
+    let text = ''
+    let failure: string | undefined
+    await this.runClaude(
+      {
+        prompt: commentText(move),
+        system: COMMENT_PROMPT,
+        extraArgs: [],
+        ...(signal && { signal }),
+      },
+      (event) => {
+        if (event.type === 'text') text += event.delta
+        if (event.type === 'error') failure = event.message
+      },
+    )
+    if (failure !== undefined) throw new Error(failure)
+    if (!text.trim()) throw new Error('No comment')
+    return text.trim()
+  }
+
+  /**
+   * One run of Claude Code, its output as events. Never throws, and a cancel ends it silently;
+   * resolves to whether it ended cleanly. Its built-in tools are off in every run, and only MCP
+   * servers in `extraArgs` count.
+   */
+  private async runClaude(
+    { prompt, system, extraArgs, signal }: ClaudeRun,
+    onEvent: (event: CoachEvent) => void,
+  ): Promise<boolean> {
+    const { model } = this.options
     const args = [
       '-p',
-      questionText(request.question, request.context),
+      prompt,
       '--output-format',
       'stream-json',
       '--verbose',
       '--include-partial-messages',
       '--system-prompt',
-      SYSTEM_PROMPT,
-      // No built-in tools at all: only ours, over MCP, all of them allowed without asking.
+      system,
       '--tools',
       '',
-      '--mcp-config',
-      JSON.stringify({ mcpServers: { [MCP_SERVER]: { type: 'http', url: mcpUrl(token) } } }),
       '--strict-mcp-config',
-      '--allowedTools',
-      tools.map((tool) => `mcp__${MCP_SERVER}__${tool.name}`).join(','),
       '--permission-mode',
       'dontAsk',
       '--disable-slash-commands',
-      ...(resume ? ['--resume', request.conversationId] : ['--session-id', request.conversationId]),
+      ...extraArgs,
       ...(model ? ['--model', model] : []),
     ]
     let child: ProcessRun
     try {
       child = this.run(this.command, args, { cwd: this.emptyFolder(), env: childEnv() })
     } catch (error) {
-      runs.end(token)
       onEvent({ type: 'error', message: `Could not start Claude Code: ${String(error)}` })
-      return
+      return false
     }
     const cancel = () => child.kill()
-    const signal = request.signal
     if (signal instanceof AbortSignal) signal.addEventListener('abort', cancel, { once: true })
 
     const toolNames = new Map<string, string>()
@@ -132,19 +197,18 @@ export class HeadlessClaudeAgent implements CoachAgent {
         }
       }
       const code = await child.exited
-      if (signal?.aborted) return
+      if (signal?.aborted) return false
       if (!finished) {
         const stderr = (await child.stderr).trim().split('\n').slice(-3).join(' ')
         onEvent({
           type: 'error',
           message: `Claude Code stopped (exit ${code}): ${stderr || 'no output'}`,
         })
-      } else if (code === 0) {
-        this.sessions.add(request.conversationId)
+        return false
       }
+      return code === 0
     } finally {
       if (signal instanceof AbortSignal) signal.removeEventListener('abort', cancel)
-      runs.end(token)
     }
   }
 
