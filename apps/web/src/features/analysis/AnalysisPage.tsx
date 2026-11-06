@@ -13,6 +13,7 @@ import { CoachPanel } from '@/features/coach/CoachPanel'
 import {
   findPosition,
   MAX_PGN_LENGTH,
+  samePosition,
   userColor,
   usualRating,
   userRating,
@@ -26,6 +27,7 @@ import { LIST_BADGES } from '@/features/review/classes'
 import { EvalGraph } from '@/features/review/EvalGraph'
 import { mainline, reviewedNodes } from '@/features/review/mapping'
 import { ReviewPanel } from '@/features/review/ReviewPanel'
+import type { BoardTry } from '@/features/review/walkthrough'
 import { useAutoReview } from '@/features/review/useAutoReview'
 import { useGameReview } from '@/features/review/useGameReview'
 import { Board, type BoardArrow } from '@/shared/board/Board'
@@ -44,6 +46,7 @@ import '@/shared/game/GamePanel.css'
 import './AnalysisPage.css'
 
 const MAX_DEPTH = 22
+const NO_MOVES = new Map()
 
 /** What to open: a PGN or a FEN, or an error to show (e.g. a library game that is gone). */
 export interface AnalysisInitial {
@@ -65,6 +68,9 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   const [tab, setTab] = useState<'moves' | 'review' | 'coach'>(initial.review ? 'review' : 'moves')
   const profile = useProfile()
   const userSide = userColor(headers, profile.data)
+  // During the coach's walkthrough the engine rests: it would give the better moves away.
+  const [touring, setTouring] = useState(false)
+  const [attempt, setAttempt] = useState<BoardTry>()
   const account = profile.data?.accounts[0]
   const player = usePlayer(account?.source ?? 'chesscom', account?.username)
 
@@ -94,22 +100,26 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
 
   const gameOver = view.dests.size === 0
   const engine = useEngineAnalysis(view.fen, {
-    enabled: engineEnabled && !gameOver,
+    enabled: engineEnabled && !touring && !gameOver,
     multiPv,
     maxDepth: MAX_DEPTH,
   })
   const lines = engine.snapshot?.lines ?? []
 
-  const arrows: BoardArrow[] = engineEnabled
-    ? lines.flatMap((line, i) => {
-        const uci = line.pv[0]
-        if (!uci) return []
-        const kind = i === 0 ? 'best' : 'alternative'
-        return [{ from: uci.slice(0, 2), to: uci.slice(2, 4), kind } as BoardArrow]
-      })
-    : []
+  const arrows: BoardArrow[] =
+    engineEnabled && !touring
+      ? lines.flatMap((line, i) => {
+          const uci = line.pv[0]
+          if (!uci) return []
+          const kind = i === 0 ? 'best' : 'alternative'
+          return [{ from: uci.slice(0, 2), to: uci.slice(2, 4), kind } as BoardArrow]
+        })
+      : []
 
   const players = playersFromHeaders(headers, view)
+  // A try at a better move has the board while it stands on that position.
+  const trying = attempt && samePosition(attempt.fen, view.fen) ? attempt : undefined
+  const tried = trying?.shown
 
   const flip = () => setOrientation((o) => (o === 'white' ? 'black' : 'white'))
   useGameKeyboard(
@@ -121,7 +131,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
     <div className={`layout layout-analysis${players ? ' has-players' : ''}`}>
       <div className="eval-column">
         <EvalBar
-          score={engineEnabled ? lines[0]?.score : undefined}
+          score={engineEnabled && !touring ? lines[0]?.score : undefined}
           status={view.status}
           orientation={orientation}
         />
@@ -130,15 +140,15 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
       <section className="board-column">
         {players && <PlayerBar {...players[orientation === 'white' ? 'black' : 'white']} />}
         <Board
-          fen={view.fen}
+          fen={tried?.fen ?? view.fen}
           orientation={orientation}
-          turnColor={view.turn}
-          dests={view.dests}
-          lastMove={view.lastMove}
-          check={view.check}
+          turnColor={tried ? (view.turn === 'white' ? 'black' : 'white') : view.turn}
+          dests={tried ? NO_MOVES : view.dests}
+          lastMove={tried?.lastMove ?? view.lastMove}
+          check={tried ? false : view.check}
           // The coach's drawing replaces the engine's arrows while the board is on its position.
           arrows={shownDrawing ? [] : arrows}
-          drawing={shownDrawing}
+          drawing={tried ? undefined : shownDrawing}
           badge={
             currentReview && view.lastMove
               ? {
@@ -148,27 +158,29 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
               : undefined
           }
           isPromotion={(from, to) => game.isPromotion(from, to)}
-          onMove={(move) => update((g) => g.play(move))}
+          onMove={(move) => (trying ? trying.onMove(move) : update((g) => g.play(move)))}
         />
         {players && <PlayerBar {...players[orientation]} />}
       </section>
 
       <aside className="panel">
-        <EnginePanel
-          fen={view.fen}
-          state={engine}
-          enabled={engineEnabled}
-          gameOver={gameOver}
-          multiPv={multiPv}
-          maxDepth={MAX_DEPTH}
-          onToggle={() => setEngineEnabled((on) => !on)}
-          onMultiPvChange={setMultiPv}
-          onPlayLine={(pv, index) =>
-            update((g) => {
-              for (const uci of pv.slice(0, index + 1)) if (!g.play(uci)) break
-            })
-          }
-        />
+        {!touring && (
+          <EnginePanel
+            fen={view.fen}
+            state={engine}
+            enabled={engineEnabled}
+            gameOver={gameOver}
+            multiPv={multiPv}
+            maxDepth={MAX_DEPTH}
+            onToggle={() => setEngineEnabled((on) => !on)}
+            onMultiPvChange={setMultiPv}
+            onPlayLine={(pv, index) =>
+              update((g) => {
+                for (const uci of pv.slice(0, index + 1)) if (!g.play(uci)) break
+              })
+            }
+          />
+        )}
 
         <GameStatusBar status={view.status} turn={view.turn} check={view.check} />
         {boot.error && <p className="message message-error analysis-load-error">{boot.error}</p>}
@@ -243,8 +255,11 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
                 onShow: showDrawing,
                 onAsk: () => setTab('coach'),
                 onOpen: () => {
+                  setTouring(true)
                   if (userSide) setOrientation(userSide)
                 },
+                onClose: () => setTouring(false),
+                onTry: setAttempt,
               }}
             />
           </div>
