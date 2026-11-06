@@ -22,7 +22,11 @@ import { loadConfig } from './config'
 import { openDatabase } from './adapters/db/database'
 import { DatabaseLibraryService } from './adapters/db/service'
 import type { EngineService, EngineStatus } from './adapters/engine/service'
-import { NoStoredReviewError, type WalkthroughService } from './adapters/coach/walkthroughService'
+import {
+  IllegalTryError,
+  NoStoredReviewError,
+  type WalkthroughService,
+} from './adapters/coach/walkthroughService'
 import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/service'
 import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review/reviewQueueService'
 import { createApp } from './app'
@@ -143,6 +147,12 @@ const walkthroughs: WalkthroughService = {
     return moves[0] === 'e2e4' ? WALKTHROUGH : undefined
   },
   write: async (_request, agent) => ({ ...WALKTHROUGH, summary: 'Written.', agent: agent.label }),
+  judge: async ({ startFen, tried }, agent) => {
+    if (startFen === 'unreviewed') throw new NoStoredReviewError()
+    if (tried === 'a1a8') throw new IllegalTryError(tried)
+    if (startFen === 'no-engine') throw new Error('no engine on this server')
+    return { verdict: 'wrong', san: 'Nf3', fen: 'after', comment: `From ${agent?.label}` }
+  },
 }
 
 const app = createApp({
@@ -188,6 +198,7 @@ describe('api', () => {
       '/coach',
       '/coach/comments',
       '/coach/messages',
+      '/coach/tries',
       '/coach/walkthroughs',
       '/engine',
       '/engine/evaluations',
@@ -605,6 +616,37 @@ describe('coach walkthrough route', () => {
     expect((await ask({ startFen: 'no-database', moves: ['e2e4'] })).status).toBe(503)
     expect((await ask({ startFen: START_FEN, moves: [] })).status).toBe(400)
     expect((await ask({ startFen: START_FEN, moves: ['d2d4'], agent: 'nope' })).status).toBe(404)
+  })
+})
+
+describe('coach try route', () => {
+  const ask = (body: object) =>
+    app.request('/api/v1/coach/tries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        startFen: START_FEN,
+        moves: ['e2e4'],
+        ply: 1,
+        tried: 'g1f3',
+        ...body,
+      }),
+    })
+
+  it('judges a try, with a word from the coach', async () => {
+    expect(await (await ask({})).json()).toEqual({
+      verdict: 'wrong',
+      san: 'Nf3',
+      fen: 'after',
+      comment: 'From Scripted coach',
+    })
+  })
+
+  it('says what stands in the way', async () => {
+    expect((await ask({ startFen: 'unreviewed' })).status).toBe(404)
+    expect((await ask({ tried: 'a1a8' })).status).toBe(400)
+    expect((await ask({ startFen: 'no-engine' })).status).toBe(503)
+    expect((await ask({ ply: 0 })).status).toBe(400)
   })
 })
 

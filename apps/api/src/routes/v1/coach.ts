@@ -4,10 +4,12 @@ import {
   coachAgentsRoute,
   coachCommentRoute,
   coachQuestionRoute,
+  coachTryRoute,
   coachWalkthroughRoute,
   type CoachEventBody,
 } from '@chessy/contracts'
 import {
+  IllegalTryError,
   NoStoredReviewError,
   type WalkthroughService,
 } from '../../adapters/coach/walkthroughService'
@@ -124,6 +126,22 @@ export function coachRoutes({
           return problem(c, 404, 'No review', { detail: error.message })
         }
         return problem(c, 502, 'No walkthrough', { detail: messageOf(error) })
+      }
+    })
+    .openapi(coachTryRoute, async (c) => {
+      const request = c.req.valid('json')
+      // Without a coach the verdict still stands.
+      const { agent } = await readyAgent(coach.agents(), request.agent)
+      try {
+        return c.json(await walkthroughs.judge(request, agent, c.req.raw.signal), 200)
+      } catch (error) {
+        if (error instanceof NoStoredReviewError) {
+          return problem(c, 404, 'No review', { detail: error.message })
+        }
+        if (error instanceof IllegalTryError) {
+          return problem(c, 400, 'Illegal move', { detail: error.message })
+        }
+        return problem(c, 503, 'Cannot judge the move', { detail: messageOf(error) })
       }
     })
 }

@@ -2,7 +2,13 @@ import type { GameReview, ReviewedMove } from '@chessy/analysis'
 import { createGame } from '@chessy/chess'
 import { describe, expect, it } from 'vitest'
 import { sampleReview } from '../testing'
-import { lastBookPly, momentFacts, phaseAccuracy, walkthroughMoves } from './walkthrough'
+import {
+  lastBookPly,
+  momentFacts,
+  phaseAccuracy,
+  tryVerdict,
+  walkthroughMoves,
+} from './walkthrough'
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
@@ -84,6 +90,22 @@ describe('momentFacts', () => {
       played: '1... e5 2. Qh5 2... Nc6 3. Qxf7+',
     })
     expect(momentFacts(game, game.moves[5]!)).not.toHaveProperty('played')
+  })
+})
+
+describe('tryVerdict', () => {
+  it('takes the best moves as right, a good one as close, the rest as wrong', () => {
+    expect(['best', 'excellent', 'great'].map((c) => tryVerdict(c as never))).toEqual([
+      'right',
+      'right',
+      'right',
+    ])
+    expect(tryVerdict('good')).toBe('close')
+    expect(['inaccuracy', 'mistake', 'blunder'].map((c) => tryVerdict(c as never))).toEqual([
+      'wrong',
+      'wrong',
+      'wrong',
+    ])
   })
 })
 

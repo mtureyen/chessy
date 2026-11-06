@@ -25,8 +25,11 @@ export type { ClientStatus, LlmClient, LlmTurn, TurnStop } from './ports/llmClie
 export { InMemoryConversationStore } from './adapters/inMemoryConversationStore'
 export {
   parseWalkthrough,
+  triedText,
+  TRY_PROMPT,
   WALKTHROUGH_PROMPT,
   walkthroughText,
+  type TriedMove,
   type Walkthrough,
   type WalkthroughFacts,
   type WalkthroughMoment,

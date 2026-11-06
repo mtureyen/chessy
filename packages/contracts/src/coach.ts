@@ -232,3 +232,53 @@ export const coachWalkthroughRoute = createRoute({
     503: problem('The agent cannot answer now, or the server keeps no history'),
   },
 })
+
+export const CoachTryRequestSchema = z
+  .object({
+    /** Which agent comments on a wrong try; the first available one when left out. */
+    agent: z.string().max(50).optional(),
+    startFen: z.string().max(100),
+    moves: z.array(z.string().max(5)).min(1).max(1000),
+    /** The moment: the ply of the move the user is looking for a better one than. */
+    ply: z.number().int().min(1),
+    /** The move they try there (UCI). */
+    tried: z.string().min(4).max(5),
+  })
+  .openapi('CoachTryRequest')
+
+export type CoachTryRequestBody = z.infer<typeof CoachTryRequestSchema>
+
+export const CoachTrySchema = z
+  .object({
+    verdict: z.enum(['right', 'close', 'wrong', 'played']),
+    /** The move tried, in SAN. */
+    san: z.string(),
+    /** The position after it. */
+    fen: z.string(),
+    /** The coach on a wrong try, when one is ready. It never names the better move. */
+    comment: z.string().optional(),
+  })
+  .openapi('CoachTry')
+
+export type CoachTryBody = z.infer<typeof CoachTrySchema>
+
+export const coachTryRoute = createRoute({
+  method: 'post',
+  path: '/coach/tries',
+  tags: ['coach'],
+  summary: 'Judges a move the user tries at a moment of a reviewed game',
+  description:
+    'The review decides: the better move or one nearly as good is right, a decent one close, and a wrong one gets a word from the coach, with no tools, that does not give the better move away.',
+  request: {
+    body: { content: { 'application/json': { schema: CoachTryRequestSchema } }, required: true },
+  },
+  responses: {
+    200: {
+      description: 'The verdict',
+      content: { 'application/json': { schema: CoachTrySchema } },
+    },
+    400: problem('Invalid request, or an illegal move'),
+    404: problem('No stored review of this game, or no such moment'),
+    503: problem('The server has no engine or keeps no history'),
+  },
+})
