@@ -125,7 +125,7 @@ export class HeadlessClaudeAgent implements CoachAgent {
 
   /**
    * No run token, no MCP server and nothing allowed: Claude Code has no tool to call here, and
-   * with no session to resume the comment stays out of every conversation.
+   * with no session kept the comment stays out of every conversation.
    */
   async comment({ signal, ...move }: CommentRequest): Promise<string> {
     let text = ''
@@ -134,7 +134,7 @@ export class HeadlessClaudeAgent implements CoachAgent {
       {
         prompt: commentText(move),
         system: COMMENT_PROMPT,
-        extraArgs: [],
+        extraArgs: ['--no-session-persistence'],
         ...(signal && { signal }),
       },
       (event) => {

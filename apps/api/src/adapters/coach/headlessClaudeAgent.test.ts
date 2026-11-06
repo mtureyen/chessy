@@ -287,6 +287,7 @@ describe('HeadlessClaudeAgent', () => {
       expect(flag('--system-prompt')).toBe(COMMENT_PROMPT)
       expect(flag('--tools')).toBe('') // no built-in tools
       expect(args).toContain('--strict-mcp-config') // no MCP server of the user's either
+      expect(args).toContain('--no-session-persistence') // nothing left behind
       expect(args).not.toContain('--mcp-config')
       expect(args).not.toContain('--allowedTools')
       expect(flag('--permission-mode')).toBe('dontAsk')
