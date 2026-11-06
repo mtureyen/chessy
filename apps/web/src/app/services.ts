@@ -107,6 +107,7 @@ export interface Services {
     ask: RemoteCoach['ask']
     comment: RemoteCoach['comment']
     walkthrough: RemoteCoach['walkthrough']
+    tryMove: RemoteCoach['tryMove']
   }
   history: {
     /**
@@ -210,6 +211,7 @@ export function createServices(): Services {
       ask: (question, onEvent, signal) => remoteCoach.ask(question, onEvent, signal),
       comment: (move, signal) => remoteCoach.comment(move, signal),
       walkthrough: (request) => remoteCoach.walkthrough(request),
+      tryMove: (request) => remoteCoach.tryMove(request),
     },
     profile: {
       load: async () => {

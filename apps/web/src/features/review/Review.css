@@ -321,3 +321,37 @@
   color: var(--text-muted);
   text-decoration: underline;
 }
+
+.walkthrough-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.panel .walkthrough-actions button {
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.panel .walkthrough-actions .walkthrough-find:not(:disabled) {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.walkthrough-search {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.walkthrough-search p {
+  margin: 0 0 0.25rem;
+}
+
+.walkthrough-search p + p {
+  font-weight: 400;
+}
+
+.walkthrough-right {
+  color: var(--accent);
+}

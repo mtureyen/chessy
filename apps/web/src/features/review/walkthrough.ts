@@ -1,4 +1,5 @@
 import type { GameReview, ReviewedMove } from '@chessy/analysis'
+import type { Move, SquareName } from '@chessy/chess'
 import type { CoachWalkthroughBody } from '@chessy/contracts'
 import type { PlacedDrawing } from '@/features/coach/useCoachChat'
 
@@ -29,6 +30,21 @@ export function walkthroughSteps(
 
 const ERRORS: readonly ReviewedMove['classification'][] = ['mistake', 'miss', 'blunder']
 
+/** A move that went wrong, so there is a better one to look for. */
+export function wentWrong(move: ReviewedMove): boolean {
+  return ERRORS.includes(move.classification)
+}
+
+/**
+ * The board while the user looks for a better move: moves go to `onMove` and not into the game.
+ * `shown` is the try on display, until they go on.
+ */
+export interface BoardTry {
+  fen: string
+  onMove: (move: Move) => void
+  shown?: { fen: string; lastMove: [SquareName, SquareName] }
+}
+
 /**
  * What the board shows at a moment: the position before the move, the move played (red if it
  * went wrong) and, once revealed, the better one. It comes from the review, not from the coach.
@@ -49,7 +65,7 @@ export function momentDrawing(
   return {
     fen,
     arrows: [
-      arrow(move.uci, ERRORS.includes(move.classification) ? 'red' : 'green'),
+      arrow(move.uci, wentWrong(move) ? 'red' : 'green'),
       ...(better ? [arrow(better.uci, 'green')] : []),
     ],
     squares: [],

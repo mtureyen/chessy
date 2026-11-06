@@ -3,6 +3,8 @@ import {
   type CoachCommentBody,
   type CoachEventBody,
   type CoachQuestionBody,
+  type CoachTryBody,
+  type CoachTryRequestBody,
   type CoachWalkthroughBody,
   type CoachWalkthroughRequestBody,
   type Problem,
@@ -41,6 +43,16 @@ export class RemoteCoach {
   }
 
   /** A short comment on a move of a running game. Throws when there is none. */
+  /** Judges a move tried at a moment of a reviewed game. */
+  async tryMove(request: CoachTryRequestBody): Promise<CoachTryBody> {
+    const res = await this.api.api.v1.coach.tries.$post({ json: request })
+    if (res.status !== 200) {
+      const problem = (await res.json().catch(() => ({}))) as Partial<Problem>
+      throw new Error(problem.detail ?? problem.title ?? `HTTP ${res.status}`)
+    }
+    return (await res.json()) as CoachTryBody
+  }
+
   /** The coach's walkthrough of a reviewed game: the kept one, or written now. */
   async walkthrough(request: CoachWalkthroughRequestBody): Promise<CoachWalkthroughBody> {
     const res = await this.api.api.v1.coach.walkthroughs.$post({ json: request })

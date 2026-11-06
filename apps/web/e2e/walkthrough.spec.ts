@@ -1,5 +1,6 @@
 import { createGame } from '@chessy/chess'
 import { expect, test, type Page } from '@playwright/test'
+import { boardDriver } from './board'
 
 const UCI = ['e2e4', 'e7e5', 'd1h5', 'b8c6', 'h5f7', 'e8f7']
 const SAN = ['e4', 'e5', 'Qh5', 'Nc6', 'Qxf7+', 'Kxf7']
@@ -124,6 +125,61 @@ test('walk through a game: summary, opening, a moment and what to work on', asyn
   await tour.getByRole('button', { name: 'Done' }).click()
   await expect(tour).toHaveCount(0)
   await expect(page.getByTestId('accuracy-white')).toContainText('52.0')
+})
+
+test('look for the better move on the board: a wrong try, then the right one', async ({ page }) => {
+  const tried: Record<string, unknown>[] = []
+  await page.route('**/api/v1/coach/tries', (route) => {
+    const request = route.request().postDataJSON() as Record<string, unknown>
+    tried.push(request)
+    return route.fulfill({
+      json:
+        request.tried === 'f1c4'
+          ? { verdict: 'right', san: 'Bc4', fen: 'after' }
+          : request.tried === 'h5f7'
+            ? { verdict: 'played', san: 'Qxf7+', fen: 'after' }
+            : {
+                verdict: 'wrong',
+                san: 'Qh4',
+                fen: 'after',
+                comment: 'Your queen just goes back.',
+              },
+    })
+  })
+  await scriptedServer(page)
+  await page.getByRole('button', { name: 'Walk me through it' }).click()
+  const tour = page.getByRole('region', { name: 'Coach walkthrough' })
+  await tour.getByRole('button', { name: 'Next' }).click()
+  await tour.getByRole('button', { name: 'Next' }).click()
+  await expect(tour).toContainText('The king simply takes.')
+
+  // The engine rests during a walkthrough: it would give the move away.
+  await expect(page.getByTestId('engine-status')).toHaveCount(0)
+
+  const board = await boardDriver(page)
+  await tour.getByRole('button', { name: 'Find a better move' }).click()
+  await expect(tour).toContainText('Your move')
+  await board.drag('h5', 'h4')
+  await expect(tour).toContainText("Qh4 isn't it.")
+  await expect(tour).toContainText('Your queen just goes back.')
+  await expect(tour).not.toContainText('Bc4')
+  expect(tried[0]).toMatchObject({ ply: 5, tried: 'h5h4', moves: UCI })
+
+  await tour.getByRole('button', { name: 'Try again' }).click()
+  await board.drag('h5', 'f7')
+  await expect(tour).toContainText("That's the move you played")
+
+  await tour.getByRole('button', { name: 'Try again' }).click()
+  await board.drag('f1', 'c4')
+  await expect(tour).toContainText('Yes, Bc4 works!')
+  await expect(tour).toContainText('Better was Bc4')
+  await expect(arrow(page, COACH_GREEN)).toHaveCount(1)
+
+  // None of it reached the game, and the engine is back after the walkthrough.
+  await tour.getByRole('button', { name: 'Close' }).click()
+  await page.getByRole('tab', { name: 'Moves' }).click()
+  await expect(page.locator('.move-tree [data-san]')).toHaveCount(6)
+  await expect(page.getByTestId('engine-status')).toBeVisible()
 })
 
 test('the board turns to the side the user played', async ({ page }) => {
