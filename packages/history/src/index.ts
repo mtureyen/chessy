@@ -24,6 +24,14 @@ export {
   type ReviewedMoveRow,
   type Tally,
 } from './domain/stats'
+export {
+  lastBookPly,
+  MAX_MOMENTS,
+  momentFacts,
+  phaseAccuracy,
+  walkthroughMoves,
+  type MomentFacts,
+} from './domain/walkthrough'
 export type { GameHistory } from './ports/gameHistory'
 export type { ReviewRepository, StoredReview } from './ports/reviewRepository'
 export { InMemoryReviewRepository } from './adapters/inMemoryReviewRepository'

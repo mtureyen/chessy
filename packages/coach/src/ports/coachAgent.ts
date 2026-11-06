@@ -11,6 +11,13 @@ export interface CoachRequest {
   signal?: CancelSignal
 }
 
+/** One piece of writing from what the request says alone. */
+export interface ComposeRequest {
+  system: string
+  text: string
+  signal?: CancelSignal
+}
+
 /** A comment on a move of a game still being played: the move's facts, nothing to ask. */
 export interface CommentRequest extends CommentedMove {
   signal?: CancelSignal
@@ -32,4 +39,6 @@ export interface CoachAgent {
    * still on, so nothing may reach an engine. Throws when there is none to give.
    */
   comment(request: CommentRequest): Promise<string>
+  /** One model turn with no tools and no conversation. Throws when nothing came of it. */
+  compose(request: ComposeRequest): Promise<string>
 }
