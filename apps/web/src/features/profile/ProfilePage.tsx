@@ -2,6 +2,7 @@ import { sourceName, type LinkedAccount } from '@chessy/library'
 import { Link } from '@tanstack/react-router'
 import { ImportStatus } from './ImportStatus'
 import { PlayerCard } from './PlayerCard'
+import { RecentReview } from './RecentReview'
 import { usePlayer, useProfile } from './useProfile'
 import './Profile.css'
 
@@ -32,6 +33,7 @@ export function ProfilePage() {
       {accounts.map((account) => (
         <LinkedAccountCard key={account.source} account={account} />
       ))}
+      <RecentReview />
       <div className="profile-actions">
         <Link className="profile-edit" to="/welcome">
           Edit profile

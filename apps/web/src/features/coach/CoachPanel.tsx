@@ -28,6 +28,7 @@ const SUGGESTIONS = [
   'Who stands better here, and why?',
   'What should I play here?',
   'Where did this game go wrong?',
+  'What do my last 30 games show?',
   'What are my most common mistakes?',
 ]
 
