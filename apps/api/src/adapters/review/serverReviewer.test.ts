@@ -1,5 +1,9 @@
 import { fileURLToPath } from 'node:url'
-import type { EvaluationRequest, PositionEval } from '@chessy/analysis'
+import {
+  EvaluationCancelledError,
+  type EvaluationRequest,
+  type PositionEval,
+} from '@chessy/analysis'
 import { createGame } from '@chessy/chess'
 import { describe, expect, it } from 'vitest'
 import type { EngineService } from '../engine/service'
@@ -72,6 +76,25 @@ describe('createServerReviewer', () => {
     const evaluated = requests.length
     await reviewer(input) // after it finished, a new request reviews again
     expect(requests.length).toBeGreaterThan(evaluated)
+  })
+
+  it('can ask the engine in small batches, and stop between them', async () => {
+    const { engine, requests } = fakeEngine()
+    const reviewer = createServerReviewer({
+      engine,
+      humanMoves: maia(false),
+      bookPath: BOOK,
+      batchSize: 2,
+    })
+    const review = await reviewer(input)
+    expect(requests.map((r) => r.fens.length)).toEqual([2, 2])
+    expect(review.positions).toHaveLength(4)
+
+    const stop = new AbortController()
+    stop.abort()
+    await expect(reviewer(input, { signal: stop.signal })).rejects.toBeInstanceOf(
+      EvaluationCancelledError,
+    )
   })
 
   it('fails with the reason when the server has no engine', async () => {

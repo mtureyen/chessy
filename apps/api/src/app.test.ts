@@ -23,6 +23,7 @@ import { openDatabase } from './adapters/db/database'
 import { DatabaseLibraryService } from './adapters/db/service'
 import type { EngineService, EngineStatus } from './adapters/engine/service'
 import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/service'
+import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review/reviewQueueService'
 import { createApp } from './app'
 
 function fakeSource(
@@ -114,10 +115,23 @@ const settings = new FileSettingsService(
   new FileSettingsStore(settingsPath),
   settingsRegistry,
 )
+/** Answers like the real queue; its work has tests of its own. */
+const reviewQueue: ReviewQueueService = {
+  status: () => ({ status: 'idle', total: 0, done: 0, failed: 0 }),
+  start: async ({ count }) => {
+    if (count === 13) throw new ReviewQueueBusyError()
+    if (count === 14) throw new Error('No database configured (DATABASE_URL)')
+    return { status: 'running', total: count, done: 0, failed: 0 }
+  },
+  pause: async () => ({ status: 'paused', total: 30, done: 3, failed: 0 }),
+  resume: async () => ({ status: 'running', total: 30, done: 3, failed: 0 }),
+}
+
 const app = createApp({
   engine,
   humanMoves,
   library,
+  reviewQueue,
   coach: { agents: () => coach },
   settings,
   version: '9.9.9',
@@ -163,6 +177,9 @@ describe('api', () => {
       '/library',
       '/library/games',
       '/library/games/missing',
+      '/library/review-queue',
+      '/library/review-queue/pause',
+      '/library/review-queue/resume',
       '/library/reviews',
       '/profile',
       '/settings/coach',
@@ -430,6 +447,7 @@ describe('library routes', () => {
       engine,
       humanMoves,
       library: new DatabaseLibraryService(undefined),
+      reviewQueue,
       coach: { agents: () => [] },
       settings,
       version: '9.9.9',
@@ -510,6 +528,36 @@ describe('profile and players', () => {
       accounts: [...profile.accounts, { source: 'chesscom', username: 'x2' }],
     }
     expect((await put({ profile: twice })).status).toBe(400)
+  })
+})
+
+describe('review queue routes', () => {
+  const start = (body: unknown) =>
+    app.request('/api/v1/library/review-queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+  it('starts, pauses, resumes and reports a run', async () => {
+    expect(await (await app.request('/api/v1/library/review-queue')).json()).toMatchObject({
+      status: 'idle',
+    })
+    expect(await (await start({ count: 30, speed: 'rapid' })).json()).toMatchObject({
+      status: 'running',
+      total: 30,
+    })
+    const post = (path: string) =>
+      app.request(`/api/v1/library/review-queue/${path}`, { method: 'POST' })
+    expect(await (await post('pause')).json()).toMatchObject({ status: 'paused', done: 3 })
+    expect(await (await post('resume')).json()).toMatchObject({ status: 'running' })
+  })
+
+  it('refuses bad requests, a second run, and running without a database', async () => {
+    expect((await start({ count: 0 })).status).toBe(400)
+    expect((await start({ count: 30, speed: 'unlimited' })).status).toBe(400)
+    expect((await start({ count: 13 })).status).toBe(409)
+    expect((await start({ count: 14 })).status).toBe(503)
   })
 })
 
@@ -624,6 +672,7 @@ describe('local host names only', () => {
       engine,
       humanMoves,
       library: new DatabaseLibraryService(undefined),
+      reviewQueue,
       coach: { agents: () => [] },
       settings,
       version: '9.9.9',
