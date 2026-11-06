@@ -111,6 +111,21 @@ export const walkthroughs = pgTable(
   (t) => [primaryKey({ columns: [t.lineHash, t.side] })],
 )
 
+/** How far the user is with the puzzle at a move of a reviewed line. */
+export const trainingProgress = pgTable(
+  'training_progress',
+  {
+    lineHash: text('line_hash')
+      .notNull()
+      .references(() => reviews.lineHash, { onDelete: 'cascade' }),
+    ply: integer('ply').notNull(),
+    misses: integer('misses').notNull(),
+    /** When it comes back; null once it was solved at the first try. */
+    dueAt: timestamp('due_at', { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.lineHash, t.ply] })],
+)
+
 /** The user's profile; one row per installation for now, keyed by id for more later. */
 export const profiles = pgTable('profiles', {
   id: text('id').primaryKey(),

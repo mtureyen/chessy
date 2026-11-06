@@ -252,6 +252,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
               onSelectPly={goToPly}
               walkthrough={{
                 side: userSide,
+                ready: !profile.isPending,
                 onShow: showDrawing,
                 onAsk: () => setTab('coach'),
                 onOpen: () => {

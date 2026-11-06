@@ -2,6 +2,7 @@ import type {
   GameHistory,
   GameLine,
   GameSummary,
+  PuzzleProgress,
   ReviewedMoveRow,
   StoredReview,
 } from '@chessy/history'
@@ -12,6 +13,7 @@ import { PostgresGameHistory } from './gameHistory'
 import { PostgresGameRepository } from './gameRepository'
 import { PostgresProfileStore } from './profileStore'
 import { PostgresReviewRepository } from './reviewRepository'
+import { PostgresTrainingStore } from './trainingStore'
 import { PostgresWalkthroughStore, type StoredWalkthrough } from './walkthroughStore'
 
 interface Stores {
@@ -21,6 +23,7 @@ interface Stores {
   profiles: PostgresProfileStore
   history: PostgresGameHistory
   walkthroughs: PostgresWalkthroughStore
+  training: PostgresTrainingStore
 }
 
 /**
@@ -79,6 +82,14 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
     await (await this.connected()).walkthroughs.save(line, side, stored)
   }
 
+  async trainingProgress(): Promise<Map<string, PuzzleProgress>> {
+    return (await this.connected()).training.all()
+  }
+
+  async saveTrainingProgress(line: GameLine, ply: number, progress: PuzzleProgress): Promise<void> {
+    await (await this.connected()).training.save(line, ply, progress)
+  }
+
   async profile(): Promise<Profile | undefined> {
     return (await this.connected()).profiles.load()
   }
@@ -106,6 +117,7 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
         profiles: new PostgresProfileStore(db),
         history: new PostgresGameHistory(db),
         walkthroughs: new PostgresWalkthroughStore(db),
+        training: new PostgresTrainingStore(db),
       }))
       .catch((error: unknown) => {
         this.stores = undefined

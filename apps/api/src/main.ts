@@ -12,11 +12,13 @@ import { StoredWalkthroughs } from './adapters/coach/walkthroughs'
 import { createBookLoader } from './adapters/review/openingBook'
 import { ReviewQueue, type ReviewJob } from './adapters/review/reviewQueue'
 import { createServerReviewer, SERVER_REVIEW_NODES } from './adapters/review/serverReviewer'
+import { StoredTraining } from './adapters/training/storedTraining'
 import { openDatabase } from './adapters/db/database'
 import { FileSettingsService } from './adapters/settings/fileSettingsService'
 import { FileSettingsStore } from './adapters/settings/fileSettingsStore'
 import { readJson, writeJson } from './adapters/settings/jsonFile'
 import { DatabaseLibraryService } from './adapters/db/service'
+import { progressKey } from './adapters/db/trainingStore'
 import { createMaiaService } from './adapters/humanMoves/maia'
 import { ChessComGameSource } from './adapters/sources/chesscom'
 import { LichessGameSource } from './adapters/sources/lichess'
@@ -81,6 +83,7 @@ const app = createApp({
   humanMoves,
   library,
   reviewQueue,
+  training: new StoredTraining(library, progressKey),
   coach,
   walkthroughs: new StoredWalkthroughs(library, createBookLoader(bookPath), {
     review: createServerReviewer(reviewing),

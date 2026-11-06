@@ -7,6 +7,7 @@ import { openDatabase } from './database'
 import { PostgresGameHistory } from './gameHistory'
 import { PostgresGameRepository } from './gameRepository'
 import { PostgresReviewRepository } from './reviewRepository'
+import { PostgresTrainingStore, progressKey } from './trainingStore'
 import { PostgresWalkthroughStore } from './walkthroughStore'
 
 // The same suites as every other adapter, on an in-memory Postgres (PGlite) with the migrations.
@@ -14,7 +15,7 @@ import { PostgresWalkthroughStore } from './walkthroughStore'
 const shared = openDatabase('pglite:memory')
 async function fresh() {
   const { db } = await shared
-  await db.execute(sql`truncate games, reviews, review_moves, walkthroughs`)
+  await db.execute(sql`truncate games, reviews, review_moves, walkthroughs, training_progress`)
   return db
 }
 
@@ -123,5 +124,25 @@ describe('PostgresWalkthroughStore', () => {
 
     await db.execute(sql`truncate reviews cascade`)
     expect(await store.find(stored.line, 'white')).toBeUndefined()
+  })
+})
+
+describe('PostgresTrainingStore', () => {
+  it('keeps the progress per puzzle, and goes with its review', async () => {
+    const db = await fresh()
+    const stored = sampleReview()
+    await new PostgresReviewRepository(db).save(stored)
+    const store = new PostgresTrainingStore(db)
+    const key = progressKey(stored.line, 1)
+    expect((await store.all()).get(key)).toBeUndefined()
+
+    await store.save(stored.line, 1, { misses: 1, dueAt: '2026-11-07T12:00:00.000Z' })
+    expect((await store.all()).get(key)).toEqual({ misses: 1, dueAt: '2026-11-07T12:00:00.000Z' })
+
+    await store.save(stored.line, 1, { misses: 1 })
+    expect((await store.all()).get(key)).toEqual({ misses: 1 })
+
+    await db.execute(sql`truncate reviews cascade`)
+    expect((await store.all()).size).toBe(0)
   })
 })
