@@ -8,16 +8,11 @@ import {
   type MoveNode,
   type PgnHeaders,
 } from '@chessy/chess'
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { CoachPanel } from '@/features/coach/CoachPanel'
-import {
-  findPosition,
-  MAX_PGN_LENGTH,
-  samePosition,
-  usualRating,
-  userRating,
-} from '@/features/coach/situation'
-import { useCoachChat, type PlacedDrawing } from '@/features/coach/useCoachChat'
+import { findPosition, MAX_PGN_LENGTH, usualRating, userRating } from '@/features/coach/situation'
+import { useCoachChat } from '@/features/coach/useCoachChat'
+import { useCoachDrawing } from '@/features/coach/useCoachDrawing'
 import { usePlayer, useProfile } from '@/features/profile/useProfile'
 import { ClassBadge } from '@/features/review/ClassBadge'
 import { classIconSvg } from '@/features/review/classIcons'
@@ -66,20 +61,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   const account = profile.data?.accounts[0]
   const player = usePlayer(account?.source ?? 'chesscom', account?.username)
 
-  // What the coach drew; the board shows it while it is on that position.
-  const [drawing, setDrawing] = useState<PlacedDrawing>()
-  const latestRoot = useRef(view.root)
-  useLayoutEffect(() => {
-    latestRoot.current = view.root
-  })
-  const showDrawing = useCallback(
-    (shown: PlacedDrawing) => {
-      setDrawing(shown)
-      const node = findPosition(latestRoot.current, shown.fen)
-      if (node) update((g) => g.goTo(node))
-    },
-    [update],
-  )
+  const { shownDrawing, showDrawing } = useCoachDrawing(view, update)
   const chat = useCoachChat({ onDrawing: showDrawing })
   const coachContext = () => {
     const pgn = view.root.children.length > 0 ? exportPgn(game, headers) : undefined
@@ -121,8 +103,6 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
     : []
 
   const players = playersFromHeaders(headers, view)
-  // The coach's drawing replaces the engine's arrows while the board is on its position.
-  const shownDrawing = drawing && samePosition(drawing.fen, view.fen) ? drawing : undefined
 
   const flip = () => setOrientation((o) => (o === 'white' ? 'black' : 'white'))
   useGameKeyboard(
@@ -149,6 +129,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
           dests={view.dests}
           lastMove={view.lastMove}
           check={view.check}
+          // The coach's drawing replaces the engine's arrows while the board is on its position.
           arrows={shownDrawing ? [] : arrows}
           drawing={shownDrawing}
           badge={
