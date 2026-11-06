@@ -1,5 +1,8 @@
-import { fileURLToPath } from 'node:url'
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
+  buildBookData,
   EvaluationCancelledError,
   type EvaluationRequest,
   type PositionEval,
@@ -11,7 +14,14 @@ import type { HumanMoveService } from '../humanMoves/service'
 import { createServerReviewer, SERVER_REVIEW_NODES } from './serverReviewer'
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
-const BOOK = fileURLToPath(new URL('../../../../web/public/openings/book.json', import.meta.url))
+/** A book of its own: the web app's is generated, so it isn't always there. */
+const BOOK = join(mkdtempSync(join(tmpdir(), 'chessy-book-')), 'book.json')
+writeFileSync(
+  BOOK,
+  JSON.stringify(
+    buildBookData([{ eco: 'C40', name: "King's Knight Opening", pgn: '1. e4 e5 2. Nf3' }]),
+  ),
+)
 
 /** An engine that finds every position equal, its first legal move best. */
 function fakeEngine() {
