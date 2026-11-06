@@ -106,6 +106,7 @@ export interface Services {
     agents: RemoteSettings['agents']
     ask: RemoteCoach['ask']
     comment: RemoteCoach['comment']
+    walkthrough: RemoteCoach['walkthrough']
   }
   history: {
     /**
@@ -208,6 +209,7 @@ export function createServices(): Services {
       agents: () => remoteSettings.agents(),
       ask: (question, onEvent, signal) => remoteCoach.ask(question, onEvent, signal),
       comment: (move, signal) => remoteCoach.comment(move, signal),
+      walkthrough: (request) => remoteCoach.walkthrough(request),
     },
     profile: {
       load: async () => {

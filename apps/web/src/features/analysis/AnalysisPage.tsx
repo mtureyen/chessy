@@ -10,7 +10,13 @@ import {
 } from '@chessy/chess'
 import { useMemo, useState } from 'react'
 import { CoachPanel } from '@/features/coach/CoachPanel'
-import { findPosition, MAX_PGN_LENGTH, usualRating, userRating } from '@/features/coach/situation'
+import {
+  findPosition,
+  MAX_PGN_LENGTH,
+  userColor,
+  usualRating,
+  userRating,
+} from '@/features/coach/situation'
 import { useCoachChat } from '@/features/coach/useCoachChat'
 import { useCoachDrawing } from '@/features/coach/useCoachDrawing'
 import { usePlayer, useProfile } from '@/features/profile/useProfile'
@@ -58,6 +64,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   const [multiPv, setMultiPv] = useState(3)
   const [tab, setTab] = useState<'moves' | 'review' | 'coach'>(initial.review ? 'review' : 'moves')
   const profile = useProfile()
+  const userSide = userColor(headers, profile.data)
   const account = profile.data?.accounts[0]
   const player = usePlayer(account?.source ?? 'chesscom', account?.username)
 
@@ -222,15 +229,25 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
                 return cls && LIST_BADGES.has(cls) ? <ClassBadge cls={cls} /> : null
               }}
             />
-          ) : (
+          ) : null}
+          {/* Stays mounted: a walkthrough keeps its place while the user asks the coach. */}
+          <div hidden={tab !== 'review'}>
             <ReviewPanel
               state={review.state}
               moveCount={mainlineNodes.length}
               onStart={review.start}
               onCancel={review.cancel}
               onSelectPly={goToPly}
+              walkthrough={{
+                side: userSide,
+                onShow: showDrawing,
+                onAsk: () => setTab('coach'),
+                onOpen: () => {
+                  if (userSide) setOrientation(userSide)
+                },
+              }}
             />
-          )}
+          </div>
         </div>
 
         <div className="controls">

@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import type { ReviewEngine } from '@/app/services'
 import { useServices } from '@/app/servicesContext'
 import { ClassBadge } from './ClassBadge'
+import { CoachWalkthrough, type CoachWalkthroughProps } from './CoachWalkthrough'
 import { CLASS_STYLES, SUMMARY_ORDER } from './classes'
 import { presetNodes, REVIEW_PRESETS, type ReviewPresetId } from './presets'
 import type { ReviewState } from './useGameReview'
@@ -15,6 +16,8 @@ interface ReviewPanelProps {
   onStart: (nodes: number, engine: ReviewEngine) => void
   onCancel: () => void
   onSelectPly: (ply: number) => void
+  /** What the coach's walkthrough of a finished review needs. */
+  walkthrough: Omit<CoachWalkthroughProps, 'review' | 'onSelectPly'>
 }
 
 export function ReviewPanel({
@@ -23,6 +26,7 @@ export function ReviewPanel({
   onStart,
   onCancel,
   onSelectPly,
+  walkthrough,
 }: ReviewPanelProps) {
   const { review } = useServices()
   const [preset, setPreset] = useState<ReviewPresetId>('standard')
@@ -127,6 +131,7 @@ export function ReviewPanel({
         <ReviewReport
           review={state.review}
           onSelectPly={onSelectPly}
+          walkthrough={walkthrough}
           again={startControls('Review again')}
         />
       )
@@ -136,15 +141,19 @@ export function ReviewPanel({
 function ReviewReport({
   review,
   onSelectPly,
+  walkthrough,
   again,
 }: {
   review: GameReview
   onSelectPly: (ply: number) => void
+  walkthrough: ReviewPanelProps['walkthrough']
   again: ReactNode
 }) {
   const moments = keyMoments(review)
   return (
     <div className="review">
+      <CoachWalkthrough review={review} onSelectPly={onSelectPly} {...walkthrough} />
+
       <div className="review-accuracy">
         {(['white', 'black'] as const).map((color) => (
           <div key={color} className={`review-accuracy-${color}`} data-testid={`accuracy-${color}`}>
