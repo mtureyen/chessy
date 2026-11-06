@@ -11,8 +11,10 @@ export interface WalkthroughMoment {
   winBefore: number
   winAfter: number
   better?: { move: string; line: string }
-  /** The opponent's best answer to the move, in SAN. */
-  reply?: string
+  /** What really followed in the game; absent when the game ended with this move. */
+  played?: string
+  /** The engine's best answer to the move: what could have followed, not what did. */
+  bestReply?: string
   hanging?: { piece: string; square: string; pawns: number }
   /** How likely a player of the mover's rating was to play it (%). */
   playedBy?: number
@@ -28,8 +30,8 @@ export interface WalkthroughFacts {
   phases?: Partial<Record<'opening' | 'middlegame' | 'endgame', number>>
   opening?: {
     name: string
-    /** The player's results with it over all their games. */
-    record?: { games: number; wins: number; draws: number; losses: number }
+    /** The player's results with this colour in the opening family `of`, over all their games. */
+    record?: { of: string; games: number; wins: number; draws: number; losses: number }
   }
   moments: WalkthroughMoment[]
 }
@@ -47,6 +49,8 @@ export const WALKTHROUGH_PROMPT = `You are Chessy's chess coach. You walk a play
 
 Rules:
 - Use only the facts given. Never calculate variations, never guess an evaluation, never invent moves. If the facts don't tell why, stay general instead of making something up.
+- "played" is what really happened after a moment; without it the game ended there. "bestReply" and "better.line" are engine lines that did NOT happen: say what "could" have followed, and never write that a move from them was played, unless "played" has it too.
+- A record is for the opening family it names ("of"), not for a narrower line: name that family when you use it.
 - Plain words for the player's rating: threats, undefended pieces, plans. No engine numbers, no percentages unless they tell a story.
 - Moves in standard algebraic notation. Address the player as "you"; when a moment is the opponent's, say so.
 

@@ -12,6 +12,8 @@ import { phaseOf, type GamePhase } from './stats'
 export const MAX_MOMENTS = 8
 /** Moves of an engine line shown for a moment. */
 const LINE_MOVES = 6
+/** Moves of the game shown after a moment. */
+const PLAYED_MOVES = 4
 
 /** A key moment as the coach explains it: what the review knows of it, in plain values. */
 export interface MomentFacts {
@@ -25,8 +27,10 @@ export interface MomentFacts {
   winAfter: number
   /** The engine's better move and its line, in SAN. */
   better?: { move: string; line: string }
-  /** What the opponent's best answer to the move was, in SAN. */
-  reply?: string
+  /** What really followed in the game, in SAN; absent when the game ended with this move. */
+  played?: string
+  /** The engine's best answer to the move: what could have followed, not what did. */
+  bestReply?: string
   /** A piece of the mover's the opponent can now win, and what that gains (pawns). */
   hanging?: { piece: string; square: string; pawns: number }
   /** How likely a player of the mover's rating was to play it (%), if known. */
@@ -60,7 +64,11 @@ export function momentFacts(review: GameReview, move: ReviewedMove): MomentFacts
   const line = (fen: string | undefined, pv: readonly string[] | undefined) =>
     fen && pv ? formatSanLine(toSanLine(fen, pv, LINE_MOVES)) : ''
   const better = move.best && move.best.uci !== move.uci ? move.best : undefined
-  const reply = line(after, next?.best?.line)
+  const bestReply = line(after, next?.best?.line)
+  const played = review.moves
+    .slice(move.ply, move.ply + PLAYED_MOVES)
+    .map((m) => `${m.moveNumber}${m.color === 'white' ? '.' : '...'} ${m.san}`)
+    .join(' ')
   const exposed = after ? mostExposedPiece(after, move.color) : undefined
   const playedBy = move.facts.humanProbability
   return {
@@ -71,7 +79,8 @@ export function momentFacts(review: GameReview, move: ReviewedMove): MomentFacts
     winBefore: Math.round(move.winBefore),
     winAfter: Math.round(move.winAfter),
     ...(better && { better: { move: better.san, line: line(before, better.line) } }),
-    ...(reply && { reply }),
+    ...(played && { played }),
+    ...(bestReply && { bestReply }),
     ...(exposed && {
       hanging: { piece: exposed.role, square: exposed.square, pawns: exposed.gain },
     }),
