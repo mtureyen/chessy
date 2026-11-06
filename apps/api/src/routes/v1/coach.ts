@@ -4,8 +4,13 @@ import {
   coachAgentsRoute,
   coachCommentRoute,
   coachQuestionRoute,
+  coachWalkthroughRoute,
   type CoachEventBody,
 } from '@chessy/contracts'
+import {
+  NoStoredReviewError,
+  type WalkthroughService,
+} from '../../adapters/coach/walkthroughService'
 import { streamSSE } from 'hono/streaming'
 import { problem } from '../../http/problem'
 import { createRouter } from '../../http/router'
@@ -33,7 +38,13 @@ async function readyAgent(
   return { status: 503, title: 'Coach unavailable', detail: reason }
 }
 
-export function coachRoutes({ coach }: { coach: CoachDirectory }) {
+export function coachRoutes({
+  coach,
+  walkthroughs,
+}: {
+  coach: CoachDirectory
+  walkthroughs: WalkthroughService
+}) {
   return createRouter()
     .openapi(coachAgentsRoute, async (c) => {
       const list = await Promise.all(
@@ -89,9 +100,34 @@ export function coachRoutes({ coach }: { coach: CoachDirectory }) {
         const text = await found.agent.comment({ ...move, signal: c.req.raw.signal })
         return c.json({ text }, 200)
       } catch (error) {
-        return problem(c, 502, 'No comment', {
-          detail: error instanceof Error ? error.message : String(error),
-        })
+        return problem(c, 502, 'No comment', { detail: messageOf(error) })
       }
     })
+    .openapi(coachWalkthroughRoute, async (c) => {
+      const request = c.req.valid('json')
+      let kept
+      try {
+        kept = request.regenerate ? undefined : await walkthroughs.find(request)
+      } catch (error) {
+        if (error instanceof NoStoredReviewError) {
+          return problem(c, 404, 'No review', { detail: error.message })
+        }
+        return problem(c, 503, 'Library unavailable', { detail: messageOf(error) })
+      }
+      if (kept) return c.json(kept, 200)
+      const found = await readyAgent(coach.agents(), request.agent)
+      if (!found.agent) return problem(c, found.status, found.title, { detail: found.detail })
+      try {
+        return c.json(await walkthroughs.write(request, found.agent, c.req.raw.signal), 200)
+      } catch (error) {
+        if (error instanceof NoStoredReviewError) {
+          return problem(c, 404, 'No review', { detail: error.message })
+        }
+        return problem(c, 502, 'No walkthrough', { detail: messageOf(error) })
+      }
+    })
+}
+
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }

@@ -1,16 +1,12 @@
-import { readFile } from 'node:fs/promises'
 import {
   EngineFailedError,
   EvaluationCancelledError,
-  createOpeningBook,
   reviewGame,
-  type BookData,
   type CancelSignal,
   type EvaluateOptions,
   type EvaluationRequest,
   type GameReview,
   type HumanMoveModel,
-  type OpeningBook,
   type PositionEval,
   type PositionEvaluator,
   type ReviewInput,
@@ -18,6 +14,7 @@ import {
 import { lineText } from '@chessy/history'
 import type { EngineService } from '../engine/service'
 import type { HumanMoveService } from '../humanMoves/service'
+import { createBookLoader } from './openingBook'
 
 /** The app's "Standard" review: the same node budget gives the same review on every device. */
 export const SERVER_REVIEW_NODES = 500_000
@@ -56,12 +53,8 @@ export function createServerReviewer({
         ? evaluateInBatches(engine, request, options, batchSize)
         : engine.evaluate(request, options),
   }
-  let book: Promise<OpeningBook | undefined> | undefined
   // Without the file the review still works; it just can't tell book moves.
-  const loadBook = () =>
-    (book ??= readFile(bookPath, 'utf8')
-      .then((text) => createOpeningBook(JSON.parse(text) as BookData))
-      .catch(() => undefined))
+  const loadBook = createBookLoader(bookPath)
   const running = new Map<string, Promise<GameReview>>()
 
   return (input, { signal } = {}) => {

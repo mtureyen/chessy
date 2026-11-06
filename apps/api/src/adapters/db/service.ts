@@ -12,6 +12,7 @@ import { PostgresGameHistory } from './gameHistory'
 import { PostgresGameRepository } from './gameRepository'
 import { PostgresProfileStore } from './profileStore'
 import { PostgresReviewRepository } from './reviewRepository'
+import { PostgresWalkthroughStore, type StoredWalkthrough } from './walkthroughStore'
 
 interface Stores {
   name: string
@@ -19,6 +20,7 @@ interface Stores {
   reviews: PostgresReviewRepository
   profiles: PostgresProfileStore
   history: PostgresGameHistory
+  walkthroughs: PostgresWalkthroughStore
 }
 
 /**
@@ -69,6 +71,14 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
     return (await this.connected()).reviews.find(line)
   }
 
+  async findWalkthrough(line: GameLine, side: string): Promise<StoredWalkthrough | undefined> {
+    return (await this.connected()).walkthroughs.find(line, side)
+  }
+
+  async saveWalkthrough(line: GameLine, side: string, stored: StoredWalkthrough): Promise<void> {
+    await (await this.connected()).walkthroughs.save(line, side, stored)
+  }
+
   async profile(): Promise<Profile | undefined> {
     return (await this.connected()).profiles.load()
   }
@@ -95,6 +105,7 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
         reviews: new PostgresReviewRepository(db),
         profiles: new PostgresProfileStore(db),
         history: new PostgresGameHistory(db),
+        walkthroughs: new PostgresWalkthroughStore(db),
       }))
       .catch((error: unknown) => {
         this.stores = undefined

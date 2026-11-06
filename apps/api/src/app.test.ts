@@ -22,6 +22,7 @@ import { loadConfig } from './config'
 import { openDatabase } from './adapters/db/database'
 import { DatabaseLibraryService } from './adapters/db/service'
 import type { EngineService, EngineStatus } from './adapters/engine/service'
+import { NoStoredReviewError, type WalkthroughService } from './adapters/coach/walkthroughService'
 import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/service'
 import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review/reviewQueueService'
 import { createApp } from './app'
@@ -127,12 +128,30 @@ const reviewQueue: ReviewQueueService = {
   resume: async () => ({ status: 'running', total: 30, done: 3, failed: 0 }),
 }
 
+const WALKTHROUGH = {
+  summary: 'You won.',
+  moments: [],
+  focus: 'Keep going.',
+  agent: 'Scripted coach',
+  writtenAt: '2026-11-06T12:00:00.000Z',
+}
+/** Answers like the real one; its work has tests of its own. */
+const walkthroughs: WalkthroughService = {
+  find: async ({ startFen, moves }) => {
+    if (startFen === 'unreviewed') throw new NoStoredReviewError()
+    if (startFen === 'no-database') throw new Error('No database configured (DATABASE_URL)')
+    return moves[0] === 'e2e4' ? WALKTHROUGH : undefined
+  },
+  write: async (_request, agent) => ({ ...WALKTHROUGH, summary: 'Written.', agent: agent.label }),
+}
+
 const app = createApp({
   engine,
   humanMoves,
   library,
   reviewQueue,
   coach: { agents: () => coach },
+  walkthroughs,
   settings,
   version: '9.9.9',
   startedAt: 1_000,
@@ -169,6 +188,7 @@ describe('api', () => {
       '/coach',
       '/coach/comments',
       '/coach/messages',
+      '/coach/walkthroughs',
       '/engine',
       '/engine/evaluations',
       '/health',
@@ -473,6 +493,7 @@ describe('library routes', () => {
       library: new DatabaseLibraryService(undefined),
       reviewQueue,
       coach: { agents: () => [] },
+      walkthroughs,
       settings,
       version: '9.9.9',
       startedAt: 0,
@@ -558,6 +579,32 @@ describe('profile and players', () => {
       accounts: [...profile.accounts, { source: 'chesscom', username: 'x2' }],
     }
     expect((await put({ profile: twice })).status).toBe(400)
+  })
+})
+
+describe('coach walkthrough route', () => {
+  const ask = (body: unknown) =>
+    app.request('/api/v1/coach/walkthroughs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+  it('gives the kept walkthrough, or has the agent write one', async () => {
+    expect(await (await ask({ startFen: START_FEN, moves: ['e2e4'] })).json()).toEqual(WALKTHROUGH)
+    expect(await (await ask({ startFen: START_FEN, moves: ['d2d4'] })).json()).toMatchObject({
+      summary: 'Written.',
+      agent: 'Scripted coach',
+    })
+    const again = await ask({ startFen: START_FEN, moves: ['e2e4'], regenerate: true })
+    expect(await again.json()).toMatchObject({ summary: 'Written.' })
+  })
+
+  it('says what is missing', async () => {
+    expect((await ask({ startFen: 'unreviewed', moves: ['e2e4'] })).status).toBe(404)
+    expect((await ask({ startFen: 'no-database', moves: ['e2e4'] })).status).toBe(503)
+    expect((await ask({ startFen: START_FEN, moves: [] })).status).toBe(400)
+    expect((await ask({ startFen: START_FEN, moves: ['d2d4'], agent: 'nope' })).status).toBe(404)
   })
 })
 
@@ -667,6 +714,7 @@ describe('coach routes', () => {
         humanMoves,
         library,
         reviewQueue,
+        walkthroughs,
         coach: {
           agents: () => [
             new LoopAgent({
@@ -787,6 +835,7 @@ describe('local host names only', () => {
       library: new DatabaseLibraryService(undefined),
       reviewQueue,
       coach: { agents: () => [] },
+      walkthroughs,
       settings,
       version: '9.9.9',
       startedAt: 0,

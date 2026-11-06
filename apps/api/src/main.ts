@@ -8,6 +8,8 @@ import {
 import { fileURLToPath } from 'node:url'
 import { CoachRegistry } from './adapters/coach/agents'
 import { createCoachTools } from './adapters/coach/tools'
+import { StoredWalkthroughs } from './adapters/coach/walkthroughs'
+import { createBookLoader } from './adapters/review/openingBook'
 import { ReviewQueue, type ReviewJob } from './adapters/review/reviewQueue'
 import { createServerReviewer } from './adapters/review/serverReviewer'
 import { openDatabase } from './adapters/db/database'
@@ -35,13 +37,10 @@ const humanMoves = createMaiaService(config.MAIA_MODEL_PATH)
 const library = new DatabaseLibraryService(
   config.DATABASE_URL ? () => openDatabase(config.DATABASE_URL!) : undefined,
 )
-const reviewing = {
-  engine,
-  humanMoves,
-  bookPath:
-    config.OPENING_BOOK_PATH ??
-    fileURLToPath(new URL('../../web/public/openings/book.json', import.meta.url)),
-}
+const bookPath =
+  config.OPENING_BOOK_PATH ??
+  fileURLToPath(new URL('../../web/public/openings/book.json', import.meta.url))
+const reviewing = { engine, humanMoves, bookPath }
 const coachTools = createCoachTools({
   engine,
   humanMoves,
@@ -83,6 +82,7 @@ const app = createApp({
   library,
   reviewQueue,
   coach,
+  walkthroughs: new StoredWalkthroughs(library, createBookLoader(bookPath)),
   mcp: coach.mcp,
   settings,
   localHostNamesOnly: ['127.0.0.1', 'localhost', '::1'].includes(config.HOST),

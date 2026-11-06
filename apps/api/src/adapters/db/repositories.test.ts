@@ -7,13 +7,14 @@ import { openDatabase } from './database'
 import { PostgresGameHistory } from './gameHistory'
 import { PostgresGameRepository } from './gameRepository'
 import { PostgresReviewRepository } from './reviewRepository'
+import { PostgresWalkthroughStore } from './walkthroughStore'
 
 // The same suites as every other adapter, on an in-memory Postgres (PGlite) with the migrations.
 // One database for the file (starting one takes a while), emptied before each test.
 const shared = openDatabase('pglite:memory')
 async function fresh() {
   const { db } = await shared
-  await db.execute(sql`truncate games, reviews, review_moves`)
+  await db.execute(sql`truncate games, reviews, review_moves, walkthroughs`)
   return db
 }
 
@@ -93,5 +94,34 @@ describe('PostgresGameHistory', () => {
       // No position stored for it: the phase can only go by the move number.
       { gameId: older.id, ply: 3, color: 'white', classification: 'best' },
     ])
+  })
+})
+
+describe('PostgresWalkthroughStore', () => {
+  it('keeps one walkthrough per line and side, and goes with its review', async () => {
+    const db = await fresh()
+    const stored = sampleReview()
+    await new PostgresReviewRepository(db).save(stored)
+    const store = new PostgresWalkthroughStore(db)
+    const walkthrough = {
+      summary: 'A short game.',
+      moments: [{ ply: 1, what: 'A move.' }],
+      focus: 'More moves.',
+      agent: 'Test',
+      writtenAt: '2026-11-06T12:00:00.000Z',
+    }
+    const kept = { reviewedAt: '2026-11-05T10:00:00.000Z', walkthrough }
+    expect(await store.find(stored.line, 'white')).toBeUndefined()
+
+    await store.save(stored.line, 'white', kept)
+    expect(await store.find(stored.line, 'white')).toEqual(kept)
+    expect(await store.find(stored.line, 'black')).toBeUndefined()
+
+    const newer = { ...kept, walkthrough: { ...walkthrough, summary: 'Written again.' } }
+    await store.save(stored.line, 'white', newer)
+    expect(await store.find(stored.line, 'white')).toEqual(newer)
+
+    await db.execute(sql`truncate reviews cascade`)
+    expect(await store.find(stored.line, 'white')).toBeUndefined()
   })
 })
