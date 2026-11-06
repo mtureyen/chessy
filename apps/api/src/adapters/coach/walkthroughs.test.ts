@@ -105,7 +105,7 @@ describe('StoredWalkthroughs', () => {
         name: 'Vienna Game',
         ply: 3,
         text: 'The Vienna again.',
-        record: { games: 2, wins: 1, draws: 0, losses: 1 },
+        record: { of: 'Vienna Game', games: 2, wins: 1, draws: 0, losses: 1 },
       },
       moments: [{ ply: 5, what: 'The knight on f6 covers h5.', better: 'Nf3 develops.' }],
       focus: 'Check what guards a square before you go there.',
@@ -115,6 +115,7 @@ describe('StoredWalkthroughs', () => {
     const facts = JSON.stringify(requests[0]!.messages)
     expect(facts).toContain('3. Qh5')
     expect(facts).toContain('790')
+    expect(facts).toContain('played')
     expect(requests[0]!.tools).toEqual([])
   })
 

@@ -182,8 +182,10 @@ export const CoachWalkthroughSchema = z
         name: z.string(),
         ply: z.number().int(),
         text: z.string(),
+        /** The user's results with this colour in the opening family `of`. */
         record: z
           .object({
+            of: z.string(),
             games: z.number().int(),
             wins: z.number().int(),
             draws: z.number().int(),

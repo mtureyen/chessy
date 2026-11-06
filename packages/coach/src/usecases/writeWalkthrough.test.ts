@@ -18,6 +18,8 @@ const facts: WalkthroughFacts = {
       winBefore: 60,
       winAfter: 3,
       better: { move: 'Bc4', line: '3. Bc4' },
+      played: '3... Kxf7',
+      bestReply: '3... Kxf7',
     },
     { ply: 9, move: '5. Nf3', color: 'white', verdict: 'great', winBefore: 40, winAfter: 60 },
   ],

@@ -65,7 +65,8 @@ describe('momentFacts', () => {
       winBefore: 60,
       winAfter: 20,
       better: { move: 'Bc4', line: '3. Bc4 Nf6' },
-      reply: '3... Kxf7',
+      played: '3... Kxf7',
+      bestReply: '3... Kxf7',
       hanging: { piece: 'queen', square: 'f7', pawns: 9 },
       playedBy: 12,
     })
@@ -80,7 +81,9 @@ describe('momentFacts', () => {
       verdict: 'best',
       winBefore: 50,
       winAfter: 50,
+      played: '1... e5 2. Qh5 2... Nc6 3. Qxf7+',
     })
+    expect(momentFacts(game, game.moves[5]!)).not.toHaveProperty('played')
   })
 })
 

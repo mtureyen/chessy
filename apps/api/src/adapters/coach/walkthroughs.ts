@@ -133,11 +133,13 @@ export class StoredWalkthroughs implements WalkthroughService {
       this.library.profile(),
     ])
     const games = filterGames(playerGames(summaries, profile), { color: side })
-    const family = sameSpelling(openingFamily(opening))
-    const group = groupGames(games, 'opening').find((g) => sameSpelling(g.key) === family)
+    const family = openingFamily(opening)
+    const group = groupGames(games, 'opening').find(
+      (g) => sameSpelling(g.key) === sameSpelling(family),
+    )
     if (!group) return undefined
     const { games: played, wins, draws, losses } = group.tally
-    return { games: played, wins, draws, losses }
+    return { of: family, games: played, wins, draws, losses }
   }
 }
 
