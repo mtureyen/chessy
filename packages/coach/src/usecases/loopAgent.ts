@@ -1,7 +1,7 @@
 import type { CoachEvent } from '../domain/messages'
 import { COMMENT_PROMPT, commentText, questionText, SYSTEM_PROMPT } from '../domain/prompt'
 import type { CoachTool } from '../domain/tools'
-import type { CoachAgent, CoachRequest, CommentRequest } from '../ports/coachAgent'
+import type { CoachAgent, CoachRequest, CommentRequest, ComposeRequest } from '../ports/coachAgent'
 import type { ConversationStore } from '../ports/conversationStore'
 import type { ClientStatus, LlmClient } from '../ports/llmClient'
 import { CoachCancelledError, runToolLoop } from './runToolLoop'
@@ -56,12 +56,20 @@ export class LoopAgent implements CoachAgent {
     }
   }
 
+  comment({ signal, ...move }: CommentRequest): Promise<string> {
+    return this.compose({
+      system: COMMENT_PROMPT,
+      text: commentText(move),
+      ...(signal && { signal }),
+    })
+  }
+
   /** One turn outside the tool loop: this path holds no tools and touches no conversation. */
-  async comment({ signal, ...move }: CommentRequest): Promise<string> {
+  async compose({ system, text: prompt, signal }: ComposeRequest): Promise<string> {
     const turn = await this.client.turn(
       {
-        system: COMMENT_PROMPT,
-        messages: [{ role: 'user', text: commentText(move) }],
+        system,
+        messages: [{ role: 'user', text: prompt }],
         tools: [],
         ...(signal && { signal }),
       },

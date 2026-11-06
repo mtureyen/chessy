@@ -13,6 +13,7 @@ import {
   type CoachRequest,
   type CoachTool,
   type CommentRequest,
+  type ComposeRequest,
 } from '@chessy/coach'
 import type { CoachRuns } from './mcp'
 
@@ -123,17 +124,25 @@ export class HeadlessClaudeAgent implements CoachAgent {
     }
   }
 
+  comment({ signal, ...move }: CommentRequest): Promise<string> {
+    return this.compose({
+      system: COMMENT_PROMPT,
+      text: commentText(move),
+      ...(signal && { signal }),
+    })
+  }
+
   /**
    * No run token, no MCP server and nothing allowed: Claude Code has no tool to call here, and
-   * with no session kept the comment stays out of every conversation.
+   * with no session kept the writing stays out of every conversation.
    */
-  async comment({ signal, ...move }: CommentRequest): Promise<string> {
+  async compose({ system, text: prompt, signal }: ComposeRequest): Promise<string> {
     let text = ''
     let failure: string | undefined
     await this.runClaude(
       {
-        prompt: commentText(move),
-        system: COMMENT_PROMPT,
+        prompt,
+        system,
         extraArgs: ['--no-session-persistence'],
         ...(signal && { signal }),
       },
