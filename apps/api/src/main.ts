@@ -8,10 +8,12 @@ import {
 import { fileURLToPath } from 'node:url'
 import { CoachRegistry } from './adapters/coach/agents'
 import { createCoachTools } from './adapters/coach/tools'
+import { ReviewQueue, type ReviewJob } from './adapters/review/reviewQueue'
 import { createServerReviewer } from './adapters/review/serverReviewer'
 import { openDatabase } from './adapters/db/database'
 import { FileSettingsService } from './adapters/settings/fileSettingsService'
 import { FileSettingsStore } from './adapters/settings/fileSettingsStore'
+import { readJson, writeJson } from './adapters/settings/jsonFile'
 import { DatabaseLibraryService } from './adapters/db/service'
 import { createMaiaService } from './adapters/humanMoves/maia'
 import { ChessComGameSource } from './adapters/sources/chesscom'
@@ -33,17 +35,18 @@ const humanMoves = createMaiaService(config.MAIA_MODEL_PATH)
 const library = new DatabaseLibraryService(
   config.DATABASE_URL ? () => openDatabase(config.DATABASE_URL!) : undefined,
 )
+const reviewing = {
+  engine,
+  humanMoves,
+  bookPath:
+    config.OPENING_BOOK_PATH ??
+    fileURLToPath(new URL('../../web/public/openings/book.json', import.meta.url)),
+}
 const coachTools = createCoachTools({
   engine,
   humanMoves,
   library,
-  review: createServerReviewer({
-    engine,
-    humanMoves,
-    bookPath:
-      config.OPENING_BOOK_PATH ??
-      fileURLToPath(new URL('../../web/public/openings/book.json', import.meta.url)),
-  }),
+  review: createServerReviewer(reviewing),
 })
 // The coach follows the settings page (apps/api/.chessy/settings.json) over .env, live.
 const coach = new CoachRegistry(coachTools, {
@@ -51,14 +54,26 @@ const coach = new CoachRegistry(coachTools, {
   baseUrl: `http://127.0.0.1:${config.PORT}`,
   version: pkg.version,
 })
-const settings = new FileSettingsService(
-  config,
-  new FileSettingsStore(
-    config.SETTINGS_PATH ?? fileURLToPath(new URL('../.chessy/settings.json', import.meta.url)),
-  ),
-  coach,
-)
+const settingsPath =
+  config.SETTINGS_PATH ?? fileURLToPath(new URL('../.chessy/settings.json', import.meta.url))
+const settings = new FileSettingsService(config, new FileSettingsStore(settingsPath), coach)
 await settings.load()
+const reviewJobPath = settingsPath.replace(/\.json$/, '.review-queue.json')
+const reviewQueue = new ReviewQueue({
+  library,
+  reviews: {
+    find: (line) => library.findReview(line),
+    save: (stored) => library.saveReview(stored),
+  },
+  // Small batches, so the engine's other users get their turn between them.
+  review: createServerReviewer({ ...reviewing, batchSize: 16 }),
+  store: {
+    load: async () => (await readJson<ReviewJob | null>(reviewJobPath)) ?? undefined,
+    save: (job) => writeJson(reviewJobPath, job ?? null),
+  },
+})
+// A run the last shutdown interrupted goes on; without a database there is none to go on with.
+reviewQueue.restore().catch((error: unknown) => console.error('Review queue:', error))
 const app = createApp({
   version: pkg.version,
   startedAt: Date.now(),
@@ -66,6 +81,7 @@ const app = createApp({
   engine,
   humanMoves,
   library,
+  reviewQueue,
   coach,
   mcp: coach.mcp,
   settings,

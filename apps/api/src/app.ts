@@ -8,6 +8,7 @@ import type { CoachDirectory } from './adapters/coach/coachDirectory'
 import type { McpEndpoint } from './adapters/coach/mcpEndpoint'
 import type { SettingsService } from './adapters/settings/settingsService'
 import { onlyLocalHostNames } from './http/local'
+import type { ReviewQueueService } from './adapters/review/reviewQueueService'
 import type { LibraryService } from './adapters/db/libraryService'
 import type { EngineService } from './adapters/engine/service'
 import type { HumanMoveService } from './adapters/humanMoves/service'
@@ -16,6 +17,7 @@ import { engineRoutes } from './routes/v1/engine'
 import { healthRoutes } from './routes/v1/health'
 import { humanMoveRoutes } from './routes/v1/humanMoves'
 import { libraryRoutes } from './routes/v1/library'
+import { reviewQueueRoutes } from './routes/v1/reviewQueue'
 import { settingsRoutes } from './routes/v1/settings'
 import { sourceRoutes } from './routes/v1/sources'
 
@@ -27,6 +29,8 @@ export interface AppDeps {
   engine: EngineService
   humanMoves: HumanMoveService
   library: LibraryService
+  /** Reviews the user's recent games in the background. */
+  reviewQueue: ReviewQueueService
   /** The coach's agents (they follow the settings), the default first; none: the coach is off. */
   coach: CoachDirectory
   /** The coach's tools over MCP, for agents that run their own loop. */
@@ -49,6 +53,7 @@ export function createApp({
   engine,
   humanMoves,
   library,
+  reviewQueue,
   coach,
   mcp,
   settings,
@@ -63,6 +68,7 @@ export function createApp({
     .route('/', engineRoutes({ engine }))
     .route('/', humanMoveRoutes({ humanMoves }))
     .route('/', libraryRoutes({ library, now }))
+    .route('/', reviewQueueRoutes({ reviewQueue }))
     .route('/', coachRoutes({ coach }))
     .route('/', settingsRoutes({ settings }))
 

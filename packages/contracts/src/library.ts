@@ -232,3 +232,72 @@ export const saveProfileRoute = createRoute({
     503: unavailable,
   },
 })
+
+export const ReviewQueueSchema = z
+  .object({
+    status: z.enum(['idle', 'running', 'paused', 'finished', 'failed']),
+    /** Games in this run, those reviewed before it included. */
+    total: z.number().int(),
+    done: z.number().int(),
+    /** Games that could not be reviewed and were skipped. */
+    failed: z.number().int(),
+    reason: z.string().optional(),
+  })
+  .openapi('ReviewQueue')
+
+export type ReviewQueueBody = z.infer<typeof ReviewQueueSchema>
+
+export const StartReviewQueueSchema = z
+  .object({
+    count: z.number().int().min(1).max(500).openapi({ example: 30 }),
+    speed: z.enum(['bullet', 'blitz', 'rapid', 'classical']).optional(),
+  })
+  .openapi('StartReviewQueue')
+
+export type StartReviewQueueBody = z.infer<typeof StartReviewQueueSchema>
+
+const reviewQueueState = {
+  description: 'The queue now',
+  content: { 'application/json': { schema: ReviewQueueSchema } },
+}
+
+export const reviewQueueRoute = createRoute({
+  method: 'get',
+  path: '/library/review-queue',
+  tags: ['library'],
+  summary: 'How the review of the user’s recent games is going',
+  responses: { 200: reviewQueueState },
+})
+
+export const startReviewQueueRoute = createRoute({
+  method: 'post',
+  path: '/library/review-queue',
+  tags: ['library'],
+  summary: 'Reviews the user’s last games on the server, newest first',
+  description:
+    'Takes the last `count` finished games (of one speed if given); those with a review take no time.',
+  request: {
+    body: { content: { 'application/json': { schema: StartReviewQueueSchema } }, required: true },
+  },
+  responses: {
+    200: reviewQueueState,
+    409: problem('A review run is going on'),
+    503: unavailable,
+  },
+})
+
+export const pauseReviewQueueRoute = createRoute({
+  method: 'post',
+  path: '/library/review-queue/pause',
+  tags: ['library'],
+  summary: 'Pauses the run; a paused run also stays paused after a restart',
+  responses: { 200: reviewQueueState },
+})
+
+export const resumeReviewQueueRoute = createRoute({
+  method: 'post',
+  path: '/library/review-queue/resume',
+  tags: ['library'],
+  summary: 'Goes on with a paused run',
+  responses: { 200: reviewQueueState },
+})

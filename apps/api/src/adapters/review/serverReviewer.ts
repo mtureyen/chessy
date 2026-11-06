@@ -1,12 +1,17 @@
 import { readFile } from 'node:fs/promises'
 import {
   EngineFailedError,
+  EvaluationCancelledError,
   createOpeningBook,
   reviewGame,
   type BookData,
+  type CancelSignal,
+  type EvaluateOptions,
+  type EvaluationRequest,
   type GameReview,
   type HumanMoveModel,
   type OpeningBook,
+  type PositionEval,
   type PositionEvaluator,
   type ReviewInput,
 } from '@chessy/analysis'
@@ -27,12 +32,18 @@ export function createServerReviewer({
   humanMoves,
   bookPath,
   nodes = SERVER_REVIEW_NODES,
+  batchSize,
 }: {
   engine: EngineService
   humanMoves: HumanMoveService
   bookPath: string
   nodes?: number
-}): (input: ReviewInput) => Promise<GameReview> {
+  /**
+   * Positions per engine request. The engine serves one request at a time, so a review in the
+   * background asks in small batches and others get their turn in between. Default: all at once.
+   */
+  batchSize?: number
+}): (input: ReviewInput, options?: { signal?: CancelSignal }) => Promise<GameReview> {
   const evaluator: PositionEvaluator = {
     describe: async () => {
       const status = await engine.status()
@@ -40,7 +51,10 @@ export function createServerReviewer({
         throw new EngineFailedError(`no engine on this server (${status.reason})`)
       return { name: status.name, parallelism: status.parallelism }
     },
-    evaluate: (request, options) => engine.evaluate(request, options),
+    evaluate: (request, options) =>
+      batchSize
+        ? evaluateInBatches(engine, request, options, batchSize)
+        : engine.evaluate(request, options),
   }
   let book: Promise<OpeningBook | undefined> | undefined
   // Without the file the review still works; it just can't tell book moves.
@@ -50,7 +64,7 @@ export function createServerReviewer({
       .catch(() => undefined))
   const running = new Map<string, Promise<GameReview>>()
 
-  return (input) => {
+  return (input, { signal } = {}) => {
     const key = lineText(input)
     const pending = running.get(key)
     if (pending) return pending
@@ -63,12 +77,35 @@ export function createServerReviewer({
           ...(model && { humanMoves: model }),
         },
         input,
-        { nodes },
+        { nodes, ...(signal && { signal }) },
       )
     })().finally(() => running.delete(key))
     running.set(key, review)
     return review
   }
+}
+
+async function evaluateInBatches(
+  engine: EngineService,
+  request: EvaluationRequest,
+  options: EvaluateOptions = {},
+  size: number,
+): Promise<PositionEval[]> {
+  const results: PositionEval[] = []
+  for (let start = 0; start < request.fens.length; start += size) {
+    if (options.signal?.aborted) throw new EvaluationCancelledError()
+    const offset = start
+    const { onEvaluated } = options
+    const batch = await engine.evaluate(
+      { ...request, fens: request.fens.slice(start, start + size) },
+      {
+        ...options,
+        ...(onEvaluated && { onEvaluated: (i, value) => onEvaluated(offset + i, value) }),
+      },
+    )
+    results.push(...batch)
+  }
+  return results
 }
 
 async function humanMoveModel(service: HumanMoveService): Promise<HumanMoveModel | undefined> {
