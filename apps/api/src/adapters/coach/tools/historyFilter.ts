@@ -42,6 +42,13 @@ export const filterFields = {
   reviewed: z.boolean().optional().describe('Only games with (or without) a review.'),
   since: Day.optional().describe('First day, YYYY-MM-DD.'),
   until: Day.optional().describe('Last day, YYYY-MM-DD.'),
+  lastGames: z
+    .number()
+    .int()
+    .min(1)
+    .max(500)
+    .optional()
+    .describe('Only the newest this many games that match: how the user plays now.'),
 }
 
 /** The user's games that match, newest first, and a note when it isn't clear which are theirs. */

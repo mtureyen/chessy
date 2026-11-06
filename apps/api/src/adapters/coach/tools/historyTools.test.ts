@@ -115,6 +115,12 @@ describe('stats', () => {
     })
   })
 
+  it('can look at the newest games only', async () => {
+    const result = await call(statsTool(access(profile)), { lastGames: 2 })
+    expect(result.results).toMatchObject({ games: 2, wins: 1, losses: 1 })
+    expect(result.moveQuality.coverage).toBe('1 of 2 games reviewed')
+  })
+
   it('says when none of the games is reviewed', async () => {
     const result = await call(statsTool(access(profile)), { outcome: 'win' })
     expect(result.moveQuality).toMatch(/None of these 1 games is reviewed/)

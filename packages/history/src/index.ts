@@ -3,6 +3,7 @@ export { gameLine, lineText, type GameLine } from './domain/line'
 export {
   filterGames,
   playerGames,
+  recentGames,
   type GameFilter,
   type GameSummary,
   type PlayerGame,
