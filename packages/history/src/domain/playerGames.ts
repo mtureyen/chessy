@@ -88,12 +88,15 @@ export interface GameFilter {
   /** Dates (YYYY-MM-DD, UTC), both included. */
   since?: string
   until?: string
+  /** Only the newest this many of the games that match. */
+  lastGames?: number
 }
 
+/** The games that match, in the order given (newest first, as the history lists them). */
 export function filterGames(games: readonly PlayerGame[], filter: GameFilter): PlayerGame[] {
   const opponent = filter.opponent?.toLowerCase()
   const opening = filter.opening?.toLowerCase()
-  return games.filter(({ game, category, side, outcome, opponent: them }) => {
+  const matching = games.filter(({ game, category, side, outcome, opponent: them }) => {
     const day = game.playedAt.slice(0, 10)
     return (
       (filter.category === undefined || category === filter.category) &&
@@ -108,6 +111,16 @@ export function filterGames(games: readonly PlayerGame[], filter: GameFilter): P
       (filter.until === undefined || day <= filter.until)
     )
   })
+  return filter.lastGames === undefined ? matching : matching.slice(0, filter.lastGames)
+}
+
+/** The user's newest finished games to review, of one speed if given. */
+export function recentGames(
+  games: readonly PlayerGame[],
+  { count, speed }: { count: number; speed?: GameSpeed },
+): PlayerGame[] {
+  const finished = games.filter((game) => game.outcome !== 'unfinished')
+  return filterGames(finished, { lastGames: count, ...(speed && { speed }) })
 }
 
 function matchesOpening(game: GameSummary['opening'], query: string): boolean {

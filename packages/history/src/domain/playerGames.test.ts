@@ -1,7 +1,7 @@
 import { buildProfile } from '@chessy/library'
 import { describe, expect, it } from 'vitest'
 import { sampleSummary as summary } from '../testing'
-import { filterGames, playerGames } from './playerGames'
+import { filterGames, playerGames, recentGames } from './playerGames'
 
 const profile = buildProfile(
   { accounts: [{ source: 'chesscom', username: '8sly' }] },
@@ -73,5 +73,26 @@ describe('filterGames', () => {
     expect(ids({ speed: 'blitz', reviewed: true })).toEqual(['g2'])
     expect(ids({ since: '2026-10-02', until: '2026-10-03' })).toEqual(['g2'])
     expect(ids({ category: 'lichess' })).toEqual([])
+    expect(ids({ lastGames: 1 })).toEqual(['g1'])
+    expect(ids({ speed: 'blitz', lastGames: 1 })).toEqual(['g2'])
+  })
+})
+
+describe('recentGames', () => {
+  it('takes the newest finished games, of one speed if asked', () => {
+    const games = playerGames(
+      [
+        summary({ id: 'playing', result: '*' }),
+        summary({ id: 'rapid' }),
+        summary({ id: 'blitz', speed: 'blitz' }),
+        summary({ id: 'older', speed: 'blitz' }),
+      ],
+      profile,
+    )
+    const ids = (options: Parameters<typeof recentGames>[1]) =>
+      recentGames(games, options).map((g) => g.game.id)
+    expect(ids({ count: 2 })).toEqual(['rapid', 'blitz'])
+    expect(ids({ count: 2, speed: 'blitz' })).toEqual(['blitz', 'older'])
+    expect(ids({ count: 9 })).toHaveLength(3)
   })
 })
