@@ -5,6 +5,7 @@ import { Scalar } from '@scalar/hono-api-reference'
 import { problem } from './http/problem'
 import { createRouter } from './http/router'
 import type { CoachDirectory } from './adapters/coach/coachDirectory'
+import type { WalkthroughService } from './adapters/coach/walkthroughService'
 import type { McpEndpoint } from './adapters/coach/mcpEndpoint'
 import type { SettingsService } from './adapters/settings/settingsService'
 import { onlyLocalHostNames } from './http/local'
@@ -33,6 +34,8 @@ export interface AppDeps {
   reviewQueue: ReviewQueueService
   /** The coach's agents (they follow the settings), the default first; none: the coach is off. */
   coach: CoachDirectory
+  /** The coach's walkthroughs of reviewed games. */
+  walkthroughs: WalkthroughService
   /** The coach's tools over MCP, for agents that run their own loop. */
   mcp?: McpEndpoint
   /** The settings page's side. */
@@ -55,6 +58,7 @@ export function createApp({
   library,
   reviewQueue,
   coach,
+  walkthroughs,
   mcp,
   settings,
   localHostNamesOnly = false,
@@ -69,7 +73,7 @@ export function createApp({
     .route('/', humanMoveRoutes({ humanMoves }))
     .route('/', libraryRoutes({ library, now }))
     .route('/', reviewQueueRoutes({ reviewQueue }))
-    .route('/', coachRoutes({ coach }))
+    .route('/', coachRoutes({ coach, walkthroughs }))
     .route('/', settingsRoutes({ settings }))
 
   v1.doc31('/openapi.json', {

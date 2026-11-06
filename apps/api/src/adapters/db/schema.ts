@@ -1,4 +1,5 @@
 import type { GameReview } from '@chessy/analysis'
+import type { CoachWalkthroughBody } from '@chessy/contracts'
 import type { LibraryGame, Profile } from '@chessy/library'
 import { sql } from 'drizzle-orm'
 import {
@@ -92,6 +93,22 @@ export const reviewMoves = pgTable(
     primaryKey({ columns: [t.lineHash, t.ply] }),
     index('review_moves_classification').on(t.classification),
   ],
+)
+
+/** The coach's walkthrough of a reviewed line, for one side or both, from one review. */
+export const walkthroughs = pgTable(
+  'walkthroughs',
+  {
+    lineHash: text('line_hash')
+      .notNull()
+      .references(() => reviews.lineHash, { onDelete: 'cascade' }),
+    /** white, black or both. */
+    side: text('side').notNull(),
+    /** When the review it was written from was made: a newer review outdates it. */
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }).notNull(),
+    data: json<CoachWalkthroughBody>('data').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.lineHash, t.side] })],
 )
 
 /** The user's profile; one row per installation for now, keyed by id for more later. */

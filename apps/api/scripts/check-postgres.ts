@@ -17,7 +17,8 @@ import { PostgresGameHistory } from '../src/adapters/db/gameHistory'
 import { lineHash } from '../src/adapters/db/lineHash'
 import { PostgresProfileStore } from '../src/adapters/db/profileStore'
 import { PostgresReviewRepository } from '../src/adapters/db/reviewRepository'
-import { games, profiles, reviews } from '../src/adapters/db/schema'
+import { games, profiles, reviews, walkthroughs } from '../src/adapters/db/schema'
+import { PostgresWalkthroughStore } from '../src/adapters/db/walkthroughStore'
 
 const url = process.env.DATABASE_URL
 if (!url || url.startsWith('pglite:')) throw new Error('Set DATABASE_URL to a PostgreSQL server')
@@ -75,12 +76,31 @@ try {
     ]),
   )
 
+  const walkthrough = {
+    reviewedAt: '2026-11-06T12:00:00.000Z',
+    walkthrough: {
+      summary: 'check',
+      moments: [],
+      focus: 'check',
+      agent: 'check',
+      writtenAt: '2026-11-06T12:00:00.000Z',
+    },
+  }
+  const store = new PostgresWalkthroughStore(db)
+  await store.save(review.line, 'white', walkthrough)
+  check(
+    'a walkthrough comes back unchanged',
+    deepEquals(await store.find(review.line, 'white'), walkthrough),
+  )
+
   const types = await db.execute<{ table: string; type: string }>(sql`
     select 'games' as "table", jsonb_typeof(data) as type from ${games} where id = ${game.id}
     union all
     select 'reviews', jsonb_typeof(data) from ${reviews} where line_hash = ${lineHash(review.line)}
     union all
-    select 'profiles', jsonb_typeof(data) from ${profiles} where id = ${profile.id}`)
+    select 'profiles', jsonb_typeof(data) from ${profiles} where id = ${profile.id}
+    union all
+    select 'walkthroughs', jsonb_typeof(data) from ${walkthroughs} where line_hash = ${lineHash(review.line)}`)
   for (const row of types as unknown as { table: string; type: string }[]) {
     check(`${row.table}: data stored as a JSON object (${row.type})`, row.type === 'object')
   }
