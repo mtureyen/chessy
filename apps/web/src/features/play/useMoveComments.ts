@@ -15,7 +15,7 @@ export interface MoveComment {
   text: string
 }
 
-/** A review's own budget: the classes match the review after the game, which reuses the work. */
+/** A review's own budget, so the review after the game reuses these evaluations. */
 const NODES = presetNodes('standard')
 
 /**
