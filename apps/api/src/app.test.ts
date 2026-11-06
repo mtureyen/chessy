@@ -5,7 +5,7 @@ import {
   type GameSource,
   type SourceGame,
 } from '@chessy/library'
-import { CoachEventSchema } from '@chessy/contracts'
+import { CoachEventSchema, type TrainingResultBody } from '@chessy/contracts'
 import { InMemoryConversationStore, LoopAgent } from '@chessy/coach'
 import { scriptedClient } from '@chessy/coach/testing'
 import { sampleReview } from '@chessy/history/testing'
@@ -29,6 +29,7 @@ import {
 } from './adapters/coach/walkthroughService'
 import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/service'
 import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review/reviewQueueService'
+import type { TrainingService } from './adapters/training/trainingService'
 import { createApp } from './app'
 
 function fakeSource(
@@ -120,6 +121,16 @@ const settings = new FileSettingsService(
   new FileSettingsStore(settingsPath),
   settingsRegistry,
 )
+/** Answers like the real one; its work has tests of its own. */
+const results: TrainingResultBody[] = []
+const training: TrainingService = {
+  training: async () => ({ due: [], waiting: 2, solved: 1 }),
+  record: async (result) => {
+    if (result.ply === 99) throw new Error('No database configured (DATABASE_URL)')
+    results.push(result)
+  },
+}
+
 /** Answers like the real queue; its work has tests of its own. */
 const reviewQueue: ReviewQueueService = {
   status: () => ({ status: 'idle', total: 0, done: 0, failed: 0 }),
@@ -160,6 +171,7 @@ const app = createApp({
   humanMoves,
   library,
   reviewQueue,
+  training,
   coach: { agents: () => coach },
   walkthroughs,
   settings,
@@ -220,6 +232,8 @@ describe('api', () => {
       '/sources/{source}/users/{username}',
       '/sources/{source}/users/{username}/games',
       '/sources/{source}/users/{username}/history',
+      '/training',
+      '/training/results',
     ])
   })
 
@@ -503,6 +517,7 @@ describe('library routes', () => {
       humanMoves,
       library: new DatabaseLibraryService(undefined),
       reviewQueue,
+      training,
       coach: { agents: () => [] },
       walkthroughs,
       settings,
@@ -650,6 +665,29 @@ describe('coach try route', () => {
   })
 })
 
+describe('training routes', () => {
+  const send = (ply: number) =>
+    app.request('/api/v1/training/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startFen: START_FEN, moves: ['e2e4'], ply, solvedFirstTry: true }),
+    })
+
+  it('lists the puzzles and keeps results', async () => {
+    expect(await (await app.request('/api/v1/training')).json()).toEqual({
+      due: [],
+      waiting: 2,
+      solved: 1,
+    })
+    expect((await send(1)).status).toBe(200)
+    expect(results.at(-1)).toMatchObject({ ply: 1, solvedFirstTry: true })
+  })
+
+  it('needs the history', async () => {
+    expect((await send(99)).status).toBe(503)
+  })
+})
+
 describe('review queue routes', () => {
   const start = (body: unknown) =>
     app.request('/api/v1/library/review-queue', {
@@ -756,6 +794,7 @@ describe('coach routes', () => {
         humanMoves,
         library,
         reviewQueue,
+        training,
         walkthroughs,
         coach: {
           agents: () => [
@@ -876,6 +915,7 @@ describe('local host names only', () => {
       humanMoves,
       library: new DatabaseLibraryService(undefined),
       reviewQueue,
+      training,
       coach: { agents: () => [] },
       walkthroughs,
       settings,

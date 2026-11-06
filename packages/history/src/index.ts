@@ -34,6 +34,14 @@ export {
   type MomentFacts,
   type TryVerdict,
 } from './domain/walkthrough'
+export {
+  afterAttempt,
+  gamePuzzles,
+  puzzleState,
+  type Puzzle,
+  type PuzzleProgress,
+  type PuzzleState,
+} from './domain/training'
 export type { GameHistory } from './ports/gameHistory'
 export type { ReviewRepository, StoredReview } from './ports/reviewRepository'
 export { InMemoryReviewRepository } from './adapters/inMemoryReviewRepository'

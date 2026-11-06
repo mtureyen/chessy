@@ -326,3 +326,74 @@ export const resumeReviewQueueRoute = createRoute({
   summary: 'Goes on with a paused run',
   responses: { 200: reviewQueueState },
 })
+
+const PuzzleSchema = z.object({
+  line: z.object({ startFen: z.string(), moves: z.array(z.string()) }),
+  ply: z.number().int(),
+  fen: z.string(),
+  color: z.enum(['white', 'black']),
+  played: z.string(),
+  verdict: z.string(),
+  best: z.object({ move: z.string(), uci: z.string(), line: z.string() }),
+  game: z.object({
+    id: z.string(),
+    opponent: z.string(),
+    date: z.string(),
+    opening: z.string().optional(),
+  }),
+})
+
+export const TrainingSchema = z
+  .object({
+    /** The puzzles to do now, the newest game first. */
+    due: z.array(PuzzleSchema),
+    /** Missed ones that come back later. */
+    waiting: z.number().int(),
+    solved: z.number().int(),
+  })
+  .openapi('Training')
+
+export type TrainingBody = z.infer<typeof TrainingSchema>
+export type PuzzleBody = TrainingBody['due'][number]
+
+export const TrainingResultSchema = z
+  .object({
+    startFen: z.string().max(100),
+    moves: z.array(z.string().max(5)).min(1).max(1000),
+    ply: z.number().int().min(1),
+    solvedFirstTry: z.boolean(),
+  })
+  .openapi('TrainingResult')
+
+export type TrainingResultBody = z.infer<typeof TrainingResultSchema>
+
+export const trainingRoute = createRoute({
+  method: 'get',
+  path: '/training',
+  tags: ['library'],
+  summary: 'The puzzles from the user’s mistakes in their reviewed games',
+  responses: {
+    200: {
+      description: 'What is due, and how many wait or are solved',
+      content: { 'application/json': { schema: TrainingSchema } },
+    },
+    503: unavailable,
+  },
+})
+
+export const trainingResultRoute = createRoute({
+  method: 'post',
+  path: '/training/results',
+  tags: ['library'],
+  summary: 'Keeps how a puzzle went: solved at the first try it is done, else it comes back',
+  request: {
+    body: { content: { 'application/json': { schema: TrainingResultSchema } }, required: true },
+  },
+  responses: {
+    200: {
+      description: 'Stored',
+      content: { 'application/json': { schema: z.object({ stored: z.literal(true) }) } },
+    },
+    503: unavailable,
+  },
+})
