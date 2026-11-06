@@ -40,6 +40,7 @@ import {
 import { ApiGameSource } from '@/adapters/api/apiGameSource'
 import { RemoteLibrary } from '@/adapters/api/remoteLibrary'
 import { RemoteCoach } from '@/adapters/api/remoteCoach'
+import { RemoteReviewQueue } from '@/adapters/api/remoteReviewQueue'
 import { RemoteSettings } from '@/adapters/api/remoteSettings'
 import { createApiClient, type ApiClient } from '@/adapters/api/client'
 import { RemoteEvaluator } from '@/adapters/engine/remoteEvaluator'
@@ -97,6 +98,8 @@ export interface Services {
   }
   /** The API's settings: only answered from this machine (they hold API keys). */
   settings: Pick<RemoteSettings, 'coach' | 'updateCoach' | 'agents'>
+  /** The review of the user's recent games, which runs on the server. */
+  reviewQueue: Pick<RemoteReviewQueue, 'status' | 'start' | 'pause' | 'resume'>
   /** The AI coach: its agents, and questions answered as they are written. */
   coach: {
     agents: RemoteSettings['agents']
@@ -188,6 +191,7 @@ export function createServices(): Services {
       updateCoach: (update) => remoteSettings.updateCoach(update),
       agents: () => remoteSettings.agents(),
     },
+    reviewQueue: new RemoteReviewQueue(api),
     coach: {
       agents: () => remoteSettings.agents(),
       ask: (question, onEvent, signal) => remoteCoach.ask(question, onEvent, signal),

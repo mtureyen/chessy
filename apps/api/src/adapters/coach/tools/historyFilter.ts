@@ -48,7 +48,9 @@ export const filterFields = {
     .min(1)
     .max(500)
     .optional()
-    .describe('Only the newest this many games that match: how the user plays now.'),
+    .describe(
+      'Only the newest this many games, counted after the other filters (color white + 30 = the last 30 White games): how the user plays now. To split the last 30 games, use groupBy.',
+    ),
 }
 
 /** The user's games that match, newest first, and a note when it isn't clear which are theirs. */
