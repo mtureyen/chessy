@@ -1,4 +1,4 @@
-import type { StoredReview } from '@chessy/history'
+import type { GameLine, StoredReview } from '@chessy/history'
 import type { LibraryGame, Profile } from '@chessy/library'
 
 // Types only: app.ts (and through it the web app's typed client) sees this file, not the
@@ -14,6 +14,7 @@ export interface LibraryService {
   saveGames(games: LibraryGame[]): Promise<void>
   missingGames(ids: readonly string[]): Promise<string[]>
   saveReview(review: StoredReview): Promise<void>
+  findReview(line: GameLine): Promise<StoredReview | undefined>
   profile(): Promise<Profile | undefined>
   saveProfile(profile: Profile): Promise<void>
 }
