@@ -5,7 +5,7 @@ import type { SquareSet } from 'chessops/squareSet'
 import type { Role, Square } from 'chessops/types'
 import { makeSquare, parseSquare } from 'chessops/util'
 import { createGame } from './game'
-import type { Color, SquareName } from './types'
+import type { Color, PromotionRole, SquareName } from './types'
 
 /** Pawn units; the king's value only orders it last among attackers. */
 const VALUES: Record<Role, number> = { pawn: 1, knight: 3, bishop: 3, rook: 5, queen: 9, king: 100 }
@@ -47,24 +47,24 @@ export function staticExchange(fen: string, square: SquareName, by: Color): numb
 
 /**
  * The most material the opponent of `color` could win by capturing one of `color`'s pieces
- * (knights and up; pawns and the king aside), with the square of that piece. Undefined if no
+ * (knights and up; pawns and the king aside), with that piece and its square. Undefined if no
  * such capture wins anything. With the opponent to move, only pieces it can legally take right
  * away count: a piece left attacked while giving check isn't offered.
  */
 export function mostExposedPiece(
   fen: string,
   color: Color,
-): { square: SquareName; gain: number } | undefined {
+): { square: SquareName; gain: number; role: PromotionRole } | undefined {
   const setup = parseFen(fen)
   if (setup.isErr) throw new Error(`Invalid FEN: ${fen}`)
   const takeable = setup.value.turn === color ? undefined : legalTargets(fen)
-  let best: { square: SquareName; gain: number } | undefined
+  let best: { square: SquareName; gain: number; role: PromotionRole } | undefined
   for (const [square, piece] of setup.value.board) {
     if (piece.color !== color || piece.role === 'pawn' || piece.role === 'king') continue
     const name = makeSquare(square)
     if (takeable && !takeable.has(name)) continue
     const gain = staticExchange(fen, name, opposite(color))
-    if (gain > 0 && gain > (best?.gain ?? 0)) best = { square: name, gain }
+    if (gain > 0 && gain > (best?.gain ?? 0)) best = { square: name, gain, role: piece.role }
   }
   return best
 }
