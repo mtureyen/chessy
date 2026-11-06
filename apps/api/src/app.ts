@@ -10,6 +10,7 @@ import type { McpEndpoint } from './adapters/coach/mcpEndpoint'
 import type { SettingsService } from './adapters/settings/settingsService'
 import { onlyLocalHostNames } from './http/local'
 import type { ReviewQueueService } from './adapters/review/reviewQueueService'
+import type { TrainingService } from './adapters/training/trainingService'
 import type { LibraryService } from './adapters/db/libraryService'
 import type { EngineService } from './adapters/engine/service'
 import type { HumanMoveService } from './adapters/humanMoves/service'
@@ -21,6 +22,7 @@ import { libraryRoutes } from './routes/v1/library'
 import { reviewQueueRoutes } from './routes/v1/reviewQueue'
 import { settingsRoutes } from './routes/v1/settings'
 import { sourceRoutes } from './routes/v1/sources'
+import { trainingRoutes } from './routes/v1/training'
 
 export interface AppDeps {
   version: string
@@ -32,6 +34,8 @@ export interface AppDeps {
   library: LibraryService
   /** Reviews the user's recent games in the background. */
   reviewQueue: ReviewQueueService
+  /** Puzzles from the user's own mistakes. */
+  training: TrainingService
   /** The coach's agents (they follow the settings), the default first; none: the coach is off. */
   coach: CoachDirectory
   /** The coach's walkthroughs of reviewed games. */
@@ -57,6 +61,7 @@ export function createApp({
   humanMoves,
   library,
   reviewQueue,
+  training,
   coach,
   walkthroughs,
   mcp,
@@ -73,6 +78,7 @@ export function createApp({
     .route('/', humanMoveRoutes({ humanMoves }))
     .route('/', libraryRoutes({ library, now }))
     .route('/', reviewQueueRoutes({ reviewQueue }))
+    .route('/', trainingRoutes({ training }))
     .route('/', coachRoutes({ coach, walkthroughs }))
     .route('/', settingsRoutes({ settings }))
 

@@ -18,6 +18,7 @@ import { lineHash } from '../src/adapters/db/lineHash'
 import { PostgresProfileStore } from '../src/adapters/db/profileStore'
 import { PostgresReviewRepository } from '../src/adapters/db/reviewRepository'
 import { games, profiles, reviews, walkthroughs } from '../src/adapters/db/schema'
+import { PostgresTrainingStore, progressKey } from '../src/adapters/db/trainingStore'
 import { PostgresWalkthroughStore } from '../src/adapters/db/walkthroughStore'
 
 const url = process.env.DATABASE_URL
@@ -91,6 +92,16 @@ try {
   check(
     'a walkthrough comes back unchanged',
     deepEquals(await store.find(review.line, 'white'), walkthrough),
+  )
+
+  const progress = new PostgresTrainingStore(db)
+  await progress.save(review.line, 1, { misses: 1, dueAt: '2026-11-07T12:00:00.000Z' })
+  check(
+    'a puzzle keeps its progress',
+    deepEquals((await progress.all()).get(progressKey(review.line, 1)), {
+      misses: 1,
+      dueAt: '2026-11-07T12:00:00.000Z',
+    }),
   )
 
   const types = await db.execute<{ table: string; type: string }>(sql`
