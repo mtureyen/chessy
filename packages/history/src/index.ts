@@ -29,8 +29,10 @@ export {
   MAX_MOMENTS,
   momentFacts,
   phaseAccuracy,
+  tryVerdict,
   walkthroughMoves,
   type MomentFacts,
+  type TryVerdict,
 } from './domain/walkthrough'
 export type { GameHistory } from './ports/gameHistory'
 export type { ReviewRepository, StoredReview } from './ports/reviewRepository'

@@ -115,3 +115,13 @@ export function phaseAccuracy(
 function piecesOn(fen: string): number {
   return fen.split(' ')[0]!.replace(/[^qrbnQRBN]/g, '').length
 }
+
+export type TryVerdict = 'right' | 'close' | 'wrong'
+
+/** What a try at a better move comes to, by the class the review gives it. */
+export function tryVerdict(classification: ReviewedMove['classification']): TryVerdict {
+  if (classification === 'good') return 'close'
+  return ['brilliant', 'great', 'best', 'excellent', 'book'].includes(classification)
+    ? 'right'
+    : 'wrong'
+}

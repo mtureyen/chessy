@@ -11,7 +11,7 @@ import { createCoachTools } from './adapters/coach/tools'
 import { StoredWalkthroughs } from './adapters/coach/walkthroughs'
 import { createBookLoader } from './adapters/review/openingBook'
 import { ReviewQueue, type ReviewJob } from './adapters/review/reviewQueue'
-import { createServerReviewer } from './adapters/review/serverReviewer'
+import { createServerReviewer, SERVER_REVIEW_NODES } from './adapters/review/serverReviewer'
 import { openDatabase } from './adapters/db/database'
 import { FileSettingsService } from './adapters/settings/fileSettingsService'
 import { FileSettingsStore } from './adapters/settings/fileSettingsStore'
@@ -82,7 +82,17 @@ const app = createApp({
   library,
   reviewQueue,
   coach,
-  walkthroughs: new StoredWalkthroughs(library, createBookLoader(bookPath)),
+  walkthroughs: new StoredWalkthroughs(library, createBookLoader(bookPath), {
+    review: createServerReviewer(reviewing),
+    bestReply: async (fen) => {
+      const [position] = await engine.evaluate({
+        fens: [fen],
+        nodes: SERVER_REVIEW_NODES,
+        multiPv: 1,
+      })
+      return position?.lines[0]?.pv ?? []
+    },
+  }),
   mcp: coach.mcp,
   settings,
   localHostNamesOnly: ['127.0.0.1', 'localhost', '::1'].includes(config.HOST),

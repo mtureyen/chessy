@@ -1,12 +1,25 @@
-import type { GameReview, OpeningBook } from '@chessy/analysis'
-import type { Color } from '@chessy/chess'
 import {
+  formatSanLine,
+  toSanLine,
+  type GameReview,
+  type OpeningBook,
+  type ReviewInput,
+} from '@chessy/analysis'
+import { createGame, mostExposedPiece, type Color } from '@chessy/chess'
+import {
+  triedText,
+  TRY_PROMPT,
   writeWalkthrough,
   type CancelSignal,
   type CoachAgent,
   type WalkthroughFacts,
 } from '@chessy/coach'
-import type { CoachWalkthroughBody, CoachWalkthroughRequestBody } from '@chessy/contracts'
+import type {
+  CoachTryBody,
+  CoachTryRequestBody,
+  CoachWalkthroughBody,
+  CoachWalkthroughRequestBody,
+} from '@chessy/contracts'
 import {
   filterGames,
   groupGames,
@@ -15,6 +28,7 @@ import {
   openingFamily,
   phaseAccuracy,
   playerGames,
+  tryVerdict,
   walkthroughMoves,
   type GameHistory,
   type GameLine,
@@ -22,7 +36,7 @@ import {
 } from '@chessy/history'
 import type { Profile } from '@chessy/library'
 import type { StoredWalkthrough } from '../db/walkthroughStore'
-import { NoStoredReviewError, type WalkthroughService } from './walkthroughService'
+import { IllegalTryError, NoStoredReviewError, type WalkthroughService } from './walkthroughService'
 
 export interface WalkthroughLibrary extends Pick<GameHistory, 'summaries'> {
   profile(): Promise<Profile | undefined>
@@ -31,6 +45,15 @@ export interface WalkthroughLibrary extends Pick<GameHistory, 'summaries'> {
   saveWalkthrough(line: GameLine, side: string, stored: StoredWalkthrough): Promise<void>
 }
 
+/** What judging a tried move takes: a review of it, and the engine's answer to it (UCI). */
+export interface TryJudge {
+  review(input: ReviewInput): Promise<GameReview>
+  bestReply(fen: string): Promise<readonly string[]>
+}
+
+/** Moves of the engine's answer the coach gets to see. */
+const REPLY_MOVES = 4
+
 /**
  * Walkthroughs written from the stored review and kept in the history. Everything the coach says
  * rests on the facts built here; what it draws comes from the review, not from it.
@@ -38,15 +61,18 @@ export interface WalkthroughLibrary extends Pick<GameHistory, 'summaries'> {
 export class StoredWalkthroughs implements WalkthroughService {
   private readonly library: WalkthroughLibrary
   private readonly book: () => Promise<OpeningBook | undefined>
+  private readonly tries: TryJudge
   private readonly now: () => Date
 
   constructor(
     library: WalkthroughLibrary,
     book: () => Promise<OpeningBook | undefined>,
+    tries: TryJudge,
     now: () => Date = () => new Date(),
   ) {
     this.library = library
     this.book = book
+    this.tries = tries
     this.now = now
   }
 
@@ -84,7 +110,62 @@ export class StoredWalkthroughs implements WalkthroughService {
     return walkthrough
   }
 
-  private async review({ startFen, moves }: CoachWalkthroughRequestBody): Promise<StoredReview> {
+  async judge(
+    { startFen, moves, ply, tried }: CoachTryRequestBody,
+    agent: CoachAgent | undefined,
+    signal?: CancelSignal,
+  ): Promise<CoachTryBody> {
+    const { review } = await this.review({ startFen, moves })
+    const moment = review.moves.find((move) => move.ply === ply)
+    const fen = review.positions[ply - 1]?.fen
+    if (!moment || !fen) throw new NoStoredReviewError()
+    const after = createGame(fen).play(tried)
+    if (!after?.move) throw new IllegalTryError(tried)
+    const answer = { san: after.move.san, fen: after.fen }
+    if (tried === moment.uci) return { verdict: 'played', ...answer }
+    if (tried === moment.best?.uci) return { verdict: 'right', ...answer }
+
+    const { rating } = moment.facts
+    const judged = await this.tries.review({
+      startFen: fen,
+      moves: [tried],
+      ...(rating && { ratings: { [moment.color]: rating } }),
+    })
+    const move = judged.moves[0]!
+    const verdict = tryVerdict(move.classification)
+    if (verdict !== 'wrong' || !agent) return { verdict, ...answer }
+
+    const reply = formatSanLine(
+      toSanLine(after.fen, await this.tries.bestReply(after.fen), REPLY_MOVES),
+    )
+    const exposed = mostExposedPiece(after.fen, moment.color)
+    const comment = await agent
+      .compose({
+        system: TRY_PROMPT,
+        text: triedText({
+          fen,
+          tried: after.move.san,
+          played: moment.san,
+          verdict: move.classification,
+          winBefore: Math.round(move.winBefore),
+          winAfter: Math.round(move.winAfter),
+          ...(reply && { bestReply: reply }),
+          ...(exposed && {
+            hanging: { piece: exposed.role, square: exposed.square, pawns: exposed.gain },
+          }),
+          ...(rating && { rating }),
+        }),
+        ...(signal && { signal }),
+      })
+      // The verdict stands without the coach's words.
+      .catch(() => undefined)
+    return { verdict, ...answer, ...(comment && { comment }) }
+  }
+
+  private async review({
+    startFen,
+    moves,
+  }: Pick<CoachWalkthroughRequestBody, 'startFen' | 'moves'>): Promise<StoredReview> {
     const stored = await this.library.findReview({ startFen, moves })
     if (!stored) throw new NoStoredReviewError()
     return stored

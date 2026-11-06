@@ -64,6 +64,37 @@ Answer with one JSON object and nothing else:
 
 One entry per moment given, same plies. "what": two or three sentences on what the move did and what it allowed. It must NOT name or hint at the better move: the player gets to look for it first. "better": one or two sentences on the better move and the idea behind it; leave it out when no better move is given.`
 
+/** A move the player tried instead of the one they played, and found not good enough. */
+export interface TriedMove {
+  /** The position they are trying in (FEN). */
+  fen: string
+  tried: string
+  /** The move they played in the game there. */
+  played: string
+  verdict: string
+  /** Their winning chances (%) with the best move, and with this one. */
+  winBefore: number
+  winAfter: number
+  /** The engine's best answer to the try, in SAN. */
+  bestReply?: string
+  hanging?: { piece: string; square: string; pawns: number }
+  rating?: number
+}
+
+/** While the player still looks for the better move: nothing here may give it away. */
+export const TRY_PROMPT = `You are Chessy's chess coach. The player is back at a moment of a finished game, looking for a better move than the one they played. They just tried a move that isn't good enough.
+
+Rules:
+- One or two short sentences on what is wrong with the move they tried, for their rating, addressed to them as "you".
+- Never name or hint at the better move, and name no other move of theirs: they are still looking for it.
+- Use only the facts given. "bestReply" is what the opponent could answer: say "could". Never calculate variations, never guess an evaluation.
+- No engine numbers, no greeting.`
+
+/** A try as the model reads it. */
+export function triedText(move: TriedMove): string {
+  return `I tried this instead:\n${JSON.stringify(move, null, 1)}`
+}
+
 /** The facts as the model reads them. */
 export function walkthroughText(facts: WalkthroughFacts): string {
   return `The review of my game:\n${JSON.stringify(facts, null, 1)}`

@@ -1,4 +1,10 @@
-import type { GameReview, OpeningBook, ReviewedMove } from '@chessy/analysis'
+import type {
+  GameReview,
+  MoveClass,
+  OpeningBook,
+  ReviewedMove,
+  ReviewInput,
+} from '@chessy/analysis'
 import { createGame } from '@chessy/chess'
 import { InMemoryConversationStore, LoopAgent } from '@chessy/coach'
 import { scriptedClient } from '@chessy/coach/testing'
@@ -7,8 +13,8 @@ import { sampleReview, sampleSummary } from '@chessy/history/testing'
 import { buildProfile } from '@chessy/library'
 import { describe, expect, it } from 'vitest'
 import type { StoredWalkthrough } from '../db/walkthroughStore'
-import { StoredWalkthroughs, type WalkthroughLibrary } from './walkthroughs'
-import { NoStoredReviewError } from './walkthroughService'
+import { StoredWalkthroughs, type TryJudge, type WalkthroughLibrary } from './walkthroughs'
+import { IllegalTryError, NoStoredReviewError } from './walkthroughService'
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 const MOVES = ['e2e4', 'e7e5', 'b1c3', 'g8f6', 'd1h5', 'f6h5']
@@ -38,6 +44,7 @@ function reviewed(reviewedAt = '2026-11-05T10:00:00.000Z'): StoredReview {
 }
 
 function setup(stored: StoredReview | undefined = reviewed()) {
+  const tryClass: { value: MoveClass } = { value: 'mistake' }
   const kept = new Map<string, StoredWalkthrough>()
   const key = (line: GameLine, side: string) => `${lineText(line)}|${side}`
   const library: WalkthroughLibrary = {
@@ -66,12 +73,25 @@ function setup(stored: StoredReview | undefined = reviewed()) {
         ? { eco: 'C25', name: 'Vienna Game' }
         : undefined,
   }
+  const judged: ReviewInput[] = []
+  const tries: TryJudge = {
+    review: async (input) => {
+      judged.push(input)
+      const { review } = sampleReview({ startFen: input.startFen, moves: input.moves })
+      review.moves[0]!.classification = tryClass.value
+      review.moves[0]!.winBefore = 55
+      review.moves[0]!.winAfter = 20
+      return review
+    },
+    bestReply: async () => ['f6h5'],
+  }
   const service = new StoredWalkthroughs(
     library,
     async () => book,
+    tries,
     () => new Date('2026-11-06T12:00:00.000Z'),
   )
-  return { service, kept }
+  return { service, kept, judged, tryClass }
 }
 
 const reply = JSON.stringify({
@@ -140,10 +160,78 @@ describe('StoredWalkthroughs', () => {
         saveWalkthrough: async () => {},
       },
       async () => undefined,
+      { review: async () => reviewed().review, bestReply: async () => [] },
     )
     await expect(missing.find(request)).rejects.toBeInstanceOf(NoStoredReviewError)
     await expect(missing.write(request, agent(reply).coach)).rejects.toBeInstanceOf(
       NoStoredReviewError,
     )
+  })
+
+  describe('a move tried at a moment', () => {
+    const at = { startFen: START, moves: MOVES, ply: 5 }
+
+    it('knows the move played and the better one without the engine', async () => {
+      const { service, judged } = setup()
+      expect(await service.judge({ ...at, tried: 'd1h5' }, undefined)).toMatchObject({
+        verdict: 'played',
+        san: 'Qh5',
+      })
+      expect(await service.judge({ ...at, tried: 'g1f3' }, undefined)).toMatchObject({
+        verdict: 'right',
+        san: 'Nf3',
+      })
+      expect(judged).toEqual([])
+    })
+
+    it('lets the review judge other moves; a move nearly as good is right', async () => {
+      const { service, tryClass, judged } = setup()
+      tryClass.value = 'excellent'
+      expect(await service.judge({ ...at, tried: 'f1c4' }, undefined)).toMatchObject({
+        verdict: 'right',
+        san: 'Bc4',
+      })
+      expect(judged[0]).toMatchObject({ moves: ['f1c4'], ratings: { white: 790 } })
+      tryClass.value = 'good'
+      expect((await service.judge({ ...at, tried: 'f1c4' }, undefined)).verdict).toBe('close')
+    })
+
+    it('has the coach comment on a wrong try, with no better move in what it gets', async () => {
+      const { service } = setup()
+      const { coach, requests } = agent('That leaves your queen with nowhere to go.')
+      const answer = await service.judge({ ...at, tried: 'd1g4' }, coach)
+      expect(answer).toMatchObject({
+        verdict: 'wrong',
+        san: 'Qg4',
+        comment: 'That leaves your queen with nowhere to go.',
+      })
+      expect(requests[0]!.tools).toEqual([])
+      const facts = JSON.stringify(requests[0]!.messages)
+      expect(facts).toContain('Qg4')
+      expect(facts).not.toContain('Nf3')
+      expect(facts).not.toContain('g1f3')
+    })
+
+    it('gives the verdict alone without a coach, or when the coach fails', async () => {
+      const { service } = setup()
+      expect(await service.judge({ ...at, tried: 'd1g4' }, undefined)).toEqual({
+        verdict: 'wrong',
+        san: 'Qg4',
+        fen: expect.any(String),
+      })
+      const failing = agent()
+      const answer = await service.judge({ ...at, tried: 'd1g4' }, failing.coach)
+      expect(answer).not.toHaveProperty('comment')
+    })
+
+    it('refuses an illegal move and a moment that is not there', async () => {
+      const { service } = setup()
+      await expect(service.judge({ ...at, tried: 'a1a8' }, undefined)).rejects.toBeInstanceOf(
+        IllegalTryError,
+      )
+      await expect(
+        service.judge({ ...at, ply: 99, tried: 'g1f3' }, undefined),
+      ).rejects.toBeInstanceOf(NoStoredReviewError)
+    })
   })
 })
