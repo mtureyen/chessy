@@ -104,6 +104,7 @@ export interface Services {
   coach: {
     agents: RemoteSettings['agents']
     ask: RemoteCoach['ask']
+    comment: RemoteCoach['comment']
   }
   history: {
     /**
@@ -119,6 +120,11 @@ export interface Services {
       input: ReviewInput,
       options: ReviewOptions & { engine: ReviewEngine },
     ) => Promise<GameReview>
+    /**
+     * Judges moves as a review would, on the server's engine if there is one (never the bot's)
+     * and sharing a review's evaluations; the result isn't kept as a review of the game.
+     */
+    judge: (input: ReviewInput, options: ReviewOptions) => Promise<GameReview>
   }
 }
 
@@ -151,6 +157,13 @@ export function createServices(): Services {
   // The bot's own engine, so a bot game never competes with analysis or a review.
   const botEngine = createBrowserEngine()
   const botHuman = humanPolicyLoader(api)
+  const reviewDeps = async (engine: ReviewEngine) => {
+    // The server's Maia, when it has one, judges which sacrifices were hard to find.
+    const [book, humanMoves] = await Promise.all([loadBook(), RemoteHumanMoves.describe(api)])
+    return { evaluator: evaluators[engine], cache: evals, book, ...(humanMoves && { humanMoves }) }
+  }
+  const serverEngine = () =>
+    withTimeout(evaluators.server.describe(), SERVER_CHECK_MS).catch(() => undefined)
   const newId = () => crypto.randomUUID()
   const now = () => new Date()
 
@@ -168,22 +181,17 @@ export function createServices(): Services {
       saveLocalGame: (game) => recordLocalGame({ repository: games, newId, now }, game),
     },
     review: {
-      serverEngine: () =>
-        withTimeout(evaluators.server.describe(), SERVER_CHECK_MS).catch(() => undefined),
+      serverEngine,
       run: async (input, { engine, ...options }) => {
-        // The server's Maia, when it has one, judges which sacrifices were hard to find.
-        const [book, humanMoves] = await Promise.all([loadBook(), RemoteHumanMoves.describe(api)])
-        const review = await reviewGame(
-          { evaluator: evaluators[engine], cache: evals, book, ...(humanMoves && { humanMoves }) },
-          input,
-          options,
-        )
+        const review = await reviewGame(await reviewDeps(engine), input, options)
         // Kept in the server's history too; without one the review just isn't kept there.
         remoteLibrary
           .saveReview({ startFen: input.startFen, moves: input.moves }, review)
           .catch(() => undefined)
         return review
       },
+      judge: async (input, options) =>
+        reviewGame(await reviewDeps((await serverEngine()) ? 'server' : 'browser'), input, options),
     },
     // Plain functions (not the class's methods), so they can be handed around, e.g. as queryFn.
     settings: {
@@ -195,6 +203,7 @@ export function createServices(): Services {
     coach: {
       agents: () => remoteSettings.agents(),
       ask: (question, onEvent, signal) => remoteCoach.ask(question, onEvent, signal),
+      comment: (move, signal) => remoteCoach.comment(move, signal),
     },
     profile: {
       load: async () => {

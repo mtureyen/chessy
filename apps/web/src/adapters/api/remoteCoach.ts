@@ -1,5 +1,6 @@
 import {
   CoachEventSchema,
+  type CoachCommentBody,
   type CoachEventBody,
   type CoachQuestionBody,
   type Problem,
@@ -27,10 +28,7 @@ export class RemoteCoach {
       { json: question },
       signal ? { init: { signal } } : undefined,
     )
-    if (res.status !== 200 || !res.body) {
-      const problem = (await res.json().catch(() => ({}))) as Partial<Problem>
-      throw new Error(problem.detail ?? problem.title ?? `HTTP ${res.status}`)
-    }
+    if (res.status !== 200 || !res.body) throw await failure(res)
     const reader = res.body.getReader()
     const events = new ServerSentEvents()
     for (;;) {
@@ -39,6 +37,21 @@ export class RemoteCoach {
       for (const event of events.push(value)) onEvent(event)
     }
   }
+
+  /** A short comment on a move of a running game. Throws when there is none. */
+  async comment(move: CoachCommentBody, signal?: AbortSignal): Promise<string> {
+    const res = await this.api.api.v1.coach.comments.$post(
+      { json: move },
+      signal ? { init: { signal } } : undefined,
+    )
+    if (res.status !== 200) throw await failure(res)
+    return (await res.json()).text
+  }
+}
+
+async function failure(res: { status: number; json(): Promise<unknown> }): Promise<Error> {
+  const problem = (await res.json().catch(() => ({}))) as Partial<Problem>
+  return new Error(problem.detail ?? problem.title ?? `HTTP ${res.status}`)
 }
 
 /**
