@@ -1,5 +1,5 @@
 import { positionKey } from '@chessy/analysis'
-import type { MoveNode, PgnHeaders } from '@chessy/chess'
+import type { Color, MoveNode, PgnHeaders } from '@chessy/chess'
 import { LOCAL_PLAYER_NAME, type PlayerProfile, type Profile } from '@chessy/library'
 
 /** The longest game the coach is sent (the API's limit); a longer one goes without its PGN. */
@@ -20,18 +20,26 @@ export function findPosition(root: MoveNode, fen: string): MoveNode | undefined 
   return undefined
 }
 
+/** The colour the user played in the game, by their accounts or "You" in games played here. */
+export function userColor(
+  headers: PgnHeaders,
+  profile: Profile | null | undefined,
+): Color | undefined {
+  const names = [LOCAL_PLAYER_NAME, ...(profile?.accounts.map((a) => a.username) ?? [])].map(
+    (name) => name.toLowerCase(),
+  )
+  if (names.includes((headers.White ?? '').toLowerCase())) return 'white'
+  if (names.includes((headers.Black ?? '').toLowerCase())) return 'black'
+  return undefined
+}
+
 /** The user's rating in the game (WhiteElo/BlackElo of the side they played), if they played it. */
 export function userRating(
   headers: PgnHeaders,
   profile: Profile | null | undefined,
 ): number | undefined {
-  const names = [LOCAL_PLAYER_NAME, ...(profile?.accounts.map((a) => a.username) ?? [])].map(
-    (name) => name.toLowerCase(),
-  )
-  const side = (['White', 'Black'] as const).find((tag) =>
-    names.includes((headers[tag] ?? '').toLowerCase()),
-  )
-  const rating = side && Number(headers[`${side}Elo`])
+  const color = userColor(headers, profile)
+  const rating = color && Number(headers[color === 'white' ? 'WhiteElo' : 'BlackElo'])
   return rating && Number.isInteger(rating) && rating >= 100 && rating <= 3500 ? rating : undefined
 }
 

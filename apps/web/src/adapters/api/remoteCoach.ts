@@ -3,6 +3,8 @@ import {
   type CoachCommentBody,
   type CoachEventBody,
   type CoachQuestionBody,
+  type CoachWalkthroughBody,
+  type CoachWalkthroughRequestBody,
   type Problem,
 } from '@chessy/contracts'
 import type { ApiClient } from './client'
@@ -39,6 +41,16 @@ export class RemoteCoach {
   }
 
   /** A short comment on a move of a running game. Throws when there is none. */
+  /** The coach's walkthrough of a reviewed game: the kept one, or written now. */
+  async walkthrough(request: CoachWalkthroughRequestBody): Promise<CoachWalkthroughBody> {
+    const res = await this.api.api.v1.coach.walkthroughs.$post({ json: request })
+    if (res.status !== 200) {
+      const problem = (await res.json().catch(() => ({}))) as Partial<Problem>
+      throw new Error(problem.detail ?? problem.title ?? `HTTP ${res.status}`)
+    }
+    return (await res.json()) as CoachWalkthroughBody
+  }
+
   async comment(move: CoachCommentBody, signal?: AbortSignal): Promise<string> {
     const res = await this.api.api.v1.coach.comments.$post(
       { json: move },

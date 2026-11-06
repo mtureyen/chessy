@@ -232,3 +232,92 @@
   color: var(--text);
   border-bottom-color: var(--accent);
 }
+
+.walkthrough-start {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.walkthrough {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.walkthrough-progress,
+.walkthrough-meta,
+.walkthrough-record {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.walkthrough-step {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.walkthrough-step h3,
+.walkthrough-step h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.walkthrough-step p {
+  margin: 0 0 0.5rem;
+}
+
+.panel .walkthrough-step > button {
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.walkthrough-better {
+  padding-left: 0.6rem;
+  border-left: 3px solid var(--accent);
+}
+
+.walkthrough-phases {
+  display: flex;
+  gap: 1.2rem;
+  margin: 0.5rem 0 0;
+}
+
+.walkthrough-phases dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.walkthrough-phases dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.walkthrough-nav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.35rem;
+}
+
+.panel .walkthrough-nav button {
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.panel .walkthrough-nav .walkthrough-next {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.panel .walkthrough-meta button {
+  padding: 0;
+  background: none;
+  color: var(--text-muted);
+  text-decoration: underline;
+}
