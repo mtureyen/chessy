@@ -8,6 +8,7 @@ import {
   type ReviewInput,
   type ReviewOptions,
 } from '@chessy/analysis'
+import type { GameLine } from '@chessy/history'
 import {
   buildProfile,
   importHistory,
@@ -116,6 +117,8 @@ export interface Services {
   review: {
     /** The API's native engine, if the server has one. */
     serverEngine: () => Promise<EvaluatorInfo | undefined>
+    /** The review the server keeps of a main line; null if it has none or can't be reached. */
+    stored: (line: GameLine) => Promise<GameReview | null>
     run: (
       input: ReviewInput,
       options: ReviewOptions & { engine: ReviewEngine },
@@ -182,6 +185,7 @@ export function createServices(): Services {
     },
     review: {
       serverEngine,
+      stored: (line) => withTimeout(remoteLibrary.review(line), SERVER_CHECK_MS).catch(() => null),
       run: async (input, { engine, ...options }) => {
         const review = await reviewGame(await reviewDeps(engine), input, options)
         // Kept in the server's history too; without one the review just isn't kept there.
