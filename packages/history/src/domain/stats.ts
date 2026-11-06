@@ -68,7 +68,9 @@ const STRENGTH_ORDER = [
 function groupKey({ game, side, category, rating, opponent }: PlayerGame, by: GroupBy) {
   switch (by) {
     case 'opening':
-      return game.opening?.name ? openingFamily(game.opening.name) : 'unknown opening'
+      return game.opening?.name && game.opening.name !== NO_OPENING
+        ? openingFamily(game.opening.name)
+        : 'unknown opening'
     case 'color':
       return side
     case 'speed':
@@ -84,6 +86,9 @@ function groupKey({ game, side, category, rating, opponent }: PlayerGame, by: Gr
     }
   }
 }
+
+/** Not an opening: what games imported from chess.com earlier may have as the name of none. */
+const NO_OPENING = 'Undefined'
 
 /** Words that end an opening's family name in chess.com's names ("Sicilian Defense Alapin Variation"). */
 const FAMILY_ENDS = new Set(['opening', 'game', 'defense', 'defence', 'attack', 'gambit', 'system'])

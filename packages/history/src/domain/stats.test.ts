@@ -65,6 +65,19 @@ describe('groupGames', () => {
     ])
   })
 
+  it('counts chess.com\'s "Undefined" as an unknown opening', () => {
+    const stored = playerGames(
+      [
+        summary({ id: 'x', white: me('8sly'), opening: { name: 'Undefined' } }),
+        summary({ id: 'y', white: me('8sly'), opening: { eco: 'A00' } }),
+      ],
+      profile,
+    )
+    expect(groupGames(stored, 'opening').map((g) => [g.key, g.tally.games])).toEqual([
+      ['unknown opening', 2],
+    ])
+  })
+
   it('orders months in time and opponents by strength', () => {
     expect(groupGames(games, 'month').map((g) => g.key)).toEqual(['2026-09', '2026-10'])
     expect(groupGames(games, 'opponent_strength').map((g) => [g.key, g.tally.games])).toEqual([
