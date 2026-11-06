@@ -88,6 +88,12 @@ this machine. What the page sets, by provider: It states only what its tools ret
 - **Any other OpenAI-compatible API** (OpenAI, OpenRouter, Groq, LM Studio, …): `COACH_OPENAI_URL`,
   `COACH_OPENAI_MODEL`, `COACH_OPENAI_KEY`.
 
+In a game against a bot the coach stays out of it: you can ask it once the game is over, about
+that game. With **Coach comments** switched on it says a sentence or two after your notable moves
+(the moves a review would point out), one at a time. A comment is written from the facts of that
+move alone, in a request with no tools and no conversation, so it has no engine to ask and can't
+tell you what to play.
+
 `bun run --cwd apps/api coach:check [claude-headless|ollama|openai-compatible]` asks a real question and shows the answer, the tools it
 used and the tokens it cost.
 

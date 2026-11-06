@@ -1,4 +1,5 @@
-import { importPgn, type Color } from '@chessy/chess'
+import { exportPgn, importPgn, type Color } from '@chessy/chess'
+import { LOCAL_PLAYER_NAME } from '@chessy/library'
 import {
   approximateRating,
   BOT_LEVELS,
@@ -14,16 +15,26 @@ import {
   type UnfinishedBotGame,
 } from '@chessy/play'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
+import { CoachPanel } from '@/features/coach/CoachPanel'
+import { Markdown } from '@/features/coach/Markdown'
+import { findPosition, MAX_PGN_LENGTH, usualRating } from '@/features/coach/situation'
+import { useCoachChat } from '@/features/coach/useCoachChat'
+import { useCoachDrawing } from '@/features/coach/useCoachDrawing'
+import { usePlayer, useProfile } from '@/features/profile/useProfile'
+import { ClassBadge } from '@/features/review/ClassBadge'
 import { Board } from '@/shared/board/Board'
 import { GameStatusBar } from '@/shared/game/GameStatusBar'
 import { MoveTree } from '@/shared/game/MoveTree'
 import { NavigationControls } from '@/shared/game/NavigationControls'
 import { useGameKeyboard } from '@/shared/game/useGameKeyboard'
 import { ClockFace } from './ClockFace'
+import { coachCommentsOn, rememberCoachComments } from './coachComments'
 import { useBotGame } from './useBotGame'
+import { useMoveComments, type MoveComment } from './useMoveComments'
+import '@/features/review/Review.css'
 import '@/shared/game/GamePanel.css'
 import './BotPage.css'
 
@@ -85,6 +96,37 @@ function ResumeCard({
   )
 }
 
+/** Turns the coach's comments on the user's moves on and off. */
+function CommentsSwitch({ on, onChange }: { on: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <label className="bot-comments-switch">
+      <input
+        type="checkbox"
+        role="switch"
+        checked={on}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      Coach comments
+    </label>
+  )
+}
+
+/** What the coach said about the user's moves during the game. */
+function MoveComments({ comments }: { comments: MoveComment[] }) {
+  return (
+    <ul className="bot-comments" aria-label="Coach comments" aria-live="polite">
+      {comments.map((comment) => (
+        <li key={comment.ply}>
+          <span className="bot-comment-move">
+            <ClassBadge cls={comment.verdict} /> {comment.move}
+          </span>
+          <Markdown text={comment.text} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 /** Play against a bot: pick a level and a side, play, then review the game. */
 export function BotPage() {
   const [level, setLevel] = useState(3)
@@ -92,6 +134,7 @@ export function BotPage() {
   /** Index into TIME_CONTROLS; -1 for no clock. */
   const [clockChoice, setClockChoice] = useState(-1)
   const [match, setMatch] = useState<Match>()
+  const [comments, setComments] = useState(coachCommentsOn)
   const humanModel = useHumanModel()
   const { play } = useServices()
   const unfinished = useQuery({
@@ -109,6 +152,11 @@ export function BotPage() {
     }))
   }
 
+  const switchComments = (on: boolean) => {
+    rememberCoachComments(on)
+    setComments(on)
+  }
+
   const resume = (game: UnfinishedBotGame) =>
     setMatch((previous) => ({
       setup: game.setup,
@@ -124,6 +172,8 @@ export function BotPage() {
         setup={match.setup}
         seed={match.seed}
         {...(match.resume && { resume: match.resume })}
+        comments={comments}
+        onSwitchComments={switchComments}
         onRematch={() => start({ ...match.setup, color: opposite(match.setup.color) })}
         onNewGame={() => setMatch(undefined)}
       />
@@ -198,6 +248,7 @@ export function BotPage() {
             </button>
           ))}
         </fieldset>
+        <CommentsSwitch on={comments} onChange={switchComments} />
         <button
           type="button"
           className="bot-play"
@@ -217,16 +268,57 @@ interface BotGameProps {
   setup: BotGameSetup
   seed: number
   resume?: UnfinishedBotGame
+  /** Whether the coach comments on the user's moves. */
+  comments: boolean
+  onSwitchComments: (on: boolean) => void
   onRematch: () => void
   onNewGame: () => void
 }
 
-function BotGame({ setup, seed, resume, onRematch, onNewGame }: BotGameProps) {
+function BotGame({
+  setup,
+  seed,
+  resume,
+  comments,
+  onSwitchComments,
+  onRematch,
+  onNewGame,
+}: BotGameProps) {
   const bot = useBotGame(setup, seed, resume)
   const { game, view, update } = bot
   const humanModel = useHumanModel()
   const [orientation, setOrientation] = useState<Color>(setup.color)
+  const [tab, setTab] = useState<'moves' | 'coach'>('moves')
   const navigate = useNavigate()
+  const profile = useProfile()
+  const account = profile.data?.accounts[0]
+  const player = usePlayer(account?.source ?? 'chesscom', account?.username)
+  const rating = player.data && usualRating(player.data.ratings)
+
+  const { shownDrawing, showDrawing } = useCoachDrawing(view, update)
+  const chat = useCoachChat({ onDrawing: showDrawing })
+  const moveComments = useMoveComments({
+    view,
+    color: setup.color,
+    agent: chat.agent?.id,
+    rating,
+    enabled: comments && chat.agent !== undefined,
+  })
+  const coachContext = () => {
+    const { color, level } = setup
+    const [white, black] =
+      color === 'white' ? [LOCAL_PLAYER_NAME, botName(level)] : [botName(level), LOCAL_PLAYER_NAME]
+    // The saved game also has the result and how it ended.
+    const pgn =
+      bot.save.status === 'saved'
+        ? bot.save.game.pgn
+        : exportPgn(game, { White: white, Black: black })
+    return {
+      fen: view.fen,
+      ...(pgn.length <= MAX_PGN_LENGTH && { pgn }),
+      ...(rating && { rating }),
+    }
+  }
 
   const flip = () => setOrientation((o) => opposite(o))
   useGameKeyboard(
@@ -249,6 +341,7 @@ function BotGame({ setup, seed, resume, onRematch, onNewGame }: BotGameProps) {
           check={view.check}
           isPromotion={(from, to) => game.isPromotion(from, to)}
           onMove={bot.move}
+          drawing={shownDrawing}
         />
       </section>
 
@@ -286,13 +379,66 @@ function BotGame({ setup, seed, resume, onRematch, onNewGame }: BotGameProps) {
           </div>
         )}
 
-        <div className="moves">
-          <MoveTree
-            root={view.root}
-            current={view.current}
-            onSelect={(node) => update((g) => g.goTo(node))}
-          />
+        {bot.over && (
+          <div className="panel-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'moves'}
+              onClick={() => setTab('moves')}
+            >
+              Moves
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'coach'}
+              onClick={() => setTab('coach')}
+            >
+              {chat.answering && tab !== 'coach' ? 'Coach …' : 'Coach'}
+            </button>
+          </div>
+        )}
+
+        <div className={tab === 'coach' ? 'moves moves-coach' : 'moves'}>
+          {tab === 'coach' ? (
+            <CoachPanel
+              chat={chat}
+              context={coachContext}
+              canShow={(fen) => findPosition(view.root, fen) !== undefined}
+              onShow={showDrawing}
+              orientation={orientation}
+            />
+          ) : (
+            <MoveTree
+              root={view.root}
+              current={view.current}
+              onSelect={(node) => update((g) => g.goTo(node))}
+            />
+          )}
         </div>
+
+        {tab === 'moves' && (!bot.over || moveComments.length > 0) && (
+          <section className="bot-coach" aria-label="Coach">
+            {!bot.over && (
+              <>
+                <CommentsSwitch on={comments} onChange={onSwitchComments} />
+                <p className="bot-coach-closed">
+                  You can ask the coach when the game is over; it opens here then.
+                </p>
+                {comments && !chat.agents.isPending && !chat.agent && (
+                  <p className="bot-coach-closed">
+                    No coach is ready to comment.{' '}
+                    <Link to="/settings" search={{ tab: 'coach' }}>
+                      Set one up
+                    </Link>
+                  </p>
+                )}
+              </>
+            )}
+            {moveComments.length > 0 && <MoveComments comments={moveComments} />}
+          </section>
+        )}
 
         {bot.over && (
           <div className="bot-over">
