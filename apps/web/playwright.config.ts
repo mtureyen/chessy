@@ -6,11 +6,12 @@ const CI = !!process.env.CI
 
 // E2E runs its own servers on separate ports, so it never talks to a `bun dev` session (live
 // lichess/chess.com data). The API answers from recorded responses instead, and keeps the game
-// history in an in-memory database that starts empty each run.
-const API_PORT = 3100
+// history in an in-memory database that starts empty each run. E2E_API_PORT and E2E_WEB_PORT
+// keep runs apart, e.g. in two worktrees: a local run reuses a server it finds on its ports.
+const API_PORT = Number(process.env.E2E_API_PORT ?? 3100)
 /** Never the user's own settings (their API keys): a fresh file per run. */
 const SETTINGS_PATH = join(tmpdir(), `chessy-e2e-settings-${process.pid}.json`)
-const WEB_PORT = 5174
+const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 5174)
 
 export default defineConfig({
   testDir: './e2e',
