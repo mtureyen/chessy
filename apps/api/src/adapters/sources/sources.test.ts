@@ -146,29 +146,30 @@ describe('ChessComGameSource', () => {
     })
   })
 
+  const gameWithOpening = (eco: string) => ({
+    uuid: eco,
+    url: 'https://www.chess.com/game/live/1',
+    pgn: '[ECO "B42"]\n[Result "1-0"]',
+    end_time: 1,
+    rated: true,
+    rules: 'chess',
+    time_class: 'blitz',
+    time_control: '180',
+    white: { username: 'a' },
+    black: { username: 'b' },
+    eco,
+  })
+
   it('cuts the move sequence off opening names, also when it hangs off a word', async () => {
-    const game = (eco: string) => ({
-      uuid: eco,
-      url: 'https://www.chess.com/game/live/1',
-      pgn: '[ECO "B42"]\n[Result "1-0"]',
-      end_time: 1,
-      rated: true,
-      rules: 'chess',
-      time_class: 'blitz',
-      time_control: '180',
-      white: { username: 'a' },
-      black: { username: 'b' },
-      eco,
-    })
     const fetch: Fetch = async (url) =>
       url.endsWith('/archives')
         ? Response.json({ archives: ['https://api.chess.com/pub/player/a/games/2026/10'] })
         : Response.json({
             games: [
-              game(
+              gameWithOpening(
                 'https://www.chess.com/openings/Sicilian-Defense-Kan-Modern-Variation...9.Nc3-Bg7',
               ),
-              game(
+              gameWithOpening(
                 'https://www.chess.com/openings/Caro-Kann-Defense-Two-Knights-Mindeno-Exchange-Line',
               ),
             ],
@@ -178,6 +179,15 @@ describe('ChessComGameSource', () => {
       'Caro Kann Defense Two Knights Mindeno Exchange Line',
       'Sicilian Defense Kan Modern Variation',
     ])
+  })
+
+  it('gives a game with the opening "Undefined" no name', async () => {
+    const fetch: Fetch = async (url) =>
+      url.endsWith('/archives')
+        ? Response.json({ archives: ['https://api.chess.com/pub/player/a/games/2026/10'] })
+        : Response.json({ games: [gameWithOpening('https://www.chess.com/openings/Undefined')] })
+    const [game] = await new ChessComGameSource({ fetch, userAgent }).recentGames('a1', { max: 5 })
+    expect(game?.opening).toEqual({ eco: 'B42' })
   })
 
   it('skips variants, maps daily games, reports unknown users', async () => {
