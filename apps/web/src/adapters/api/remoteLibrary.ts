@@ -35,6 +35,15 @@ export class RemoteLibrary implements LibraryMirror {
     if (res.status !== 200) throw new Error(`Saving the review failed: HTTP ${res.status}`)
   }
 
+  /** The review kept of a line; null if there is none (or no database). */
+  async review(line: GameLine): Promise<GameReview | null> {
+    const res = await this.api.api.v1.library.reviews.find.$post({
+      json: { startFen: line.startFen, moves: [...line.moves] },
+    })
+    if (res.status !== 200) return null
+    return ((await res.json()) as unknown as { review: GameReview }).review
+  }
+
   /** The profile kept on the server; undefined if there is none (or no database). */
   async profile(): Promise<Profile | undefined> {
     const res = await this.api.api.v1.profile.$get()

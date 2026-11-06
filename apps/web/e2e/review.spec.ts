@@ -2,6 +2,11 @@ import { expect, test, type Page } from '@playwright/test'
 
 const SCHOLARS_MATE = '1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0'
 
+// Every review here reaches the run's one database; a test must not find another test's.
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/v1/library/reviews/find', (route) => route.fulfill({ status: 404 }))
+})
+
 async function openAnalysis(page: Page, pgn: string) {
   await page.goto(`/analysis?${new URLSearchParams({ pgn })}`)
   await page.waitForSelector('cg-board')
