@@ -76,6 +76,12 @@ export function ReviewPanel({
   )
 
   switch (state.status) {
+    case 'checking':
+      return (
+        <div className="review">
+          <p className="review-intro">Looking for a stored review…</p>
+        </div>
+      )
     case 'idle':
       return (
         <div className="review">

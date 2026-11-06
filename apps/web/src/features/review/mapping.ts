@@ -1,11 +1,17 @@
 import type { GameReview, ReviewedMove } from '@chessy/analysis'
 import type { MoveNode } from '@chessy/chess'
+import type { GameLine } from '@chessy/history'
 
 /** The main line's nodes, first move first. */
 export function mainline(root: MoveNode): MoveNode[] {
   const nodes: MoveNode[] = []
   for (let n = root.children[0]; n; n = n.children[0]) nodes.push(n)
   return nodes
+}
+
+/** The line a review of this game is of: where it starts and the main line's moves. */
+export function reviewLine(root: MoveNode): GameLine {
+  return { startFen: root.fen, moves: mainline(root).map((node) => node.move!.uci) }
 }
 
 /**
@@ -22,4 +28,9 @@ export function reviewedNodes(root: MoveNode, review: GameReview): Map<string, R
     byNode.set(node.id, move)
   }
   return byNode
+}
+
+/** Whether the main line starts with all the reviewed moves. */
+export function fitsMainline(root: MoveNode, review: GameReview): boolean {
+  return reviewedNodes(root, review).size === review.moves.length
 }
