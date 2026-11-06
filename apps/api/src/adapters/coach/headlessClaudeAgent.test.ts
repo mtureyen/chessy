@@ -1,5 +1,13 @@
-import { defineTool, SYSTEM_PROMPT, type CoachContext, type CoachEvent } from '@chessy/coach'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import {
+  COMMENT_PROMPT,
+  commentText,
+  defineTool,
+  SYSTEM_PROMPT,
+  type CoachContext,
+  type CoachEvent,
+  type CommentedMove,
+} from '@chessy/coach'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { HeadlessClaudeAgent, type ProcessRun, type RunProcess } from './headlessClaudeAgent'
 import { CoachRuns, handleMcpRequest } from './mcp'
@@ -130,6 +138,41 @@ const agentWith = (runs: CoachRuns, run: RunProcess) =>
     mcpUrl: (token) => `http://localhost:3000/api/v1/mcp/${token}`,
   })
 
+const blunder: CommentedMove = {
+  fen: 'rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2',
+  color: 'white',
+  moveNumber: 2,
+  san: 'g4',
+  verdict: 'blunder',
+  winBefore: 45,
+  winAfter: 0,
+  mateIn: 1,
+}
+
+/** Plays Claude Code answering in text only; records how it was started. */
+function commentingClaude(output: unknown[], exitCode = 0) {
+  const calls: string[][] = []
+  const killed: boolean[] = []
+  const run: RunProcess = (_command, args) => {
+    calls.push(args)
+    return {
+      lines: (async function* () {
+        for (const value of output) yield line(value)
+      })(),
+      exited: Promise.resolve(exitCode),
+      stderr: Promise.resolve('boom'),
+      kill: () => killed.push(true),
+    }
+  }
+  return { run, calls, killed }
+}
+
+const said = (text: string) => ({
+  type: 'stream_event',
+  event: { type: 'content_block_delta', delta: { type: 'text_delta', text } },
+})
+const ended = { type: 'result', is_error: false, result: 'x', usage: { output_tokens: 3 } }
+
 describe('HeadlessClaudeAgent', () => {
   const previousKey = process.env.ANTHROPIC_API_KEY
   beforeEach(() => {
@@ -228,6 +271,70 @@ describe('HeadlessClaudeAgent', () => {
       },
     )
     expect(killed).toEqual([true])
+  })
+
+  describe('comments on a move', () => {
+    it('starts Claude Code with no tool of any kind to call', async () => {
+      const runs = new CoachRuns()
+      const start = vi.spyOn(runs, 'start')
+      const { run, calls } = commentingClaude([said('That opened '), said('the king.'), ended])
+      const comment = await agentWith(runs, run).comment(blunder)
+
+      expect(comment).toBe('That opened the king.')
+      const args = calls[0]!
+      const flag = (name: string) => args[args.indexOf(name) + 1]
+      expect(args[1]).toBe(commentText(blunder))
+      expect(flag('--system-prompt')).toBe(COMMENT_PROMPT)
+      expect(flag('--tools')).toBe('') // no built-in tools
+      expect(args).toContain('--strict-mcp-config') // no MCP server of the user's either
+      expect(args).not.toContain('--mcp-config')
+      expect(args).not.toContain('--allowedTools')
+      expect(flag('--permission-mode')).toBe('dontAsk')
+      // Nothing to reach our tools with: no run token exists for it.
+      expect(start).not.toHaveBeenCalled()
+      expect(args.join(' ')).not.toContain('/api/v1/mcp/')
+    })
+
+    it('stays out of the conversations', async () => {
+      const runs = new CoachRuns()
+      const { run, calls } = commentingClaude([said('Sharp.'), ended])
+      const agent = agentWith(runs, run)
+      const conversationId = '6b7e5f8a-6a5c-4d3e-9c1b-2a4f6e8d0c11'
+      await agent.comment(blunder)
+      await agent.comment(blunder)
+      for (const args of calls) {
+        expect(args).not.toContain('--session-id')
+        expect(args).not.toContain('--resume')
+      }
+      // A chat afterwards still starts as a new session.
+      const chat = fakeClaude(runs)
+      const chatting = agentWith(runs, chat.run)
+      await chatting.answer({ conversationId, question: 'Hi' }, () => {})
+      expect(chat.calls[0]!.args).toContain('--session-id')
+    })
+
+    it('throws when Claude Code fails, stops early or says nothing', async () => {
+      const runs = new CoachRuns()
+      const comment = (output: unknown[], code?: number) =>
+        agentWith(runs, commentingClaude(output, code).run).comment(blunder)
+      await expect(
+        comment([{ type: 'result', is_error: true, result: 'Credit balance too low', usage: {} }]),
+      ).rejects.toThrow('Credit balance too low')
+      await expect(comment([said('Half a')], 1)).rejects.toThrow(
+        'Claude Code stopped (exit 1): boom',
+      )
+      await expect(comment([ended])).rejects.toThrow('No comment')
+    })
+
+    it('stops Claude Code when the comment is cancelled', async () => {
+      const runs = new CoachRuns()
+      const { run, killed } = commentingClaude([said('Sharp.'), ended])
+      const controller = new AbortController()
+      const running = agentWith(runs, run).comment({ ...blunder, signal: controller.signal })
+      controller.abort()
+      await running
+      expect(killed).toEqual([true])
+    })
   })
 
   it('is available when Claude Code is installed', async () => {

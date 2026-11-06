@@ -1,5 +1,5 @@
 import type { CancelSignal, CoachEvent } from '../domain/messages'
-import type { CoachContext } from '../domain/prompt'
+import type { CoachContext, CommentedMove } from '../domain/prompt'
 import type { ClientStatus } from './llmClient'
 
 /** A question to the coach, in a conversation the agent keeps (so follow-ups have the history). */
@@ -8,6 +8,11 @@ export interface CoachRequest {
   conversationId: string
   question: string
   context?: CoachContext
+  signal?: CancelSignal
+}
+
+/** A comment on a move of a game still being played: the move's facts, nothing to ask. */
+export interface CommentRequest extends CommentedMove {
   signal?: CancelSignal
 }
 
@@ -22,4 +27,9 @@ export interface CoachAgent {
   readonly label: string
   status(): Promise<ClientStatus>
   answer(request: CoachRequest, onEvent: (event: CoachEvent) => void): Promise<void>
+  /**
+   * A comment on the move, one model turn with no tools at all and no conversation: the game is
+   * still on, so nothing may reach an engine. Throws when there is none to give.
+   */
+  comment(request: CommentRequest): Promise<string>
 }
