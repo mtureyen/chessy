@@ -232,6 +232,8 @@ function opening(game: z.infer<typeof ChessComGameSchema>): SourceGame['opening'
     if (kept) words.push(kept)
     if (moves) break
   }
-  const name = words.join(' ') || undefined
+  const slugName = words.join(' ')
+  // chess.com's URL for a game it knows no opening of ends in "Undefined".
+  const name = slugName && slugName !== 'Undefined' ? slugName : undefined
   return eco || name ? { eco, name } : undefined
 }
