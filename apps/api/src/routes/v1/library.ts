@@ -1,6 +1,7 @@
 import type { GameReview } from '@chessy/analysis'
 import { createGame, InvalidPositionError, PgnImportError } from '@chessy/chess'
 import {
+  findLibraryReviewRoute,
   getProfileRoute,
   libraryStatusRoute,
   missingLibraryGamesRoute,
@@ -75,6 +76,15 @@ export function libraryRoutes({
         reviewedAt: new Date(now()).toISOString(),
       })
       return c.json({ stored: true as const }, 200)
+    })
+    .openapi(findLibraryReviewRoute, async (c) => {
+      const status = await library.status()
+      if (!status.available) {
+        return problem(c, 503, 'Library unavailable', { detail: status.reason })
+      }
+      const found = await library.findReview(c.req.valid('json'))
+      if (!found) return problem(c, 404, 'No review', { detail: 'This line has no stored review' })
+      return c.json({ review: found.review, reviewedAt: found.reviewedAt }, 200)
     })
     .openapi(getProfileRoute, async (c) => {
       const status = await library.status()

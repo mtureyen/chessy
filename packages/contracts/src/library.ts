@@ -35,6 +35,12 @@ export const LibraryGameSchema = SourceGameSchema.omit({ source: true, url: true
   })
   .openapi('LibraryGame') satisfies z.ZodType<LibraryGame>
 
+/** A main line: where it starts and its moves. */
+const GameLineSchema = z.object({
+  startFen: z.string().max(100),
+  moves: z.array(z.string().regex(/^[a-h][1-8][a-h][1-8][qrbn]?$/)).max(1000),
+})
+
 const MOVE_CLASSES = [
   'brilliant',
   'great',
@@ -178,11 +184,7 @@ export const saveLibraryReviewRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: z.object({
-            startFen: z.string().max(100),
-            moves: z.array(z.string().regex(/^[a-h][1-8][a-h][1-8][qrbn]?$/)).max(1000),
-            review: GameReviewSchema,
-          }),
+          schema: GameLineSchema.extend({ review: GameReviewSchema }),
         },
       },
       required: true,
@@ -194,6 +196,29 @@ export const saveLibraryReviewRoute = createRoute({
       content: { 'application/json': { schema: z.object({ stored: z.literal(true) }) } },
     },
     400: problem('Invalid review'),
+    503: unavailable,
+  },
+})
+
+export const findLibraryReviewRoute = createRoute({
+  method: 'post',
+  path: '/library/reviews/find',
+  tags: ['library'],
+  summary: 'The stored review of a main line',
+  description: 'A POST because a line can be too long for a URL. The review comes as it was sent.',
+  request: {
+    body: { content: { 'application/json': { schema: GameLineSchema } }, required: true },
+  },
+  responses: {
+    200: {
+      description: 'The review',
+      content: {
+        'application/json': {
+          schema: z.object({ review: GameReviewSchema, reviewedAt: z.string().datetime() }),
+        },
+      },
+    },
+    404: problem('No review of this line'),
     503: unavailable,
   },
 })

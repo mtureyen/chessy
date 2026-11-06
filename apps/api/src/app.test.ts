@@ -182,6 +182,7 @@ describe('api', () => {
       '/library/review-queue/pause',
       '/library/review-queue/resume',
       '/library/reviews',
+      '/library/reviews/find',
       '/profile',
       '/settings/coach',
       '/sources/{source}/games/{id}',
@@ -443,6 +444,28 @@ describe('library routes', () => {
     expect(other.status).toBe(400)
   })
 
+  it('finds the review of exactly the line asked for, as it was sent', async () => {
+    const { line, review } = sampleReview({
+      startFen: sampleReview().line.startFen,
+      moves: ['g1f3', 'g8f6'],
+    })
+    await post('/reviews', { ...line, review })
+
+    const found = await post('/reviews/find', line)
+    expect(found.status).toBe(200)
+    expect(await found.json()).toEqual({ review, reviewedAt: expect.any(String) })
+
+    const shorter = await post('/reviews/find', { ...line, moves: ['g1f3'] })
+    expect(shorter.status).toBe(404)
+    const otherStart = await post('/reviews/find', {
+      ...line,
+      startFen: '8/8/8/8/8/8/8/K1k5 w - - 0 1',
+    })
+    expect(otherStart.status).toBe(404)
+    const notMoves = await post('/reviews/find', { ...line, moves: ['Nf3'] })
+    expect(notMoves.status).toBe(400)
+  })
+
   it('answers 503 without a database', async () => {
     const offline = createApp({
       engine,
@@ -466,6 +489,12 @@ describe('library routes', () => {
       body: JSON.stringify({ games: [game] }),
     })
     expect(save.status).toBe(503)
+    const find = await offline.request('/api/v1/library/reviews/find', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sampleReview().line),
+    })
+    expect(find.status).toBe(503)
   })
 })
 
