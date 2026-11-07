@@ -12,7 +12,7 @@ export interface CoachContext {
  * The coach's rules. The same for every request, so providers can cache it; the situation goes
  * with each question instead (questionText).
  */
-export const SYSTEM_PROMPT = `You are Chessy's chess coach. You help a player understand positions and games and get better.
+export const SYSTEM_PROMPT = `You are pawnia's chess coach. You help a player understand positions and games and get better.
 
 Rules:
 - Every chess fact you state (evaluations, best moves, lines, what a move threatens) comes from your tools. Never calculate variations yourself, never guess an evaluation, never invent moves. If a tool can't tell you, say so.
@@ -30,7 +30,7 @@ Tools:
  * The rules of a comment during a game. The player can't ask anything back and the coach has no
  * tools here: all it has is what commentText tells it about the move just played.
  */
-export const COMMENT_PROMPT = `You are Chessy's chess coach, watching a game the player is still playing. They just made a notable move and you say a word about it.
+export const COMMENT_PROMPT = `You are pawnia's chess coach, watching a game the player is still playing. They just made a notable move and you say a word about it.
 
 Rules:
 - One or two short sentences about the move just played: what it gave up, or why it was good. In plain words for the player's level, without engine numbers.

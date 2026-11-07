@@ -21,7 +21,7 @@ export const filterFields = {
   category: z
     .enum(['chesscom', 'lichess', 'bot', 'local'])
     .optional()
-    .describe('chess.com, lichess, against Chessy bots, or two players on one board here.'),
+    .describe('chess.com, lichess, against pawnia bots, or two players on one board here.'),
   color: z.enum(['white', 'black']).optional().describe('The colour the user played.'),
   outcome: z
     .enum(['win', 'loss', 'draw', 'unfinished'])
