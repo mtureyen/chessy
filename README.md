@@ -1,4 +1,4 @@
-# Chessy
+# pawnia
 
 A free, AI-assisted chess platform: play, analyze, learn.
 
@@ -11,7 +11,7 @@ Modular monolith with hexagonal modules in a Bun + Turborepo monorepo.
 ```
 apps/
   web/          React SPA (Vite, TanStack Router + Query): UI + browser adapters
-  extension/    browser extension: "Open in Chessy" on lichess / chess.com game pages
+  extension/    browser extension: "Open in pawnia" on lichess / chess.com game pages
   api/          Hono on Bun: HTTP API under /api/v1 + server adapters
 packages/
   chess/        shared core: rules, move tree, PGN/FEN (pure)
@@ -136,10 +136,10 @@ browsers (pinned, checksum-verified); `bun run --cwd apps/api maia:spike latency
 <games.json> | strength` measures its speed, how often it predicts real moves, and its strength
 against the bot levels.
 
-### Browser extension ("Open in Chessy")
+### Browser extension ("Open in pawnia")
 
-On lichess, chess.com and Chessigma game pages the extension shows an "Open in Chessy" button.
-It reads only the page address; Chessy then fetches the game through the platforms' public
+On lichess, chess.com and Chessigma game pages the extension shows an "Open in pawnia" button.
+It reads only the page address; pawnia then fetches the game through the platforms' public
 APIs (chess.com: among your own games, so set your chess.com username under Games first) and
 opens it on the analysis board (`/open?url=…`).
 
@@ -148,7 +148,7 @@ bun run --cwd apps/extension build   # → apps/extension/dist
 ```
 
 In Chrome: `chrome://extensions` → Developer mode → Load unpacked → `apps/extension/dist`.
-The Chessy address (default `http://localhost:5173`) is set in the extension's options.
+The pawnia address (default `http://localhost:5173`) is set in the extension's options.
 
 ### Reference labels
 
@@ -173,7 +173,7 @@ Branch, commit and PR conventions: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-Chessy is licensed under the [GNU Affero General Public License v3.0](LICENSE). It builds on
+pawnia is licensed under the [GNU Affero General Public License v3.0](LICENSE). It builds on
 GPL-3.0 libraries (chessops, chessground, Stockfish) and on Maia-3 by the University of Toronto
 Computational Social Science Lab (AGPL-3.0).
 
