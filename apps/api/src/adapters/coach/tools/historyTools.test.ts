@@ -30,7 +30,7 @@ const summaries: GameSummary[] = [
     source: 'chessy',
     playedAt: '2026-10-30T20:00:00.000Z',
     white: { name: 'You' },
-    black: { name: 'Chessy bot (level 3)' },
+    black: { name: 'pawnia bot (level 3)' },
     result: '*',
     rated: false,
     speed: 'unlimited',

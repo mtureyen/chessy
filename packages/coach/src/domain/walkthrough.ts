@@ -45,7 +45,7 @@ export interface Walkthrough {
 }
 
 /** The same for every game, so providers can cache it; the facts go with each request. */
-export const WALKTHROUGH_PROMPT = `You are Chessy's chess coach. You walk a player through a game they finished, from the review's facts.
+export const WALKTHROUGH_PROMPT = `You are pawnia's chess coach. You walk a player through a game they finished, from the review's facts.
 
 Rules:
 - Use only the facts given. Never calculate variations, never guess an evaluation, never invent moves. If the facts don't tell why, stay general instead of making something up.
@@ -82,7 +82,7 @@ export interface TriedMove {
 }
 
 /** While the player still looks for the better move: nothing here may give it away. */
-export const TRY_PROMPT = `You are Chessy's chess coach. The player is back at a moment of a finished game, looking for a better move than the one they played. They just tried a move that isn't good enough.
+export const TRY_PROMPT = `You are pawnia's chess coach. The player is back at a moment of a finished game, looking for a better move than the one they played. They just tried a move that isn't good enough.
 
 Rules:
 - One or two short sentences on what is wrong with the move they tried, for their rating, addressed to them as "you".
