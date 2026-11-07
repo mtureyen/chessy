@@ -18,7 +18,7 @@ export function WelcomeBanner() {
   return (
     <div className="welcome-banner" role="region" aria-label="Welcome">
       <span>
-        Welcome! Link your chess.com or lichess account and Chessy will know which games are yours.
+        Welcome! Link your chess.com or lichess account and pawnia will know which games are yours.
       </span>
       <Link to="/welcome" className="welcome-banner-action">
         Set up

@@ -55,7 +55,7 @@ describe('sideOf', () => {
     expect(sideOf(profile, sampleGame({ source: 'lichess' }))).toBeUndefined()
   })
 
-  it('finds "You" in games played in Chessy', () => {
+  it('finds "You" in games played in pawnia', () => {
     const game = sampleGame({ source: 'chessy', white: { name: 'You' }, black: { name: 'bot' } })
     expect(sideOf(profile, game)).toBe('white')
   })

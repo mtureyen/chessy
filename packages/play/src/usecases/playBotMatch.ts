@@ -112,7 +112,7 @@ export async function playBotMatch(
 
   const result = adjudicated ?? (resultOf(game.status()) as Exclude<GameResult, '*'>)
   const pgn = exportPgn(game, {
-    Event: 'Chessy bot calibration',
+    Event: 'pawnia bot calibration',
     White: players.white.name,
     Black: players.black.name,
     Result: result,

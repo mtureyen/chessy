@@ -18,7 +18,7 @@ describe('playerGames', () => {
         summary({
           id: 'g4',
           source: 'chessy',
-          white: { name: 'Chessy bot (level 3)' },
+          white: { name: 'pawnia bot (level 3)' },
           black: { name: 'You' },
           result: '*',
         }),

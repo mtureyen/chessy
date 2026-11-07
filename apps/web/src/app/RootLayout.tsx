@@ -11,7 +11,7 @@ export function RootLayout() {
     <div className="app">
       <header className="app-header">
         <Link to="/" className="brand">
-          <span className="logo">♟</span> Chessy
+          <span className="logo">♟</span> pawnia
         </Link>
         <nav className="app-nav">
           <Link to="/" activeProps={{ className: 'active' }} activeOptions={{ exact: true }}>

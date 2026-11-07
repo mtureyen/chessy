@@ -28,7 +28,7 @@ export async function recordLocalGame(
     ...headers,
     Result: result,
     Event: 'Local game',
-    Site: 'Chessy',
+    Site: 'pawnia',
     Date: startedAt.toISOString().slice(0, 10).replaceAll('-', '.'),
     White: LOCAL_PLAYERS.white,
     Black: LOCAL_PLAYERS.black,

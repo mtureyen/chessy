@@ -45,7 +45,7 @@ export async function recordBotGame(
   const pgn = exportPgn(game, {
     Result: result,
     Event: `Casual game vs ${botName(setup.level)}`,
-    Site: 'Chessy',
+    Site: 'pawnia',
     Date: pgnDate(playedAt),
     White: players.white.name,
     Black: players.black.name,

@@ -6,7 +6,7 @@ import './OpenGamePage.css'
 
 /**
  * /open?url=<game page>: brings a lichess or chess.com game into the library and shows it on the
- * analysis board. The "Open in Chessy" browser extension links here.
+ * analysis board. The "Open in pawnia" browser extension links here.
  */
 export function OpenGamePage() {
   const { url } = useSearch({ from: '/open' })

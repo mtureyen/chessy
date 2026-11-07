@@ -29,7 +29,7 @@ describe('recordBotGame', () => {
       source: 'chessy',
       externalId: 'game-1',
       white: { name: 'You' },
-      black: { name: 'Chessy bot (level 3)' },
+      black: { name: 'pawnia bot (level 3)' },
       result: '0-1',
       speed: 'unlimited',
       rated: false,
@@ -42,10 +42,10 @@ describe('recordBotGame', () => {
     expect(game.line().map((n) => n.move?.san)).toEqual(['f3', 'e5', 'g4', 'Qh4#'])
     expect(headers).toMatchObject({
       White: 'You',
-      Black: 'Chessy bot (level 3)',
+      Black: 'pawnia bot (level 3)',
       Result: '0-1',
       Date: '2026.11.02',
-      Site: 'Chessy',
+      Site: 'pawnia',
     })
   })
 
@@ -57,7 +57,7 @@ describe('recordBotGame', () => {
       setup: { level: botLevel(1), color: 'black' },
     })
     expect(saved.result).toBe('*')
-    expect(saved.white.name).toBe('Chessy bot (level 1)')
+    expect(saved.white.name).toBe('pawnia bot (level 1)')
   })
 
   it('records a resignation as a loss for the side that resigned', async () => {
@@ -71,7 +71,7 @@ describe('recordBotGame', () => {
     expect(saved.result).toBe('1-0')
     expect(importPgn(saved.pgn).headers).toMatchObject({
       Result: '1-0',
-      Termination: 'Chessy bot (level 2) won by resignation',
+      Termination: 'pawnia bot (level 2) won by resignation',
     })
   })
 

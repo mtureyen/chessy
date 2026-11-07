@@ -9,7 +9,7 @@ export interface LinkedAccount {
 }
 
 /**
- * Who uses this Chessy: a name and their accounts, no password. The app finds their games and
+ * Who uses pawnia here: a name and their accounts, no password. The app finds their games and
  * their side in them through it. One per installation for now.
  */
 export interface Profile {

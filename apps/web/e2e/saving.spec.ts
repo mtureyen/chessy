@@ -19,7 +19,7 @@ test('a bot game left midway is kept as unfinished and can be resumed', async ({
   await page.reload()
   await page.getByRole('link', { name: 'vs Bot' }).click()
   const resume = page.getByTestId('resume-bot-game')
-  await expect(resume).toContainText('vs Chessy bot (level 1) · 1 move · no clock')
+  await expect(resume).toContainText('vs pawnia bot (level 1) · 1 move · no clock')
   await resume.getByRole('button', { name: 'Resume' }).click()
 
   await expect(moves(page)).toHaveCount(2)

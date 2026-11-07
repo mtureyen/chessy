@@ -57,7 +57,7 @@ export class DuplicateGameError extends Error {
 const ORIGIN_NAMES: Record<GameOrigin, string> = {
   lichess: 'lichess',
   chesscom: 'chess.com',
-  chessy: 'Chessy',
+  chessy: 'pawnia',
 }
 
 export function sourceName(source: GameOrigin): string {

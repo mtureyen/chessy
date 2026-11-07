@@ -27,7 +27,7 @@ import {
 /**
  * A game as a tree of positions with a cursor (`current`).
  *
- * The rules core of Chessy. UI code talks only to this interface, so the chessops
+ * The rules core of pawnia. UI code talks only to this interface, so the chessops
  * implementation behind it can be swapped later (e.g. for Rust/WASM).
  *
  * `status()` reports how the position stands, but `play()` accepts any legal move, even

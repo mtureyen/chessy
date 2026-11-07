@@ -16,7 +16,7 @@ const moves = (page: Page) => page.locator('.move-tree [data-san]')
 
 test('the bot answers moves and a takeback undoes the move with its reply', async ({ page }) => {
   await startBotGame(page, '1', 'White')
-  await expect(page.locator('.bot-opponent')).toContainText('Chessy bot (level 1)')
+  await expect(page.locator('.bot-opponent')).toContainText('pawnia bot (level 1)')
   const board = await boardDriver(page)
   await board.play(['e2', 'e4'])
   await expect(moves(page)).toHaveCount(2, { timeout: 15_000 })
@@ -55,9 +55,9 @@ test('a resigned game is saved and opens straight into its review', async ({ pag
   await page.getByRole('link', { name: 'Games' }).click()
   const row = page.getByTestId('game-row').first()
   await expect(row).toContainText('You')
-  await expect(row).toContainText('Chessy bot (level 1)')
+  await expect(row).toContainText('pawnia bot (level 1)')
   await expect(row).toContainText('Lost')
-  await expect(row).toContainText('Chessy')
+  await expect(row).toContainText('pawnia')
   await expect(row.getByTitle(/Open on/)).toHaveCount(0)
 })
 
@@ -96,7 +96,7 @@ test('the bot declines a draw in an even opening', async ({ page }) => {
   await board.play(['e2', 'e4'])
   await expect(moves(page)).toHaveCount(2, { timeout: 15_000 })
   await page.getByRole('button', { name: 'Offer draw' }).click()
-  await expect(page.getByText('Chessy bot (level 8) declines the draw.')).toBeVisible()
+  await expect(page.getByText('pawnia bot (level 8) declines the draw.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Offer draw' })).toBeDisabled()
 })
 

@@ -11,7 +11,7 @@ const PLATFORMS: readonly SourceId[] = ['chesscom', 'lichess']
 
 /**
  * /welcome: set up (or edit) the profile: the user's chess.com / lichess accounts, confirmed by
- * their public profiles. No password: it tells Chessy whose games these are.
+ * their public profiles. No password: it tells pawnia whose games these are.
  */
 export function WelcomePage() {
   const profile = useProfile()
@@ -44,11 +44,11 @@ function ProfileForm({ existing }: { existing?: Profile }) {
         )
       }}
     >
-      <h1>{existing ? 'Edit your profile' : 'Welcome to Chessy'}</h1>
+      <h1>{existing ? 'Edit your profile' : 'Welcome to pawnia'}</h1>
       <p className="profile-intro">
         {existing
-          ? 'Your accounts and the name Chessy calls you.'
-          : 'Link your chess.com or lichess account, so Chessy knows which games are yours and which side you played. No password: your games are public on those sites anyway.'}
+          ? 'Your accounts and the name pawnia calls you.'
+          : 'Link your chess.com or lichess account, so pawnia knows which games are yours and which side you played. No password: your games are public on those sites anyway.'}
       </p>
 
       {PLATFORMS.map((source) => (
@@ -61,7 +61,7 @@ function ProfileForm({ existing }: { existing?: Profile }) {
       ))}
 
       <div className="account-field">
-        <label htmlFor="display-name">Your name in Chessy</label>
+        <label htmlFor="display-name">Your name in pawnia</label>
         <input
           id="display-name"
           placeholder={linked[0]?.username ?? 'e.g. Alex'}
