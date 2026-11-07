@@ -29,7 +29,7 @@ export class ApiGameSource implements GameSource {
         query: { max: String(max) },
       })
     } catch (error) {
-      throw new SourceUnavailableError(this.id, `Chessy API unreachable: ${String(error)}`)
+      throw new SourceUnavailableError(this.id, `pawnia API unreachable: ${String(error)}`)
     }
     if (res.status === 200) return (await res.json()).games
     if (res.status === 404) throw new UserNotFoundError(this.id, username)
@@ -52,7 +52,7 @@ export class ApiGameSource implements GameSource {
         query: username ? { username } : {},
       })
     } catch (error) {
-      throw new SourceUnavailableError(this.id, `Chessy API unreachable: ${String(error)}`)
+      throw new SourceUnavailableError(this.id, `pawnia API unreachable: ${String(error)}`)
     }
     if (res.status === 200) return (await res.json()).game
     if (res.status === 404) {
@@ -77,7 +77,7 @@ export class ApiGameSource implements GameSource {
         param: { source: this.id, username },
       })
     } catch (error) {
-      throw new SourceUnavailableError(this.id, `Chessy API unreachable: ${String(error)}`)
+      throw new SourceUnavailableError(this.id, `pawnia API unreachable: ${String(error)}`)
     }
     if (res.status === 200) return (await res.json()).player
     if (res.status === 404) throw new UserNotFoundError(this.id, username)
@@ -96,7 +96,7 @@ export class ApiGameSource implements GameSource {
         query: { ...(cursor && { cursor }), ...(since && { since }) },
       })
     } catch (error) {
-      throw new SourceUnavailableError(this.id, `Chessy API unreachable: ${String(error)}`)
+      throw new SourceUnavailableError(this.id, `pawnia API unreachable: ${String(error)}`)
     }
     if (res.status === 200) return await res.json()
     if (res.status === 404) throw new UserNotFoundError(this.id, username)

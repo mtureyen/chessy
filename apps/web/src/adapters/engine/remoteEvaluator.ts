@@ -30,7 +30,7 @@ export class RemoteEvaluator implements PositionEvaluator {
     try {
       status = (await (await this.api.api.v1.engine.$get()).json()) as EngineStatusBody
     } catch (error) {
-      throw new EngineFailedError(`Chessy API unreachable: ${String(error)}`)
+      throw new EngineFailedError(`pawnia API unreachable: ${String(error)}`)
     }
     if (!status.available)
       throw new EngineFailedError(`No native engine on the server: ${status.reason}`)

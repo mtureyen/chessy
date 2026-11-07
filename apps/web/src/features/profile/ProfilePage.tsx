@@ -6,7 +6,7 @@ import { RecentReview } from './RecentReview'
 import { usePlayer, useProfile } from './useProfile'
 import './Profile.css'
 
-/** /profile: who the user is in Chessy and their linked accounts. */
+/** /profile: who the user is in pawnia and their linked accounts. */
 export function ProfilePage() {
   const profile = useProfile()
   if (profile.isPending) return null
@@ -15,7 +15,7 @@ export function ProfilePage() {
       <div className="profile-page">
         <h1>No profile yet</h1>
         <p className="profile-intro">
-          Link your chess.com or lichess account so Chessy knows your games.
+          Link your chess.com or lichess account so pawnia knows your games.
         </p>
         <Link className="profile-save" to="/welcome">
           Set up my profile
@@ -27,7 +27,7 @@ export function ProfilePage() {
   return (
     <div className="profile-page">
       <h1>{displayName}</h1>
-      <p className="profile-intro">In Chessy since {new Date(createdAt).toLocaleDateString()}</p>
+      <p className="profile-intro">In pawnia since {new Date(createdAt).toLocaleDateString()}</p>
       <h2>Accounts</h2>
       {accounts.length === 0 && <p className="message message-info">No accounts linked.</p>}
       {accounts.map((account) => (

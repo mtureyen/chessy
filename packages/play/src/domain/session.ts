@@ -59,5 +59,5 @@ export function acceptsDraw(botWinChance: number | undefined, ply: number): bool
 
 /** The bot's name as it shows in the PGN and the library. */
 export function botName(level: BotLevel): string {
-  return `Chessy bot (level ${level.level})`
+  return `pawnia bot (level ${level.level})`
 }

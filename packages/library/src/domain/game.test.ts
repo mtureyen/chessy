@@ -13,7 +13,7 @@ describe('outcomeFor', () => {
   })
 })
 
-describe('outcomeFor games played in Chessy', () => {
+describe('outcomeFor games played in pawnia', () => {
   it('finds the user under the local player name', () => {
     const game = sampleGame({ source: 'chessy', white: { name: LOCAL_PLAYER_NAME }, result: '0-1' })
     expect(outcomeFor(game, LOCAL_PLAYER_NAME)).toBe('loss')
@@ -33,7 +33,7 @@ describe('categoryOf', () => {
     expect(categoryOf(sampleGame({ source: 'lichess' }))).toBe('lichess')
     const bot = sampleGame({
       source: 'chessy',
-      white: { name: 'Chessy bot (level 3)' },
+      white: { name: 'pawnia bot (level 3)' },
       black: { name: 'You' },
     })
     expect(categoryOf(bot)).toBe('bot')

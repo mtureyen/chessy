@@ -77,7 +77,7 @@ export function gameRepositoryContract(
       expect((await repo.findByExternalId('chesscom', 'same'))?.id).toBe(chesscom.id)
     })
 
-    it('stores games played in Chessy, which have no platform link', async () => {
+    it('stores games played in pawnia, which have no platform link', async () => {
       const { url: _url, ...game } = sampleGame({ source: 'chessy', speed: 'unlimited' })
       await repo.saveAll([game])
       expect(await repo.get(game.id)).toEqual(game)
