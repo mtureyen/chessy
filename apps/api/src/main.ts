@@ -116,7 +116,7 @@ export default { port: config.PORT, hostname: config.HOST, fetch: app.fetch, idl
 
 function createSources(config: Config): Record<SourceId, GameSource> {
   const http = {
-    userAgent: `Chessy/${pkg.version} (+https://github.com/mtureyen/chessy)`,
+    userAgent: `pawnia/${pkg.version} (+https://github.com/mtureyen/pawnia)`,
     ...(config.CHESSY_SOURCES === 'recorded' ? { fetch: recordedFetch } : {}),
   }
   return {

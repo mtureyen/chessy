@@ -1,7 +1,7 @@
 /**
- * Content script: on lichess, chess.com and Chessigma, shows an "Open in Chessy" button while the
+ * Content script: on lichess, chess.com and Chessigma, shows an "Open in pawnia" button while the
  * page shows a game. It reads only the page address (no page content), and only on a click
- * sends that address to Chessy, which fetches the game through the platforms' public APIs.
+ * sends that address to pawnia, which fetches the game through the platforms' public APIs.
  */
 import { DEFAULT_CHESSY_URL, chessyLink } from './link'
 
@@ -18,7 +18,7 @@ root.innerHTML = `
     }
     button:hover { filter: brightness(1.1); }
   </style>
-  <button type="button" title="Open this game in Chessy">♟ Open in Chessy</button>`
+  <button type="button" title="Open this game in pawnia">♟ Open in pawnia</button>`
 const button = root.querySelector('button')!
 
 let chessyUrl = DEFAULT_CHESSY_URL

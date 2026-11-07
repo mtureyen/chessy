@@ -6,7 +6,7 @@ import type { Fetch } from './http'
 import { LichessGameSource } from './lichess'
 import { recordedFetch } from './recorded'
 
-const userAgent = 'Chessy-test'
+const userAgent = 'pawnia-test'
 
 /** Records requests, answers via recordedFetch (or a custom handler). */
 function spyFetch(handler: Fetch = recordedFetch) {

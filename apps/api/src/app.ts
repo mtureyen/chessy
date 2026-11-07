@@ -84,10 +84,10 @@ export function createApp({
 
   v1.doc31('/openapi.json', {
     openapi: '3.1.0',
-    info: { title: 'Chessy API', version },
+    info: { title: 'pawnia API', version },
     servers: [{ url: API_V1_PREFIX }],
   })
-  v1.get('/docs', Scalar({ url: `${API_V1_PREFIX}/openapi.json`, pageTitle: 'Chessy API' }))
+  v1.get('/docs', Scalar({ url: `${API_V1_PREFIX}/openapi.json`, pageTitle: 'pawnia API' }))
   // MCP for Claude Code (not in the OpenAPI document: a protocol of its own). Only a running
   // answer's token opens it.
   if (mcp) v1.all('/mcp/:token', (c) => mcp.handle(c.req.raw, c.req.param('token')))

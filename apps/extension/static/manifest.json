@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Open in Chessy",
+  "name": "Open in pawnia",
   "version": "0.1.0",
-  "description": "Opens the lichess or chess.com game you are looking at in Chessy, for a free review. Reads only the page address.",
+  "description": "Opens the lichess or chess.com game you are looking at in pawnia, for a free review. Reads only the page address.",
   "permissions": ["storage"],
   "content_scripts": [
     {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { chessyLink, normalizeChessyUrl } from './link'
 
 describe('chessyLink', () => {
-  it('links game pages to Chessy, passing the page address along', () => {
+  it('links game pages to pawnia, passing the page address along', () => {
     expect(chessyLink('http://localhost:5173/', 'https://lichess.org/HqjDTU4A')).toBe(
       'http://localhost:5173/open?url=https%3A%2F%2Flichess.org%2FHqjDTU4A',
     )

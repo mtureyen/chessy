@@ -59,7 +59,7 @@ async function main() {
     ? JSON.parse(readFileSync(args.out, 'utf8'))
     : []
   const source = new ChessComGameSource({
-    userAgent: 'Chessy (+https://github.com/mtureyen/chessy)',
+    userAgent: 'pawnia (+https://github.com/mtureyen/pawnia)',
   })
   // --games per user.
   const games = []
