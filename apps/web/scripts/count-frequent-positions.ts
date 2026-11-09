@@ -16,8 +16,8 @@ import { createZstdDecompress } from 'node:zlib'
 import { createInterface } from 'node:readline'
 import { Readable } from 'node:stream'
 import { fileURLToPath } from 'node:url'
-import { bookKey } from '@chessy/analysis'
-import { createGame } from '@chessy/chess'
+import { bookKey } from '@pawnia/analysis'
+import { createGame } from '@pawnia/chess'
 
 const MONTH = '2025-09'
 const URL_ = `https://database.lichess.org/standard/lichess_db_standard_rated_${MONTH}.pgn.zst`

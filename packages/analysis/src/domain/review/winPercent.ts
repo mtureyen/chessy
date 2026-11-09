@@ -1,4 +1,4 @@
-import type { Color } from '@chessy/chess'
+import type { Color } from '@pawnia/chess'
 import { winningChances, type Score } from '../score'
 
 /** lichess caps evaluations at ±10 pawns; a mate counts as exactly that (scalachess `Cp.CEILING`). */

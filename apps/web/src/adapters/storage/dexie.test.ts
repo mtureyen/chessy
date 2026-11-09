@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { gameRepositoryContract } from '@chessy/library/testing'
+import { gameRepositoryContract } from '@pawnia/library/testing'
 import { describe, expect, it } from 'vitest'
 import { ChessyDb } from './db'
 import { DexieEvalCache } from './dexieEvalCache'

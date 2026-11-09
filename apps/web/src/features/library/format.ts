@@ -1,4 +1,4 @@
-import type { GameSpeed } from '@chessy/library'
+import type { GameSpeed } from '@pawnia/library'
 
 /** "180+2" → "3+2", "60" → "1+0", "15+0" → "¼+0" (minutes + increment seconds, as on lichess). */
 export function formatTimeControl(timeControl: string | undefined): string | undefined {

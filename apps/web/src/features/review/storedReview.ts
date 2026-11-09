@@ -1,4 +1,4 @@
-import type { GameLine } from '@chessy/history'
+import type { GameLine } from '@pawnia/history'
 import { queryOptions } from '@tanstack/react-query'
 import type { Services } from '@/app/services'
 

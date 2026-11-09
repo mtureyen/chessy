@@ -4,7 +4,7 @@ import {
   type LibraryGame,
   type ListGamesOptions,
   type GameOrigin,
-} from '@chessy/library'
+} from '@pawnia/library'
 import type { ChessyDb } from './db'
 
 /** GameRepository on IndexedDB (via Dexie). */

@@ -1,4 +1,4 @@
-import type { CoachSettingsBody } from '@chessy/contracts'
+import type { CoachSettingsBody } from '@pawnia/contracts'
 import { useState } from 'react'
 
 type KeyView = CoachSettingsBody['claudeApi']['apiKey']

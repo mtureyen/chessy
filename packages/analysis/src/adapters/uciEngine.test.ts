@@ -1,4 +1,4 @@
-import { InvalidPositionError } from '@chessy/chess'
+import { InvalidPositionError } from '@pawnia/chess'
 import { describe, expect, it } from 'vitest'
 import type { AnalysisSnapshot } from '../domain/analysis'
 import type { UciTransport } from '../ports/uciTransport'

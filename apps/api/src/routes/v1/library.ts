@@ -1,5 +1,5 @@
-import type { GameReview } from '@chessy/analysis'
-import { createGame, InvalidPositionError, PgnImportError } from '@chessy/chess'
+import type { GameReview } from '@pawnia/analysis'
+import { createGame, InvalidPositionError, PgnImportError } from '@pawnia/chess'
 import {
   findLibraryReviewRoute,
   getProfileRoute,
@@ -8,9 +8,9 @@ import {
   saveLibraryGamesRoute,
   saveLibraryReviewRoute,
   saveProfileRoute,
-} from '@chessy/contracts'
-import { gameLine } from '@chessy/history'
-import { DuplicateGameError, type LibraryGame } from '@chessy/library'
+} from '@pawnia/contracts'
+import { gameLine } from '@pawnia/history'
+import { DuplicateGameError, type LibraryGame } from '@pawnia/library'
 import type { LibraryService } from '../../adapters/db/libraryService'
 import { problem } from '../../http/problem'
 import { createRouter } from '../../http/router'

@@ -10,8 +10,8 @@ import {
   type PositionEval,
   type PositionEvaluator,
   type ReviewInput,
-} from '@chessy/analysis'
-import { lineText } from '@chessy/history'
+} from '@pawnia/analysis'
+import { lineText } from '@pawnia/history'
 import type { EngineService } from '../engine/service'
 import type { HumanMoveService } from '../humanMoves/service'
 import { createBookLoader } from './openingBook'

@@ -1,5 +1,5 @@
 {
-  "name": "@chessy/web",
+  "name": "@pawnia/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,12 +14,12 @@
     "openings:build": "bun scripts/build-openings.ts"
   },
   "dependencies": {
-    "@chessy/analysis": "workspace:*",
-    "@chessy/chess": "workspace:*",
-    "@chessy/contracts": "workspace:*",
-    "@chessy/history": "workspace:*",
-    "@chessy/library": "workspace:*",
-    "@chessy/play": "workspace:*",
+    "@pawnia/analysis": "workspace:*",
+    "@pawnia/chess": "workspace:*",
+    "@pawnia/contracts": "workspace:*",
+    "@pawnia/history": "workspace:*",
+    "@pawnia/library": "workspace:*",
+    "@pawnia/play": "workspace:*",
     "@tanstack/react-query": "^5.105.0",
     "@tanstack/react-router": "^1.170.46",
     "chessground": "^9.2.1",
@@ -29,8 +29,8 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
-    "@chessy/api": "workspace:*",
-    "@chessy/config": "workspace:*",
+    "@pawnia/api": "workspace:*",
+    "@pawnia/config": "workspace:*",
     "@playwright/test": "^1.64.1",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",

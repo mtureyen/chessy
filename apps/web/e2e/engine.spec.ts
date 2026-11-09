@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import type { AnalysisHandle, AnalysisRequest, EngineProvider } from '@chessy/analysis'
+import type { AnalysisHandle, AnalysisRequest, EngineProvider } from '@pawnia/analysis'
 
 /**
  * Runs real Stockfish (WASM, Web Worker) through our actual browser adapter + UciEngine.

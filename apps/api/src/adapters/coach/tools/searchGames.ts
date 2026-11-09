@@ -1,5 +1,5 @@
-import { defineTool, type CoachTool } from '@chessy/coach'
-import type { PlayerGame } from '@chessy/history'
+import { defineTool, type CoachTool } from '@pawnia/coach'
+import type { PlayerGame } from '@pawnia/history'
 import { z } from 'zod'
 import { filterFields, matchingGames, type HistoryAccess } from './historyFilter'
 

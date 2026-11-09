@@ -1,9 +1,9 @@
-import { createGame, InvalidPositionError } from '@chessy/chess'
+import { createGame, InvalidPositionError } from '@pawnia/chess'
 import {
   humanMovePredictionRoute,
   humanMovesStatusRoute,
   moveProbabilitiesRoute,
-} from '@chessy/contracts'
+} from '@pawnia/contracts'
 import type { HumanMoveService } from '../../adapters/humanMoves/service'
 import { problem } from '../../http/problem'
 import { createRouter } from '../../http/router'

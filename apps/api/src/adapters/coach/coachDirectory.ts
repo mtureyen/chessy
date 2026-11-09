@@ -1,4 +1,4 @@
-import type { CoachAgent } from '@chessy/coach'
+import type { CoachAgent } from '@pawnia/coach'
 
 // Types only: app.ts (and through it the web app's typed client) sees this file, not the agents.
 

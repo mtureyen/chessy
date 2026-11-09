@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { createOpeningBook, type BookData, type OpeningBook } from '@chessy/analysis'
+import { createOpeningBook, type BookData, type OpeningBook } from '@pawnia/analysis'
 
 /**
  * Loads the opening book (the web app's file) once, the first time it is needed. Without the file

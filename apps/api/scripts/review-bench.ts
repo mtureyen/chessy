@@ -35,9 +35,9 @@ import {
   type MoveClass,
   type MoveFacts,
   type PositionEval,
-} from '@chessy/analysis'
-import { importPgn } from '@chessy/chess'
-import { OnnxMaiaModel, moveProbabilities, type MoveProbabilityQuery } from '@chessy/maia'
+} from '@pawnia/analysis'
+import { importPgn } from '@pawnia/chess'
+import { OnnxMaiaModel, moveProbabilities, type MoveProbabilityQuery } from '@pawnia/maia'
 import * as ort from 'onnxruntime-web'
 import { createProcessTransport } from '../src/adapters/engine/processTransport'
 import { defaultPoolSize, resolveStockfishPath } from '../src/adapters/engine/native'

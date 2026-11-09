@@ -1,6 +1,6 @@
-import type { GameReview } from '@chessy/analysis'
-import type { CoachWalkthroughBody } from '@chessy/contracts'
-import type { LibraryGame, Profile } from '@chessy/library'
+import type { GameReview } from '@pawnia/analysis'
+import type { CoachWalkthroughBody } from '@pawnia/contracts'
+import type { LibraryGame, Profile } from '@pawnia/library'
 import { sql } from 'drizzle-orm'
 import {
   boolean,

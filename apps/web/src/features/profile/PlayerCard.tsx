@@ -1,4 +1,4 @@
-import { sourceName, type PlayerProfile, type RatedSpeed } from '@chessy/library'
+import { sourceName, type PlayerProfile, type RatedSpeed } from '@pawnia/library'
 import { flagEmoji } from './flag'
 
 const SPEED_LABELS: Record<RatedSpeed, string> = {

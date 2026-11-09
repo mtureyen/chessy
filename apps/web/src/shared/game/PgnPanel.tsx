@@ -1,4 +1,4 @@
-import { createGame, exportPgn, importPgn, type GameState, type PgnHeaders } from '@chessy/chess'
+import { createGame, exportPgn, importPgn, type GameState, type PgnHeaders } from '@pawnia/chess'
 import { useState } from 'react'
 import './GamePanel.css'
 

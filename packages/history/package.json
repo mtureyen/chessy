@@ -1,5 +1,5 @@
 {
-  "name": "@chessy/history",
+  "name": "@pawnia/history",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,12 +12,12 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@chessy/analysis": "workspace:*",
-    "@chessy/chess": "workspace:*",
-    "@chessy/library": "workspace:*"
+    "@pawnia/analysis": "workspace:*",
+    "@pawnia/chess": "workspace:*",
+    "@pawnia/library": "workspace:*"
   },
   "devDependencies": {
-    "@chessy/config": "workspace:*",
+    "@pawnia/config": "workspace:*",
     "vitest": "^5.0.5"
   }
 }

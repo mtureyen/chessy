@@ -1,4 +1,4 @@
-import type { CoachEventBody } from '@chessy/contracts'
+import type { CoachEventBody } from '@pawnia/contracts'
 import { describe, expect, it } from 'vitest'
 import { applyEvent, placed, type CoachMessage } from './messages'
 

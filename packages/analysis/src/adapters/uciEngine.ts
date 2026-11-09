@@ -1,4 +1,4 @@
-import { createGame, type Color } from '@chessy/chess'
+import { createGame, type Color } from '@pawnia/chess'
 import type { AnalysisEnd, AnalysisRequest, AnalysisSnapshot, EngineLine } from '../domain/analysis'
 import { toWhitePov } from '../domain/score'
 import { goCommand, parseBestMove, parseInfo } from '../domain/uci'

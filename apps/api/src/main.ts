@@ -1,4 +1,4 @@
-import { CachedGameSource, type GameSource, type SourceId } from '@chessy/library'
+import { CachedGameSource, type GameSource, type SourceId } from '@pawnia/library'
 import pkg from '../package.json' with { type: 'json' }
 import {
   createNativeEngineService,

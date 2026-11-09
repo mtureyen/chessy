@@ -1,4 +1,4 @@
-import { createGame, type Color } from '@chessy/chess'
+import { createGame, type Color } from '@pawnia/chess'
 import { Link } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Board } from '@/shared/board/Board'

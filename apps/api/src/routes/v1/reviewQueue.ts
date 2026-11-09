@@ -3,7 +3,7 @@ import {
   resumeReviewQueueRoute,
   reviewQueueRoute,
   startReviewQueueRoute,
-} from '@chessy/contracts'
+} from '@pawnia/contracts'
 import {
   ReviewQueueBusyError,
   type ReviewQueueService,

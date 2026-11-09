@@ -1,4 +1,4 @@
-import type { EngineLine, Score } from '@chessy/analysis'
+import type { EngineLine, Score } from '@pawnia/analysis'
 import { describe, expect, it } from 'vitest'
 import { approximateRating, BOT_LEVELS, botLevel, type BotLevel } from './levels'
 import { seededRandom } from './random'

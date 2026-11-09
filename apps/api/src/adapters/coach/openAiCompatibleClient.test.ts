@@ -1,4 +1,4 @@
-import { llmClientContract, type ScriptedTurn } from '@chessy/coach/testing'
+import { llmClientContract, type ScriptedTurn } from '@pawnia/coach/testing'
 import { describe, expect, it } from 'vitest'
 import { OpenAiCompatibleClient } from './openAiCompatibleClient'
 

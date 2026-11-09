@@ -1,11 +1,11 @@
-import type { HumanMoveQuery } from '@chessy/analysis'
+import type { HumanMoveQuery } from '@pawnia/analysis'
 import {
   moveProbabilities,
   predictHumanMoves,
   type HumanMovePrediction,
   type HumanMoveRequest,
   type MaiaModel,
-} from '@chessy/maia'
+} from '@pawnia/maia'
 
 export type HumanMovesStatus =
   { available: true; name: string } | { available: false; reason: string }

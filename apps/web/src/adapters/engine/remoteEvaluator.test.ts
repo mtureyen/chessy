@@ -1,4 +1,4 @@
-import { EngineFailedError, EvaluationCancelledError } from '@chessy/analysis'
+import { EngineFailedError, EvaluationCancelledError } from '@pawnia/analysis'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createApiClient } from '@/adapters/api/client'
 import { RemoteEvaluator } from './remoteEvaluator'

@@ -1,4 +1,4 @@
-import type { Problem } from '@chessy/contracts'
+import type { Problem } from '@pawnia/contracts'
 import type { Context } from 'hono'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 

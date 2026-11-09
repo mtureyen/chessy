@@ -4,8 +4,8 @@ import {
   type GameFilter,
   type GameHistory,
   type PlayerGame,
-} from '@chessy/history'
-import type { Profile } from '@chessy/library'
+} from '@pawnia/history'
+import type { Profile } from '@pawnia/library'
 import { z } from 'zod'
 
 /** What the history tools read: the stored games and whose they are. */

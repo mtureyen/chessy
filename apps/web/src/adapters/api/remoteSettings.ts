@@ -3,7 +3,7 @@ import type {
   CoachSettingsBody,
   CoachSettingsUpdateBody,
   Problem,
-} from '@chessy/contracts'
+} from '@pawnia/contracts'
 import type { ApiClient } from './client'
 
 /** The API's settings (only answered from this machine) and its coach agents. */

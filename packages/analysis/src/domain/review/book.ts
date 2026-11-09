@@ -1,4 +1,4 @@
-import { createGame, importPgn } from '@chessy/chess'
+import { createGame, importPgn } from '@pawnia/chess'
 import { positionKey } from './keys'
 
 export interface Opening {

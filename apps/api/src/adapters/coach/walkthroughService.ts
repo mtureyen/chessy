@@ -1,10 +1,10 @@
-import type { CancelSignal, CoachAgent } from '@chessy/coach'
+import type { CancelSignal, CoachAgent } from '@pawnia/coach'
 import type {
   CoachTryBody,
   CoachTryRequestBody,
   CoachWalkthroughBody,
   CoachWalkthroughRequestBody,
-} from '@chessy/contracts'
+} from '@pawnia/contracts'
 
 // Types only: app.ts (and through it the web app's typed client) sees this file, not the code
 // behind it.

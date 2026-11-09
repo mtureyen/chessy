@@ -14,7 +14,7 @@ import {
   type CoachTool,
   type CommentRequest,
   type ComposeRequest,
-} from '@chessy/coach'
+} from '@pawnia/coach'
 import type { CoachRuns } from './mcp'
 
 /** A started process, as the agent uses it. */

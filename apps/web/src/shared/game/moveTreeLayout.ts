@@ -1,4 +1,4 @@
-import type { MoveNode } from '@chessy/chess'
+import type { MoveNode } from '@pawnia/chess'
 
 /** A main-line row: move number plus White's and Black's move (either may be missing). */
 export interface MoveRow {

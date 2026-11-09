@@ -1,6 +1,6 @@
-import type { MoveClass } from '@chessy/analysis'
-import type { Color } from '@chessy/chess'
-import type { GameSpeed } from '@chessy/library'
+import type { MoveClass } from '@pawnia/analysis'
+import type { Color } from '@pawnia/chess'
+import type { GameSpeed } from '@pawnia/library'
 import type { PlayerGame } from './playerGames'
 
 /** Results of a set of games, from the user's side. */

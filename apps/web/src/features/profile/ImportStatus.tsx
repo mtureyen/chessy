@@ -1,4 +1,4 @@
-import { sourceName, type LinkedAccount } from '@chessy/library'
+import { sourceName, type LinkedAccount } from '@pawnia/library'
 import { useQueryClient } from '@tanstack/react-query'
 import { useServices } from '@/app/servicesContext'
 import { importRecord, runImport, useImportState } from './historyImport'

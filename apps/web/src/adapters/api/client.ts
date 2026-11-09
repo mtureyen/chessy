@@ -1,4 +1,4 @@
-import type { AppType } from '@chessy/api/rpc'
+import type { AppType } from '@pawnia/api/rpc'
 import { hc } from 'hono/client'
 
 /** Typed HTTP client generated from the API's route types. */

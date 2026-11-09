@@ -1,4 +1,4 @@
-import type { MoveNode } from '@chessy/chess'
+import type { MoveNode } from '@pawnia/chess'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import type { ReviewEngine } from '@/app/services'

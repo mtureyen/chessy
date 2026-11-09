@@ -1,4 +1,4 @@
-import { createGame } from '@chessy/chess'
+import { createGame } from '@pawnia/chess'
 import { expect, test, type Page } from '@playwright/test'
 import { boardDriver } from './board'
 

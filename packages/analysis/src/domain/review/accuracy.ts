@@ -1,4 +1,4 @@
-import type { Color } from '@chessy/chess'
+import type { Color } from '@pawnia/chess'
 
 /**
  * Accuracy of one move from the mover's winning chances before and after it (0–100).

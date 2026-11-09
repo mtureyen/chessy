@@ -1,4 +1,4 @@
-import { createGame, importPgn, type MoveNode } from '@chessy/chess'
+import { createGame, importPgn, type MoveNode } from '@pawnia/chess'
 import { describe, expect, it } from 'vitest'
 import {
   moveTreeItems,

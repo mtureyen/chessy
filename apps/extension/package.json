@@ -1,5 +1,5 @@
 {
-  "name": "@chessy/extension",
+  "name": "@pawnia/extension",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,10 +9,10 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@chessy/library": "workspace:*"
+    "@pawnia/library": "workspace:*"
   },
   "devDependencies": {
-    "@chessy/config": "workspace:*",
+    "@pawnia/config": "workspace:*",
     "@types/bun": "^1.4.4",
     "@types/chrome": "0.3.5"
   }

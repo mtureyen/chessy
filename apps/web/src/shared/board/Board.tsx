@@ -5,7 +5,7 @@ import type { Config } from 'chessground/config'
 import type { DrawShape } from 'chessground/draw'
 import type { Key } from 'chessground/types'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { Color, Move, SquareName } from '@chessy/chess'
+import type { Color, Move, SquareName } from '@pawnia/chess'
 import { useBoardAppearance } from './appearanceStore'
 import {
   COACH_BRUSHES,

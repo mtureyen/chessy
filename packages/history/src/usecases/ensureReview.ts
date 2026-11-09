@@ -1,4 +1,4 @@
-import type { GameReview, ReviewInput } from '@chessy/analysis'
+import type { GameReview, ReviewInput } from '@pawnia/analysis'
 import type { ReviewRepository, StoredReview } from '../ports/reviewRepository'
 
 export interface EnsureReviewDeps {

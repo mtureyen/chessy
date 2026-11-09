@@ -1,11 +1,11 @@
-import { gameLine } from '@chessy/history'
+import { gameLine } from '@pawnia/history'
 import {
   DuplicateGameError,
   type GameOrigin,
   type GameRepository,
   type LibraryGame,
   type ListGamesOptions,
-} from '@chessy/library'
+} from '@pawnia/library'
 import { and, desc, eq, inArray, or, sql } from 'drizzle-orm'
 import type { Database } from './types'
 import { lineHash } from './lineHash'

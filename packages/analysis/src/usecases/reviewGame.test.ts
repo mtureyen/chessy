@@ -1,4 +1,4 @@
-import { createGame } from '@chessy/chess'
+import { createGame } from '@pawnia/chess'
 import { describe, expect, it } from 'vitest'
 import { InMemoryEvalCache } from '../adapters/inMemoryEvalCache'
 import type { AnalysisRequest, AnalysisSnapshot, EngineLine } from '../domain/analysis'

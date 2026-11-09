@@ -1,4 +1,4 @@
-import type { TrainingBody, TrainingResultBody } from '@chessy/contracts'
+import type { TrainingBody, TrainingResultBody } from '@pawnia/contracts'
 
 // Types only: app.ts (and through it the web app's typed client) sees this file, not the code
 // behind it.

@@ -1,5 +1,5 @@
-import type { ReviewInput } from '@chessy/analysis'
-import { InMemoryGameRepository } from '@chessy/library'
+import type { ReviewInput } from '@pawnia/analysis'
+import { InMemoryGameRepository } from '@pawnia/library'
 import { describe, expect, it } from 'vitest'
 import { InMemoryReviewRepository } from '../adapters/inMemoryReviewRepository'
 import { sampleReview } from '../testing'

@@ -1,5 +1,5 @@
-import { createGame } from '@chessy/chess'
-import { buildProfile } from '@chessy/library'
+import { createGame } from '@pawnia/chess'
+import { buildProfile } from '@pawnia/library'
 import { describe, expect, it } from 'vitest'
 import { findPosition, samePosition, usualRating, userRating } from './situation'
 

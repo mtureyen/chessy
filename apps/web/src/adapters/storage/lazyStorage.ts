@@ -1,4 +1,4 @@
-import type { EvalCache, PositionEval } from '@chessy/analysis'
+import type { EvalCache, PositionEval } from '@pawnia/analysis'
 import type {
   GameRepository,
   LibrarySettings,
@@ -7,7 +7,7 @@ import type {
   GameOrigin,
   Profile,
   ProfileStore,
-} from '@chessy/library'
+} from '@pawnia/library'
 
 type Storage = {
   games: GameRepository

@@ -1,6 +1,6 @@
-import type { GameCategory } from '@chessy/library'
+import type { GameCategory } from '@pawnia/library'
 
-export { categoryOf, type GameCategory } from '@chessy/library'
+export { categoryOf, type GameCategory } from '@pawnia/library'
 
 export const CATEGORY_LABELS: Record<GameCategory, string> = {
   chesscom: 'chess.com',

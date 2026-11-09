@@ -1,10 +1,10 @@
-import { createGame, InvalidPositionError } from '@chessy/chess'
+import { createGame, InvalidPositionError } from '@pawnia/chess'
 import {
   engineStatusRoute,
   EvaluationRequestSchema,
   evaluationsRoute,
   type EvaluationEvent,
-} from '@chessy/contracts'
+} from '@pawnia/contracts'
 import type { EngineService } from '../../adapters/engine/service'
 import { problem } from '../../http/problem'
 import { createRouter } from '../../http/router'

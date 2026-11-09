@@ -4,12 +4,12 @@ import {
   UserNotFoundError,
   type GameSource,
   type SourceGame,
-} from '@chessy/library'
-import { CoachEventSchema, type TrainingResultBody } from '@chessy/contracts'
-import { InMemoryConversationStore, LoopAgent } from '@chessy/coach'
-import { scriptedClient } from '@chessy/coach/testing'
-import { sampleReview } from '@chessy/history/testing'
-import { sampleGame, sampleSourceGame } from '@chessy/library/testing'
+} from '@pawnia/library'
+import { CoachEventSchema, type TrainingResultBody } from '@pawnia/contracts'
+import { InMemoryConversationStore, LoopAgent } from '@pawnia/coach'
+import { scriptedClient } from '@pawnia/coach/testing'
+import { sampleReview } from '@pawnia/history/testing'
+import { sampleGame, sampleSourceGame } from '@pawnia/library/testing'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

@@ -4,7 +4,7 @@ import type {
   EvaluatorInfo,
   PositionEval,
   PositionEvaluator,
-} from '@chessy/analysis'
+} from '@pawnia/analysis'
 
 export type EngineStatus =
   ({ available: true } & EvaluatorInfo) | { available: false; reason: string }

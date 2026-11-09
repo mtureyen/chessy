@@ -1,4 +1,4 @@
-import type { ReviewedMove } from '@chessy/analysis'
+import type { ReviewedMove } from '@pawnia/analysis'
 import {
   createGame,
   exportPgn,
@@ -7,7 +7,7 @@ import {
   type GameState,
   type MoveNode,
   type PgnHeaders,
-} from '@chessy/chess'
+} from '@pawnia/chess'
 import { useMemo, useState } from 'react'
 import { CoachPanel } from '@/features/coach/CoachPanel'
 import {

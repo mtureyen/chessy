@@ -1,4 +1,4 @@
-import type { GameLine, ReviewRepository, StoredReview } from '@chessy/history'
+import type { GameLine, ReviewRepository, StoredReview } from '@pawnia/history'
 import { eq, sql } from 'drizzle-orm'
 import type { Database } from './types'
 import { lineHash } from './lineHash'

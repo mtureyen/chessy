@@ -1,4 +1,4 @@
-import { buildProfile } from '@chessy/library'
+import { buildProfile } from '@pawnia/library'
 import { describe, expect, it } from 'vitest'
 import { sampleSummary as summary } from '../testing'
 import { filterGames, playerGames, recentGames } from './playerGames'

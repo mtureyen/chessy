@@ -1,8 +1,8 @@
-import { createGame } from '@chessy/chess'
-import { lineText, type GameLine, type PuzzleProgress, type StoredReview } from '@chessy/history'
-import { sampleReview, sampleSummary } from '@chessy/history/testing'
-import { buildProfile } from '@chessy/library'
-import { sampleGame } from '@chessy/library/testing'
+import { createGame } from '@pawnia/chess'
+import { lineText, type GameLine, type PuzzleProgress, type StoredReview } from '@pawnia/history'
+import { sampleReview, sampleSummary } from '@pawnia/history/testing'
+import { buildProfile } from '@pawnia/library'
+import { sampleGame } from '@pawnia/library/testing'
 import { describe, expect, it } from 'vitest'
 import { StoredTraining, type TrainingLibrary } from './storedTraining'
 

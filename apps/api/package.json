@@ -1,5 +1,5 @@
 {
-  "name": "@chessy/api",
+  "name": "@pawnia/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -25,14 +25,14 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.1.0",
-    "@chessy/analysis": "workspace:*",
-    "@chessy/chess": "workspace:*",
-    "@chessy/coach": "workspace:*",
-    "@chessy/contracts": "workspace:*",
-    "@chessy/history": "workspace:*",
-    "@chessy/library": "workspace:*",
-    "@chessy/maia": "workspace:*",
-    "@chessy/play": "workspace:*",
+    "@pawnia/analysis": "workspace:*",
+    "@pawnia/chess": "workspace:*",
+    "@pawnia/coach": "workspace:*",
+    "@pawnia/contracts": "workspace:*",
+    "@pawnia/history": "workspace:*",
+    "@pawnia/library": "workspace:*",
+    "@pawnia/maia": "workspace:*",
+    "@pawnia/play": "workspace:*",
     "@electric-sql/pglite": "0.5.10",
     "@hono/zod-openapi": "^1.6.3",
     "@modelcontextprotocol/sdk": "1.32.1",
@@ -43,7 +43,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@chessy/config": "workspace:*",
+    "@pawnia/config": "workspace:*",
     "@playwright/test": "^1.64.1",
     "@types/bun": "^1.4.4",
     "drizzle-kit": "0.31.11"

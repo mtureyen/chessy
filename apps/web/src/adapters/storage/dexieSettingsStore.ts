@@ -1,4 +1,4 @@
-import type { LibrarySettings, SettingsStore } from '@chessy/library'
+import type { LibrarySettings, SettingsStore } from '@pawnia/library'
 import type { ChessyDb } from './db'
 
 const KEY = 'library'

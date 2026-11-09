@@ -1,4 +1,4 @@
-import { keyMoments, type GameReview } from '@chessy/analysis'
+import { keyMoments, type GameReview } from '@pawnia/analysis'
 import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import type { ReviewEngine } from '@/app/services'

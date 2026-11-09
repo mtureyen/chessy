@@ -1,5 +1,5 @@
-import type { Color } from '@chessy/chess'
-import type { CoachCommentBody } from '@chessy/contracts'
+import type { Color } from '@pawnia/chess'
+import type { CoachCommentBody } from '@pawnia/contracts'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
 import { presetNodes } from '@/features/review/presets'

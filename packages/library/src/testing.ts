@@ -1,5 +1,5 @@
 /**
- * Test helpers for adapters of this context's ports. Import from `@chessy/library/testing`.
+ * Test helpers for adapters of this context's ports. Import from `@pawnia/library/testing`.
  * The same contract suite runs against every GameRepository implementation.
  */
 import { beforeEach, describe, expect, it } from 'vitest'

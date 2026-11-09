@@ -7,8 +7,8 @@ import {
   type PositionEvaluator,
   type ReviewInput,
   type ReviewOptions,
-} from '@chessy/analysis'
-import type { GameLine } from '@chessy/history'
+} from '@pawnia/analysis'
+import type { GameLine } from '@pawnia/history'
 import {
   buildProfile,
   importHistory,
@@ -26,7 +26,7 @@ import {
   type Profile,
   type SettingsStore,
   type SourceId,
-} from '@chessy/library'
+} from '@pawnia/library'
 import {
   chooseBotMove,
   findUnfinishedBotGame,
@@ -37,7 +37,7 @@ import {
   type FinishedBotGame,
   type LocalGame,
   type UnfinishedBotGame,
-} from '@chessy/play'
+} from '@pawnia/play'
 import { ApiGameSource } from '@/adapters/api/apiGameSource'
 import { RemoteLibrary } from '@/adapters/api/remoteLibrary'
 import { RemoteCoach } from '@/adapters/api/remoteCoach'

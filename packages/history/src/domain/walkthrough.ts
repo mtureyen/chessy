@@ -4,8 +4,8 @@ import {
   toSanLine,
   type GameReview,
   type ReviewedMove,
-} from '@chessy/analysis'
-import { mostExposedPiece, type Color } from '@chessy/chess'
+} from '@pawnia/analysis'
+import { mostExposedPiece, type Color } from '@pawnia/chess'
 import { phaseOf, type GamePhase } from './stats'
 
 /** A walkthrough stops at this many moments; beyond it they tire more than they teach. */

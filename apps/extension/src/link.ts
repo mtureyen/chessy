@@ -1,4 +1,4 @@
-import { parseGameUrl } from '@chessy/library'
+import { parseGameUrl } from '@pawnia/library'
 
 export const DEFAULT_CHESSY_URL = 'http://localhost:5173'
 

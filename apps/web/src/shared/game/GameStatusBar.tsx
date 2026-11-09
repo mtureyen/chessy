@@ -1,4 +1,4 @@
-import type { Color, GameStatus } from '@chessy/chess'
+import type { Color, GameStatus } from '@pawnia/chess'
 import './GamePanel.css'
 
 const DRAW_REASONS: Record<Extract<GameStatus, { kind: 'draw' }>['reason'], string> = {

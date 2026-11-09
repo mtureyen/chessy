@@ -1,4 +1,4 @@
-import type { Color, MoveNode } from '@chessy/chess'
+import type { Color, MoveNode } from '@pawnia/chess'
 
 /** `1:05:09`, `4:59`, and tenths under ten seconds: `0:04.1`. */
 export function formatClock(seconds: number): string {

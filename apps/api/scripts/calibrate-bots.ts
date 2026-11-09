@@ -30,8 +30,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { UciEngine, whiteWinChance, type EngineProvider } from '@chessy/analysis'
-import { OnnxMaiaModel } from '@chessy/maia'
+import { UciEngine, whiteWinChance, type EngineProvider } from '@pawnia/analysis'
+import { OnnxMaiaModel } from '@pawnia/maia'
 import {
   BOT_LEVELS,
   MATCH_OPENINGS,
@@ -46,7 +46,7 @@ import {
   type HumanStyle,
   type MatchGame,
   type MatchPlayer,
-} from '@chessy/play'
+} from '@pawnia/play'
 import * as ort from 'onnxruntime-web'
 import { createProcessTransport } from '../src/adapters/engine/processTransport'
 import { defaultPoolSize, resolveStockfishPath } from '../src/adapters/engine/native'

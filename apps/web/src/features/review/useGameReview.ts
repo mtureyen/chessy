@@ -1,5 +1,5 @@
-import { EvaluationCancelledError, type GameReview, type ReviewInput } from '@chessy/analysis'
-import type { MoveNode } from '@chessy/chess'
+import { EvaluationCancelledError, type GameReview, type ReviewInput } from '@pawnia/analysis'
+import type { MoveNode } from '@pawnia/chess'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReviewEngine } from '@/app/services'

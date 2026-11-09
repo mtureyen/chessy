@@ -1,4 +1,4 @@
-import type { ReviewQueueBody, StartReviewQueueBody } from '@chessy/contracts'
+import type { ReviewQueueBody, StartReviewQueueBody } from '@pawnia/contracts'
 
 // Types only: app.ts (and through it the web app's typed client) sees this file, not the code
 // behind it.

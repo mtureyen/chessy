@@ -1,5 +1,5 @@
-import type { GameLine, StoredReview } from '@chessy/history'
-import type { LibraryGame, Profile } from '@chessy/library'
+import type { GameLine, StoredReview } from '@pawnia/history'
+import type { LibraryGame, Profile } from '@pawnia/library'
 
 // Types only: app.ts (and through it the web app's typed client) sees this file, not the
 // database code behind it.

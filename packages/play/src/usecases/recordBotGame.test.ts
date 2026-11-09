@@ -1,5 +1,5 @@
-import { createGame, importPgn } from '@chessy/chess'
-import { InMemoryGameRepository } from '@chessy/library'
+import { createGame, importPgn } from '@pawnia/chess'
+import { InMemoryGameRepository } from '@pawnia/library'
 import { describe, expect, it } from 'vitest'
 import { botLevel } from '../domain/levels'
 import { findUnfinishedBotGame, recordBotGame } from './recordBotGame'

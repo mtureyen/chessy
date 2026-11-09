@@ -1,4 +1,4 @@
-import type { CoachDrawing, CoachEventBody, CoachQuestionBody } from '@chessy/contracts'
+import type { CoachDrawing, CoachEventBody, CoachQuestionBody } from '@pawnia/contracts'
 
 export type CoachContext = NonNullable<CoachQuestionBody['context']>
 

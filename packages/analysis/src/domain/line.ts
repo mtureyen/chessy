@@ -1,4 +1,4 @@
-import { createGame, type Color } from '@chessy/chess'
+import { createGame, type Color } from '@pawnia/chess'
 
 export interface LineMove {
   uci: string

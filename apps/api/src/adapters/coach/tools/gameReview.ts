@@ -1,8 +1,8 @@
-import { formatSanLine, keyMoments, toSanLine, type ReviewedMove } from '@chessy/analysis'
-import { defineTool, type CoachTool } from '@chessy/coach'
-import { importPgn, type Color } from '@chessy/chess'
-import { ensureReview, gameLine, type EnsureReviewDeps } from '@chessy/history'
-import { LOCAL_PLAYER_NAME, type LibraryGame, type Profile } from '@chessy/library'
+import { formatSanLine, keyMoments, toSanLine, type ReviewedMove } from '@pawnia/analysis'
+import { defineTool, type CoachTool } from '@pawnia/coach'
+import { importPgn, type Color } from '@pawnia/chess'
+import { ensureReview, gameLine, type EnsureReviewDeps } from '@pawnia/history'
+import { LOCAL_PLAYER_NAME, type LibraryGame, type Profile } from '@pawnia/library'
 import { z } from 'zod'
 
 /** What game_review reads and writes: stored games, the profile, reviews (stored or new). */

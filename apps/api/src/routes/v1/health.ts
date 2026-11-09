@@ -1,4 +1,4 @@
-import { healthRoute } from '@chessy/contracts'
+import { healthRoute } from '@pawnia/contracts'
 import { createRouter } from '../../http/router'
 
 export interface HealthDeps {

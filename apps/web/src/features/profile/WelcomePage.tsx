@@ -1,4 +1,4 @@
-import type { LinkedAccount, Profile, SourceId } from '@chessy/library'
+import type { LinkedAccount, Profile, SourceId } from '@pawnia/library'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { AccountField } from './AccountField'

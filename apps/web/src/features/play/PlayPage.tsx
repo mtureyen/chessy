@@ -1,4 +1,4 @@
-import { createGame, exportPgn, type Color, type PgnHeaders } from '@chessy/chess'
+import { createGame, exportPgn, type Color, type PgnHeaders } from '@pawnia/chess'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useServices } from '@/app/servicesContext'

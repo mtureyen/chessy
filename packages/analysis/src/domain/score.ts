@@ -1,4 +1,4 @@
-import type { Color } from '@chessy/chess'
+import type { Color } from '@pawnia/chess'
 
 /**
  * An engine evaluation, always from White's point of view.

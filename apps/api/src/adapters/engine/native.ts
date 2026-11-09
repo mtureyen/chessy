@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { EnginePoolEvaluator, UciEngine } from '@chessy/analysis'
+import { EnginePoolEvaluator, UciEngine } from '@pawnia/analysis'
 import { createProcessTransport } from './processTransport'
 import { SerialEngineService, type EngineService } from './service'
 

@@ -1,4 +1,4 @@
-import { UciEngine, type EngineProvider, type UciTransport } from '@chessy/analysis'
+import { UciEngine, type EngineProvider, type UciTransport } from '@pawnia/analysis'
 
 /** Served from public/engine/, downloaded by scripts/fetch-engine.ts. */
 export const STOCKFISH_URL = '/engine/stockfish-19-lite-single.js'

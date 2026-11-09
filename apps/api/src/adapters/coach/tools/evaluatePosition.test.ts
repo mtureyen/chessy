@@ -1,4 +1,4 @@
-import type { PositionEval } from '@chessy/analysis'
+import type { PositionEval } from '@pawnia/analysis'
 import { describe, expect, it } from 'vitest'
 import type { EngineService, EngineStatus } from '../../engine/service'
 import { evaluatePositionTool } from './evaluatePosition'

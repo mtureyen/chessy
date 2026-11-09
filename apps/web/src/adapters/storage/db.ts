@@ -1,5 +1,5 @@
-import type { PositionEval } from '@chessy/analysis'
-import type { LibraryGame } from '@chessy/library'
+import type { PositionEval } from '@pawnia/analysis'
+import type { LibraryGame } from '@pawnia/library'
 import { Dexie, type EntityTable, type Table } from 'dexie'
 
 export interface SettingRow {

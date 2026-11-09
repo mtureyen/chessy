@@ -1,4 +1,4 @@
-import { formatScore, toSanLine, type EngineLine } from '@chessy/analysis'
+import { formatScore, toSanLine, type EngineLine } from '@pawnia/analysis'
 import { Fragment, useMemo } from 'react'
 import type { EngineState } from './useEngineAnalysis'
 import './EnginePanel.css'

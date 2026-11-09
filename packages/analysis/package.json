@@ -1,5 +1,5 @@
 {
-  "name": "@chessy/analysis",
+  "name": "@pawnia/analysis",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,9 +11,9 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@chessy/chess": "workspace:*"
+    "@pawnia/chess": "workspace:*"
   },
   "devDependencies": {
-    "@chessy/config": "workspace:*"
+    "@pawnia/config": "workspace:*"
   }
 }

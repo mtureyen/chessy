@@ -1,6 +1,6 @@
-import type { Score } from '@chessy/analysis'
-import { defineTool, type CoachTool } from '@chessy/coach'
-import { createGame } from '@chessy/chess'
+import type { Score } from '@pawnia/analysis'
+import { defineTool, type CoachTool } from '@pawnia/coach'
+import { createGame } from '@pawnia/chess'
 import { z } from 'zod'
 import type { EngineService } from '../../engine/service'
 

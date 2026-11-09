@@ -1,5 +1,5 @@
-import { formatSanLine, toSanLine, type GameReview, type ReviewedMove } from '@chessy/analysis'
-import type { Color } from '@chessy/chess'
+import { formatSanLine, toSanLine, type GameReview, type ReviewedMove } from '@pawnia/analysis'
+import type { Color } from '@pawnia/chess'
 import type { GameLine } from './line'
 import type { PlayerGame } from './playerGames'
 

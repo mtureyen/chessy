@@ -1,4 +1,4 @@
-import { coachSettingsRoute, updateCoachSettingsRoute } from '@chessy/contracts'
+import { coachSettingsRoute, updateCoachSettingsRoute } from '@pawnia/contracts'
 import type { SettingsService } from '../../adapters/settings/settingsService'
 import { onlyThisMachine } from '../../http/local'
 import { createRouter } from '../../http/router'

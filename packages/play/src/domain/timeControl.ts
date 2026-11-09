@@ -1,4 +1,4 @@
-import type { Speed } from '@chessy/library'
+import type { Speed } from '@pawnia/library'
 import type { TimeControl } from './clock'
 
 export interface TimeControlPreset {

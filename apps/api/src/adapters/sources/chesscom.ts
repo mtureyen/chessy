@@ -7,7 +7,7 @@ import {
   type RatedSpeed,
   type SourceGame,
   type Speed,
-} from '@chessy/library'
+} from '@pawnia/library'
 import { z } from 'zod'
 import { get, pgnResult, pgnTag, type HttpSourceOptions } from './http'
 

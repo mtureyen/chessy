@@ -1,5 +1,5 @@
 {
-  "name": "@chessy/library",
+  "name": "@pawnia/library",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "@chessy/config": "workspace:*",
+    "@pawnia/config": "workspace:*",
     "vitest": "^5.0.5"
   }
 }

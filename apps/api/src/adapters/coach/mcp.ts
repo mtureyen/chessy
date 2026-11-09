@@ -1,4 +1,4 @@
-import type { CoachContext, CoachEvent, CoachTool } from '@chessy/coach'
+import type { CoachContext, CoachEvent, CoachTool } from '@pawnia/coach'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'

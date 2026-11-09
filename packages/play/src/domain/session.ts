@@ -1,5 +1,5 @@
-import { hasInsufficientMaterial, type Color, type GameStatus } from '@chessy/chess'
-import type { GameResult } from '@chessy/library'
+import { hasInsufficientMaterial, type Color, type GameStatus } from '@pawnia/chess'
+import type { GameResult } from '@pawnia/library'
 import type { TimeControl } from './clock'
 import type { BotLevel } from './levels'
 import type { Random } from './random'

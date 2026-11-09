@@ -8,8 +8,8 @@
  * Writes rows under fresh ids and deletes them again, so it is safe on a database in use.
  */
 import { deepEquals } from 'bun'
-import { sampleReview } from '@chessy/history/testing'
-import { sampleGame } from '@chessy/library/testing'
+import { sampleReview } from '@pawnia/history/testing'
+import { sampleGame } from '@pawnia/library/testing'
 import { inArray, sql } from 'drizzle-orm'
 import { openDatabase } from '../src/adapters/db/database'
 import { PostgresGameRepository } from '../src/adapters/db/gameRepository'

@@ -1,5 +1,5 @@
-import { exportPgn, importPgn, type Color } from '@chessy/chess'
-import { LOCAL_PLAYER_NAME } from '@chessy/library'
+import { exportPgn, importPgn, type Color } from '@pawnia/chess'
+import { LOCAL_PLAYER_NAME } from '@pawnia/library'
 import {
   approximateRating,
   BOT_LEVELS,
@@ -13,7 +13,7 @@ import {
   type ColorChoice,
   type Termination,
   type UnfinishedBotGame,
-} from '@chessy/play'
+} from '@pawnia/play'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'

@@ -1,6 +1,6 @@
-import { keyMoments, type GameReview, type ReviewInput } from '@chessy/analysis'
-import { mostExposedPiece, type MoveNode } from '@chessy/chess'
-import type { CoachCommentBody } from '@chessy/contracts'
+import { keyMoments, type GameReview, type ReviewInput } from '@pawnia/analysis'
+import { mostExposedPiece, type MoveNode } from '@pawnia/chess'
+import type { CoachCommentBody } from '@pawnia/contracts'
 
 /**
  * What a review has to see to judge a move as it would in the whole game: the move and the

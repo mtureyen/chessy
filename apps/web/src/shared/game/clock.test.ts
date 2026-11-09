@@ -1,4 +1,4 @@
-import { importPgn } from '@chessy/chess'
+import { importPgn } from '@pawnia/chess'
 import { describe, expect, it } from 'vitest'
 import { clockAt, formatClock } from './clock'
 

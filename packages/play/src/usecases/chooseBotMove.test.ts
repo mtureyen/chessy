@@ -4,7 +4,7 @@ import {
   type AnalysisSnapshot,
   type CancelSignal,
   type EngineProvider,
-} from '@chessy/analysis'
+} from '@pawnia/analysis'
 import { describe, expect, it } from 'vitest'
 import { botLevel } from '../domain/levels'
 import { seededRandom } from '../domain/random'
