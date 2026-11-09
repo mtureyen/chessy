@@ -23,7 +23,9 @@ export interface FinishedBotGame {
 }
 
 /** PGN tag with the bot's level, so an unfinished game can be resumed against the same bot. */
-export const BOT_LEVEL_TAG = 'ChessyBotLevel'
+export const BOT_LEVEL_TAG = 'PawniaBotLevel'
+/** The same tag in games saved under the app's old name. */
+const OLD_BOT_LEVEL_TAG = 'ChessyBotLevel'
 
 /**
  * Saves a bot game to the library (source 'pawnia'), so it can be reviewed later. Also while it
@@ -88,7 +90,7 @@ export async function findUnfinishedBotGame({
   for (const record of recent) {
     if (record.result !== '*') continue
     const { headers } = importPgn(record.pgn)
-    const level = Number(headers[BOT_LEVEL_TAG])
+    const level = Number(headers[BOT_LEVEL_TAG] ?? headers[OLD_BOT_LEVEL_TAG])
     if (!BOT_LEVELS.some((l) => l.level === level)) continue
     const color = record.white.name === LOCAL_PLAYER_NAME ? 'white' : 'black'
     const timeControl = parsePgnTimeControl(headers.TimeControl)
