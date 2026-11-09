@@ -147,6 +147,19 @@ describe('unfinished bot games', () => {
     expect(unfinished?.setup).toEqual(setup)
   })
 
+  it("are found again when saved under the app's old name", async () => {
+    const repository = new InMemoryGameRepository()
+    const game = createGame()
+    game.play('e4')
+    const setup = { level: botLevel(5), color: 'white' as const }
+    const saved = await recordBotGame(deps(repository), { game, setup })
+    expect(saved.pgn).toContain('[PawniaBotLevel "5"]')
+    const old = { ...saved, pgn: saved.pgn.replace('PawniaBotLevel', 'ChessyBotLevel') }
+    await repository.saveAll([old])
+
+    expect((await findUnfinishedBotGame({ repository }))?.setup).toEqual(setup)
+  })
+
   it('leave finished games and other unfinished ones alone', async () => {
     const repository = new InMemoryGameRepository()
     await recordBotGame(deps(repository), {
