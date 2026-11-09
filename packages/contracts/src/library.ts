@@ -35,14 +35,6 @@ export const LibraryGameSchema = SourceGameSchema.omit({ source: true, url: true
   })
   .openapi('LibraryGame') satisfies z.ZodType<LibraryGame>
 
-/**
- * A game sent to be stored. `chessy` is the old name of `pawnia`, from a tab opened before the
- * rename; it is stored as `pawnia`.
- */
-export const SavedGameSchema = LibraryGameSchema.extend({
-  source: z.enum(['lichess', 'chesscom', 'pawnia', 'chessy']),
-}).openapi('SavedGame')
-
 /** A main line: where it starts and its moves. */
 const GameLineSchema = z.object({
   startFen: z.string().max(100),
@@ -140,7 +132,7 @@ export const saveLibraryGamesRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: z.object({ games: z.array(SavedGameSchema).min(1).max(500) }),
+          schema: z.object({ games: z.array(LibraryGameSchema).min(1).max(500) }),
         },
       },
       required: true,

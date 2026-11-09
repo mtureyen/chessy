@@ -25,10 +25,7 @@ export function libraryRoutes({
   return createRouter()
     .openapi(libraryStatusRoute, async (c) => c.json(await library.status(), 200))
     .openapi(saveLibraryGamesRoute, async (c) => {
-      const games = c.req.valid('json').games.map((game) => ({
-        ...game,
-        source: game.source === 'chessy' ? 'pawnia' : game.source,
-      }))
+      const { games } = c.req.valid('json')
       for (const [index, game] of games.entries()) {
         try {
           gameLine(game.pgn)

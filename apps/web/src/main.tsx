@@ -6,10 +6,8 @@ import { createServices } from './app/services'
 import { ServicesProvider } from './app/ServicesProvider'
 import { router } from './app/router'
 import { applyBoardAppearance } from './shared/board/appearanceStore'
-import { moveRenamedKeys } from './app/renamedKeys'
 import './styles/index.css'
 
-moveRenamedKeys()
 applyBoardAppearance()
 const services = createServices()
 // Catch the server's game history up with this browser's (games saved while it was down).
