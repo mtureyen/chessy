@@ -4,7 +4,7 @@ export type SourceId = 'lichess' | 'chesscom'
 export const SOURCE_IDS: readonly SourceId[] = ['lichess', 'chesscom']
 
 /** Where a library game comes from: a platform it was imported from, or played here in pawnia. */
-export type GameOrigin = SourceId | 'chessy'
+export type GameOrigin = SourceId | 'pawnia'
 
 /** The name the user plays under in games played in pawnia. */
 export const LOCAL_PLAYER_NAME = 'You'
@@ -56,7 +56,7 @@ export type GameCategory = 'chesscom' | 'lichess' | 'bot' | 'local'
 
 /** Games played here are against a bot when "You" played, else two people on one board. */
 export function categoryOf(game: Pick<LibraryGame, 'source' | 'white' | 'black'>): GameCategory {
-  if (game.source !== 'chessy') return game.source
+  if (game.source !== 'pawnia') return game.source
   return game.white.name === LOCAL_PLAYER_NAME || game.black.name === LOCAL_PLAYER_NAME
     ? 'bot'
     : 'local'

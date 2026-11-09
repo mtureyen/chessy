@@ -17,12 +17,12 @@ describe('playerGames', () => {
         summary({ id: 'g3', white: { name: 'a' }, black: { name: 'b' } }),
         summary({
           id: 'g4',
-          source: 'chessy',
+          source: 'pawnia',
           white: { name: 'pawnia bot (level 3)' },
           black: { name: 'You' },
           result: '*',
         }),
-        summary({ id: 'g5', source: 'chessy', white: { name: 'White' }, black: { name: 'Black' } }),
+        summary({ id: 'g5', source: 'pawnia', white: { name: 'White' }, black: { name: 'Black' } }),
       ],
       profile,
     )
@@ -36,7 +36,7 @@ describe('playerGames', () => {
 
   it('knows only bot games as the user’s without a profile', () => {
     const games = playerGames(
-      [summary(), summary({ id: 'bot', source: 'chessy', white: { name: 'You' } })],
+      [summary(), summary({ id: 'bot', source: 'pawnia', white: { name: 'You' } })],
       undefined,
     )
     expect(games.map((g) => g.game.id)).toEqual(['bot'])

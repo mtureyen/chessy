@@ -78,11 +78,11 @@ export function gameRepositoryContract(
     })
 
     it('stores games played in pawnia, which have no platform link', async () => {
-      const { url: _url, ...game } = sampleGame({ source: 'chessy', speed: 'unlimited' })
+      const { url: _url, ...game } = sampleGame({ source: 'pawnia', speed: 'unlimited' })
       await repo.saveAll([game])
       expect(await repo.get(game.id)).toEqual(game)
-      expect((await repo.findByExternalId('chessy', game.externalId))?.id).toBe(game.id)
-      expect((await repo.list({ source: 'chessy' })).map((g) => g.id)).toEqual([game.id])
+      expect((await repo.findByExternalId('pawnia', game.externalId))?.id).toBe(game.id)
+      expect((await repo.list({ source: 'pawnia' })).map((g) => g.id)).toEqual([game.id])
     })
 
     it('rejects the same platform game under a second id', async () => {

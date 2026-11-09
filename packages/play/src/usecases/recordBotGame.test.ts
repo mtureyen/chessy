@@ -26,7 +26,7 @@ describe('recordBotGame', () => {
     })
     expect(saved).toMatchObject({
       id: 'game-1',
-      source: 'chessy',
+      source: 'pawnia',
       externalId: 'game-1',
       white: { name: 'You' },
       black: { name: 'pawnia bot (level 3)' },
@@ -167,7 +167,7 @@ describe('recordLocalGame', () => {
     game.play('e4')
     const saved = await recordLocalGame(deps(repository), { game })
     expect(saved).toMatchObject({
-      source: 'chessy',
+      source: 'pawnia',
       white: { name: 'White' },
       black: { name: 'Black' },
       result: '*',

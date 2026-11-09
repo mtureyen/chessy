@@ -51,7 +51,7 @@ export function sideOf(
   game: Pick<LibraryGame, 'source' | 'white' | 'black'>,
 ): 'white' | 'black' | undefined {
   const name =
-    game.source === 'chessy' ? LOCAL_PLAYER_NAME : accountOn(profile, game.source)?.username
+    game.source === 'pawnia' ? LOCAL_PLAYER_NAME : accountOn(profile, game.source)?.username
   if (!name) return undefined
   const lower = name.toLowerCase()
   if (game.white.name.toLowerCase() === lower) return 'white'

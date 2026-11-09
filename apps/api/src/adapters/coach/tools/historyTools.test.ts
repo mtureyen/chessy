@@ -27,7 +27,7 @@ const summaries: GameSummary[] = [
   sampleSummary({ id: 'win', playedAt: '2026-11-01T20:00:00.000Z' }),
   sampleSummary({
     id: 'bot',
-    source: 'chessy',
+    source: 'pawnia',
     playedAt: '2026-10-30T20:00:00.000Z',
     white: { name: 'You' },
     black: { name: 'pawnia bot (level 3)' },

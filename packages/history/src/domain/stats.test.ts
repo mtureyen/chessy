@@ -38,7 +38,7 @@ const games = playerGames(
       reviewed: true,
       accuracy: { white: 50, black: 80 },
     }),
-    summary({ id: 'd', source: 'chessy', white: me('You'), black: me('Bot'), result: '*' }),
+    summary({ id: 'd', source: 'pawnia', white: me('You'), black: me('Bot'), result: '*' }),
   ],
   profile,
 )

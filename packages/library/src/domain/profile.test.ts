@@ -56,7 +56,7 @@ describe('sideOf', () => {
   })
 
   it('finds "You" in games played in pawnia', () => {
-    const game = sampleGame({ source: 'chessy', white: { name: 'You' }, black: { name: 'bot' } })
+    const game = sampleGame({ source: 'pawnia', white: { name: 'You' }, black: { name: 'bot' } })
     expect(sideOf(profile, game)).toBe('white')
   })
 })
