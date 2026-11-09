@@ -13,6 +13,8 @@ export type {
 export {
   COMMENT_PROMPT,
   commentText,
+  FOLLOW_UP_EXCHANGES,
+  followUpText,
   questionText,
   SYSTEM_PROMPT,
   type CoachContext,
