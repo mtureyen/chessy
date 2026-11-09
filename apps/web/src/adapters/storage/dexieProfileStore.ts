@@ -1,13 +1,13 @@
 import type { Profile, ProfileStore } from '@pawnia/library'
-import type { ChessyDb } from './db'
+import type { PawniaDb } from './db'
 
 const KEY = 'profile'
 
 /** The user's profile in this browser's database (settings table). */
 export class DexieProfileStore implements ProfileStore {
-  private readonly db: ChessyDb
+  private readonly db: PawniaDb
 
-  constructor(db: ChessyDb) {
+  constructor(db: PawniaDb) {
     this.db = db
   }
 

@@ -44,9 +44,9 @@ function fakeClaude(runs: CoachRuns, { exitCode = 0, fail = false } = {}) {
       }
     }
     const config = JSON.parse(args[args.indexOf('--mcp-config') + 1]!) as {
-      mcpServers: { chessy: { url: string } }
+      mcpServers: { pawnia: { url: string } }
     }
-    const url = config.mcpServers.chessy.url
+    const url = config.mcpServers.pawnia.url
     const token = url.split('/').pop()!
     async function* lines() {
       yield line({ type: 'system', subtype: 'init' })
@@ -61,7 +61,7 @@ function fakeClaude(runs: CoachRuns, { exitCode = 0, fail = false } = {}) {
             {
               type: 'tool_use',
               id: 't1',
-              name: 'mcp__chessy__show_on_board',
+              name: 'mcp__pawnia__show_on_board',
               input: { from: 'e2', to: 'e4' },
             },
           ],
@@ -209,7 +209,7 @@ describe('HeadlessClaudeAgent', () => {
     expect(args[1]).toBe('Position on my board (FEN): x\n\nBest move?')
     expect(flag('--tools')).toBe('')
     expect(flag('--system-prompt')).toBe(SYSTEM_PROMPT)
-    expect(flag('--allowedTools')).toBe('mcp__chessy__show_on_board')
+    expect(flag('--allowedTools')).toBe('mcp__pawnia__show_on_board')
     expect(flag('--session-id')).toBe(conversationId)
     expect(args).toContain('--strict-mcp-config')
     expect(env.ANTHROPIC_API_KEY).toBeUndefined()
@@ -218,7 +218,7 @@ describe('HeadlessClaudeAgent', () => {
 
     // A follow-up resumes the session; the finished run's token no longer opens the tools.
     await agentWith(runs, run).answer({ conversationId, question: 'Why?' }, () => {})
-    const token = JSON.parse(flag('--mcp-config')!).mcpServers.chessy.url.split('/').pop()
+    const token = JSON.parse(flag('--mcp-config')!).mcpServers.pawnia.url.split('/').pop()
     expect(runs.run(token)).toBeUndefined()
   })
 

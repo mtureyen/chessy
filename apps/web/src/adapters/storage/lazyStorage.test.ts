@@ -1,14 +1,14 @@
 import 'fake-indexeddb/auto'
 import { gameRepositoryContract } from '@pawnia/library/testing'
 import { describe, expect, it } from 'vitest'
-import { ChessyDb } from './db'
+import { PawniaDb } from './db'
 import { createDexieStorage } from './dexieStorage'
 import { createLazyStorage } from './lazyStorage'
 
 let n = 0
 gameRepositoryContract(
   'lazy Dexie',
-  () => createLazyStorage(async () => createDexieStorage(new ChessyDb(`lazy-test-${++n}`))).games,
+  () => createLazyStorage(async () => createDexieStorage(new PawniaDb(`lazy-test-${++n}`))).games,
 )
 
 describe('createLazyStorage', () => {
@@ -16,7 +16,7 @@ describe('createLazyStorage', () => {
     let loads = 0
     const storage = createLazyStorage(async () => {
       loads++
-      return createDexieStorage(new ChessyDb(`lazy-once-${++n}`))
+      return createDexieStorage(new PawniaDb(`lazy-once-${++n}`))
     })
     expect(loads).toBe(0)
     await Promise.all([storage.games.list(), storage.settings.load(), storage.games.get('x')])

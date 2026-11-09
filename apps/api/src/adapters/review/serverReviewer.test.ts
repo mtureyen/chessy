@@ -15,7 +15,7 @@ import { createServerReviewer, SERVER_REVIEW_NODES } from './serverReviewer'
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 /** A book of its own: the web app's is generated, so it isn't always there. */
-const BOOK = join(mkdtempSync(join(tmpdir(), 'chessy-book-')), 'book.json')
+const BOOK = join(mkdtempSync(join(tmpdir(), 'pawnia-book-')), 'book.json')
 writeFileSync(
   BOOK,
   JSON.stringify(

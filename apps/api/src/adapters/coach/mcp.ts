@@ -44,7 +44,7 @@ export async function handleMcpRequest(
   if (!run) return new Response('Unknown or finished run', { status: 404 })
   const { onEvent, context } = run
 
-  const server = new Server({ name: 'chessy', version }, { capabilities: { tools: {} } })
+  const server = new Server({ name: 'pawnia', version }, { capabilities: { tools: {} } })
   server.setRequestHandler(ListToolsRequestSchema, () => ({
     tools: tools.map((tool) => ({
       name: tool.name,

@@ -16,7 +16,7 @@ export interface EvalRow {
  * The browser database. Schema changes go through a new `version(n)` with an upgrade
  * function; never edit an existing version.
  */
-export class ChessyDb extends Dexie {
+export class PawniaDb extends Dexie {
   games!: EntityTable<LibraryGame, 'id'>
   settings!: Table<SettingRow, string>
   evals!: Table<EvalRow, string>

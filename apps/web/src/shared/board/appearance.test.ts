@@ -27,6 +27,6 @@ describe('appearanceVariables', () => {
   })
 
   it('serves pieces under the app base path', () => {
-    expect(pieceUrl('cburnett', 'white', 'king', '/chessy/')).toBe('/chessy/pieces/cburnett/wK.svg')
+    expect(pieceUrl('cburnett', 'white', 'king', '/pawnia/')).toBe('/pawnia/pieces/cburnett/wK.svg')
   })
 })

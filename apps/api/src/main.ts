@@ -102,7 +102,7 @@ const app = createApp({
 })
 
 console.log(
-  `chessy-api ${pkg.version} listening on http://${config.HOST}:${config.PORT} (${config.NODE_ENV}, sources: ${config.CHESSY_SOURCES}, engine: ${stockfishPath} ×${poolSize}, history: ${config.DATABASE_URL ? 'database' : 'off'}, coach: ${
+  `pawnia-api ${pkg.version} listening on http://${config.HOST}:${config.PORT} (${config.NODE_ENV}, sources: ${config.CHESSY_SOURCES}, engine: ${stockfishPath} ×${poolSize}, history: ${config.DATABASE_URL ? 'database' : 'off'}, coach: ${
     coach
       .agents()
       .map((a) => a.id)
