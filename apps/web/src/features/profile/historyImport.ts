@@ -28,7 +28,7 @@ const states = new Map<string, ImportState>()
 const listeners = new Set<() => void>()
 
 const keyOf = (account: LinkedAccount) => `${account.source}:${account.username.toLowerCase()}`
-const storageKey = (account: LinkedAccount) => `chessy.history-import.${keyOf(account)}`
+const storageKey = (account: LinkedAccount) => `pawnia.history-import.${keyOf(account)}`
 
 export function importRecord(account: LinkedAccount): ImportRecord {
   try {
