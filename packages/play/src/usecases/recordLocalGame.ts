@@ -14,7 +14,7 @@ export interface LocalGame {
 }
 
 /**
- * Saves a game played on the local board (source 'chessy'), finished or not ("*"). Under the
+ * Saves a game played on the local board (source 'pawnia'), finished or not ("*"). Under the
  * same record each time, so a game saved midway and again at the end stays one game.
  */
 export async function recordLocalGame(
@@ -35,7 +35,7 @@ export async function recordLocalGame(
   })
   const saved: LibraryGame = {
     id,
-    source: 'chessy',
+    source: 'pawnia',
     externalId: id,
     pgn,
     white: { name: LOCAL_PLAYERS.white },

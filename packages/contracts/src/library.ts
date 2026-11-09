@@ -20,7 +20,7 @@ export type LibraryStatusBody = z.infer<typeof LibraryStatusSchema>
 export const LibraryGameSchema = SourceGameSchema.omit({ source: true, url: true, speed: true })
   .extend({
     id: z.string().min(1).max(100),
-    source: z.enum(['lichess', 'chesscom', 'chessy']),
+    source: z.enum(['lichess', 'chesscom', 'pawnia']),
     url: z.string().url().optional(),
     speed: z.enum([
       'ultrabullet',
@@ -34,6 +34,14 @@ export const LibraryGameSchema = SourceGameSchema.omit({ source: true, url: true
     importedAt: z.string().datetime(),
   })
   .openapi('LibraryGame') satisfies z.ZodType<LibraryGame>
+
+/**
+ * A game sent to be stored. `chessy` is the old name of `pawnia`, from a tab opened before the
+ * rename; it is stored as `pawnia`.
+ */
+export const SavedGameSchema = LibraryGameSchema.extend({
+  source: z.enum(['lichess', 'chesscom', 'pawnia', 'chessy']),
+}).openapi('SavedGame')
 
 /** A main line: where it starts and its moves. */
 const GameLineSchema = z.object({
@@ -132,7 +140,7 @@ export const saveLibraryGamesRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: z.object({ games: z.array(LibraryGameSchema).min(1).max(500) }),
+          schema: z.object({ games: z.array(SavedGameSchema).min(1).max(500) }),
         },
       },
       required: true,

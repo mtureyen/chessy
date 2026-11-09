@@ -26,7 +26,7 @@ export interface FinishedBotGame {
 export const BOT_LEVEL_TAG = 'ChessyBotLevel'
 
 /**
- * Saves a bot game to the library (source 'chessy'), so it can be reviewed later. Also while it
+ * Saves a bot game to the library (source 'pawnia'), so it can be reviewed later. Also while it
  * is still being played (result "*"), under the same record each time, so it can be resumed.
  */
 export async function recordBotGame(
@@ -55,7 +55,7 @@ export async function recordBotGame(
   })
   const record: LibraryGame = {
     id,
-    source: 'chessy',
+    source: 'pawnia',
     externalId: id,
     pgn,
     white: players.white,
@@ -84,7 +84,7 @@ export interface UnfinishedBotGame {
 export async function findUnfinishedBotGame({
   repository,
 }: Pick<RecordBotGameDeps, 'repository'>): Promise<UnfinishedBotGame | undefined> {
-  const recent = await repository.list({ source: 'chessy', limit: 20 })
+  const recent = await repository.list({ source: 'pawnia', limit: 20 })
   for (const record of recent) {
     if (record.result !== '*') continue
     const { headers } = importPgn(record.pgn)

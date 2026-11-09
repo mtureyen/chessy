@@ -33,7 +33,7 @@ export function GameList({ games, usernames, filtered = false, onDelete }: GameL
   return (
     <ul className="game-list">
       {games.map((game) => {
-        const me = game.source === 'chessy' ? LOCAL_PLAYER_NAME : usernames[game.source]
+        const me = game.source === 'pawnia' ? LOCAL_PLAYER_NAME : usernames[game.source]
         const outcome = me ? outcomeFor(game, me) : 'unknown'
         return (
           <li key={game.id} className="game-row" data-testid="game-row">
