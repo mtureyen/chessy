@@ -2,11 +2,14 @@ import {
   COMMENT_PROMPT,
   commentText,
   defineTool,
+  InMemoryConversationStore,
   SYSTEM_PROMPT,
   type CoachContext,
+  type ConversationStore,
   type CoachEvent,
   type CommentedMove,
 } from '@pawnia/coach'
+import { existsSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { HeadlessClaudeAgent, type ProcessRun, type RunProcess } from './headlessClaudeAgent'
@@ -31,10 +34,10 @@ const line = (value: unknown) => JSON.stringify(value)
  * endpoint (with the run token from its --mcp-config) the way Claude Code would.
  */
 function fakeClaude(runs: CoachRuns, { exitCode = 0, fail = false } = {}) {
-  const calls: { args: string[]; env: Record<string, string | undefined> }[] = []
+  const calls: { args: string[]; env: Record<string, string | undefined>; cwd: string }[] = []
   const killed: boolean[] = []
-  const run: RunProcess = (_command, args, { env }) => {
-    calls.push({ args, env })
+  const run: RunProcess = (_command, args, { env, cwd }) => {
+    calls.push({ args, env, cwd })
     if (args[0] === '--version') {
       return {
         lines: (async function* () {})(),
@@ -130,12 +133,13 @@ function fakeClaude(runs: CoachRuns, { exitCode = 0, fail = false } = {}) {
   return { run, calls, killed }
 }
 
-const agentWith = (runs: CoachRuns, run: RunProcess) =>
+const agentWith = (runs: CoachRuns, run: RunProcess, conversations?: ConversationStore) =>
   new HeadlessClaudeAgent({
     tools: [draw],
     runs,
     run,
     mcpUrl: (token) => `http://localhost:3000/api/v1/mcp/${token}`,
+    ...(conversations && { conversations }),
   })
 
 const blunder: CommentedMove = {
@@ -210,28 +214,50 @@ describe('HeadlessClaudeAgent', () => {
     expect(flag('--tools')).toBe('')
     expect(flag('--system-prompt')).toBe(SYSTEM_PROMPT)
     expect(flag('--allowedTools')).toBe('mcp__pawnia__show_on_board')
-    expect(flag('--session-id')).toBe(conversationId)
     expect(args).toContain('--strict-mcp-config')
     expect(env.ANTHROPIC_API_KEY).toBeUndefined()
     // The tool, called over MCP, saw the situation the question was asked in.
     expect(drawnIn.at(-1)).toEqual({ fen: 'x' })
 
-    // A follow-up resumes the session; the finished run's token no longer opens the tools.
+    // The finished run's token no longer opens the tools.
     await agentWith(runs, run).answer({ conversationId, question: 'Why?' }, () => {})
     const token = JSON.parse(flag('--mcp-config')!).mcpServers.pawnia.url.split('/').pop()
     expect(runs.run(token)).toBeUndefined()
   })
 
-  it('resumes a conversation it started', async () => {
+  it('keeps the conversation itself and sends the earlier exchange with a follow-up', async () => {
     const runs = new CoachRuns()
     const { run, calls } = fakeClaude(runs)
     const agent = agentWith(runs, run)
     const conversationId = '2b7e5f8a-6a5c-4d3e-9c1b-2a4f6e8d0c11'
     await agent.answer({ conversationId, question: 'One' }, () => {})
     await agent.answer({ conversationId, question: 'Two' }, () => {})
-    const second = calls[1]!.args
-    expect(second[second.indexOf('--resume') + 1]).toBe(conversationId)
-    expect(second).not.toContain('--session-id')
+    expect(calls[0]!.args[1]).toBe('One')
+    expect(calls[1]!.args[1]).toBe(
+      'Our conversation so far:\n\nMe: One\n\nYou: Look: e4 takes the centre.\n\n---\n\nTwo',
+    )
+    // Another conversation starts empty.
+    await agent.answer({ conversationId: crypto.randomUUID(), question: 'Three' }, () => {})
+    expect(calls[2]!.args[1]).toBe('Three')
+  })
+
+  it('leaves nothing behind: no session, no memory, and its folder is deleted', async () => {
+    const runs = new CoachRuns()
+    const { run, calls } = fakeClaude(runs)
+    const agent = agentWith(runs, run)
+    const conversationId = '3b7e5f8a-6a5c-4d3e-9c1b-2a4f6e8d0c11'
+    await agent.answer({ conversationId, question: 'One' }, () => {})
+    await agent.answer({ conversationId, question: 'Two' }, () => {})
+    for (const { args, cwd } of calls) {
+      expect(args).toContain('--no-session-persistence')
+      expect(JSON.parse(args[args.indexOf('--settings') + 1]!)).toEqual({
+        autoMemoryEnabled: false,
+      })
+      expect(args).not.toContain('--resume')
+      expect(args).not.toContain('--session-id')
+      expect(existsSync(cwd)).toBe(false)
+    }
+    expect(calls[0]!.cwd).not.toBe(calls[1]!.cwd)
   })
 
   it('ends with an error when Claude Code fails or stops early', async () => {
@@ -298,8 +324,9 @@ describe('HeadlessClaudeAgent', () => {
 
     it('stays out of the conversations', async () => {
       const runs = new CoachRuns()
+      const conversations = new InMemoryConversationStore()
       const { run, calls } = commentingClaude([said('Sharp.'), ended])
-      const agent = agentWith(runs, run)
+      const agent = agentWith(runs, run, conversations)
       const conversationId = '6b7e5f8a-6a5c-4d3e-9c1b-2a4f6e8d0c11'
       await agent.comment(blunder)
       await agent.comment(blunder)
@@ -307,11 +334,11 @@ describe('HeadlessClaudeAgent', () => {
         expect(args).not.toContain('--session-id')
         expect(args).not.toContain('--resume')
       }
-      // A chat afterwards still starts as a new session.
+      // A chat afterwards starts with nothing earlier in it.
       const chat = fakeClaude(runs)
-      const chatting = agentWith(runs, chat.run)
+      const chatting = agentWith(runs, chat.run, conversations)
       await chatting.answer({ conversationId, question: 'Hi' }, () => {})
-      expect(chat.calls[0]!.args).toContain('--session-id')
+      expect(chat.calls[0]!.args[1]).toBe('Hi')
     })
 
     it('throws when Claude Code fails, stops early or says nothing', async () => {

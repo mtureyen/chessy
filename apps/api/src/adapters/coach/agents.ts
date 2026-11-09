@@ -92,6 +92,7 @@ export function createCoachAgents(
         tools,
         runs,
         mcpUrl: (token) => `${server.baseUrl}/api/v1/mcp/${token}`,
+        conversations,
       }),
     )
   }
