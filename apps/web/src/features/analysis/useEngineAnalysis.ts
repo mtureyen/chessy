@@ -1,4 +1,4 @@
-import type { AnalysisSnapshot } from '@chessy/analysis'
+import type { AnalysisSnapshot } from '@pawnia/analysis'
 import { useEffect, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
 

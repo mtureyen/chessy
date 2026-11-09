@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import type { UciTransport } from '@chessy/analysis'
+import type { UciTransport } from '@pawnia/analysis'
 
 /** UciTransport over a child process (native Stockfish): one UCI command per stdin line. */
 export function createProcessTransport(

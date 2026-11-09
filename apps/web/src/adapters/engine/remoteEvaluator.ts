@@ -6,8 +6,8 @@ import {
   type EvaluatorInfo,
   type PositionEval,
   type PositionEvaluator,
-} from '@chessy/analysis'
-import type { EngineStatusBody, EvaluationEvent } from '@chessy/contracts'
+} from '@pawnia/analysis'
+import type { EngineStatusBody, EvaluationEvent } from '@pawnia/contracts'
 import type { ApiClient } from '@/adapters/api/client'
 
 /**

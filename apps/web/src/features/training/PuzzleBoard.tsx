@@ -1,4 +1,4 @@
-import type { PuzzleBody } from '@chessy/contracts'
+import type { PuzzleBody } from '@pawnia/contracts'
 import { Link } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { SearchStatus } from '@/features/review/SearchStatus'
@@ -6,7 +6,7 @@ import { useMoveTry } from '@/features/review/useMoveTry'
 import type { BoardTry } from '@/features/review/walkthrough'
 import { Board, type BoardDrawing } from '@/shared/board/Board'
 import { useGame } from '@/shared/game/useGame'
-import { createGame } from '@chessy/chess'
+import { createGame } from '@pawnia/chess'
 
 const NO_MOVES = new Map()
 

@@ -7,7 +7,7 @@ import type {
   LlmClient,
   LlmTurn,
   TurnStop,
-} from '@chessy/coach'
+} from '@pawnia/coach'
 
 export interface AnthropicClientOptions {
   /** A configured SDK client; by default one that reads ANTHROPIC_API_KEY / the `ant` login. */

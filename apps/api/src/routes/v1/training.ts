@@ -1,4 +1,4 @@
-import { trainingResultRoute, trainingRoute } from '@chessy/contracts'
+import { trainingResultRoute, trainingRoute } from '@pawnia/contracts'
 import type { TrainingService } from '../../adapters/training/trainingService'
 import { problem } from '../../http/problem'
 import { createRouter } from '../../http/router'

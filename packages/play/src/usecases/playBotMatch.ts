@@ -3,9 +3,9 @@ import {
   whiteWinChance,
   type EngineProvider,
   type SearchLimits,
-} from '@chessy/analysis'
-import { createGame, exportPgn, type Color } from '@chessy/chess'
-import type { GameResult } from '@chessy/library'
+} from '@pawnia/analysis'
+import { createGame, exportPgn, type Color } from '@pawnia/chess'
+import type { GameResult } from '@pawnia/library'
 import { adjudicate } from '../domain/adjudication'
 import type { BotLevel } from '../domain/levels'
 import { seededRandom } from '../domain/random'

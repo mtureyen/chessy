@@ -1,4 +1,4 @@
-import type { GameReview } from '@chessy/analysis'
+import type { GameReview } from '@pawnia/analysis'
 import type { GameLine } from '../domain/line'
 
 export interface StoredReview {

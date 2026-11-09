@@ -1,5 +1,5 @@
-import type { CoachWalkthroughBody } from '@chessy/contracts'
-import type { GameLine } from '@chessy/history'
+import type { CoachWalkthroughBody } from '@pawnia/contracts'
+import type { GameLine } from '@pawnia/history'
 import { and, eq } from 'drizzle-orm'
 import type { Database } from './types'
 import { lineHash } from './lineHash'

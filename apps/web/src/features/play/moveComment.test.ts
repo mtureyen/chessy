@@ -1,5 +1,5 @@
-import { reviewGame, type PositionEvaluator, type Score } from '@chessy/analysis'
-import { createGame, type MoveNode } from '@chessy/chess'
+import { reviewGame, type PositionEvaluator, type Score } from '@pawnia/analysis'
+import { createGame, type MoveNode } from '@pawnia/chess'
 import { describe, expect, it } from 'vitest'
 import { commentFacts, judgedMoves } from './moveComment'
 

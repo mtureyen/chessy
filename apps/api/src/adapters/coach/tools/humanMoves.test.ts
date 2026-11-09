@@ -1,4 +1,4 @@
-import type { HumanMoveRequest } from '@chessy/maia'
+import type { HumanMoveRequest } from '@pawnia/maia'
 import { describe, expect, it } from 'vitest'
 import type { HumanMoveService } from '../../humanMoves/service'
 import { humanMovesTool } from './humanMoves'

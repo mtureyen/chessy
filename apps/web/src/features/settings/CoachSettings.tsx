@@ -1,4 +1,4 @@
-import type { CoachAgentsBody, CoachSettingsBody, CoachSettingsUpdateBody } from '@chessy/contracts'
+import type { CoachAgentsBody, CoachSettingsBody, CoachSettingsUpdateBody } from '@pawnia/contracts'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { useServices } from '@/app/servicesContext'

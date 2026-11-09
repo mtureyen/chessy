@@ -1,4 +1,4 @@
-import { sourceName, type LinkedAccount } from '@chessy/library'
+import { sourceName, type LinkedAccount } from '@pawnia/library'
 import { Link } from '@tanstack/react-router'
 import { ImportStatus } from './ImportStatus'
 import { PlayerCard } from './PlayerCard'

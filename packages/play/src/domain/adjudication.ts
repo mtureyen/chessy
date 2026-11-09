@@ -1,4 +1,4 @@
-import type { Color } from '@chessy/chess'
+import type { Color } from '@pawnia/chess'
 
 /** When an engine match stops early, like cutechess' resign and draw adjudication. */
 export const ADJUDICATION = {

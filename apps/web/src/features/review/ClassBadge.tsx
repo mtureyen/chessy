@@ -1,4 +1,4 @@
-import type { MoveClass } from '@chessy/analysis'
+import type { MoveClass } from '@pawnia/analysis'
 import { classIconSvg } from './classIcons'
 import { CLASS_STYLES } from './classes'
 

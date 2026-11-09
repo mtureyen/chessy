@@ -8,7 +8,7 @@ import {
   type PlayerProfile,
   type SourceGame,
   type SourceId,
-} from '@chessy/library'
+} from '@pawnia/library'
 import type { ApiClient } from './client'
 
 /** GameSource in the browser: asks our API, which talks to the platform (and caches/queues). */

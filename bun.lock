@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "chessy",
+      "name": "pawnia",
       "devDependencies": {
         "dependency-cruiser": "^18.7.0",
         "oxlint": "^1.88.0",
@@ -14,18 +14,18 @@
       },
     },
     "apps/api": {
-      "name": "@chessy/api",
+      "name": "@pawnia/api",
       "version": "0.1.0",
       "dependencies": {
         "@anthropic-ai/sdk": "1.1.0",
-        "@chessy/analysis": "workspace:*",
-        "@chessy/chess": "workspace:*",
-        "@chessy/coach": "workspace:*",
-        "@chessy/contracts": "workspace:*",
-        "@chessy/history": "workspace:*",
-        "@chessy/library": "workspace:*",
-        "@chessy/maia": "workspace:*",
-        "@chessy/play": "workspace:*",
+        "@pawnia/analysis": "workspace:*",
+        "@pawnia/chess": "workspace:*",
+        "@pawnia/coach": "workspace:*",
+        "@pawnia/contracts": "workspace:*",
+        "@pawnia/history": "workspace:*",
+        "@pawnia/library": "workspace:*",
+        "@pawnia/maia": "workspace:*",
+        "@pawnia/play": "workspace:*",
         "@electric-sql/pglite": "0.5.10",
         "@hono/zod-openapi": "^1.6.3",
         "@modelcontextprotocol/sdk": "1.32.1",
@@ -36,34 +36,34 @@
         "zod": "^4.6.7",
       },
       "devDependencies": {
-        "@chessy/config": "workspace:*",
+        "@pawnia/config": "workspace:*",
         "@playwright/test": "^1.64.1",
         "@types/bun": "^1.4.4",
         "drizzle-kit": "0.31.11",
       },
     },
     "apps/extension": {
-      "name": "@chessy/extension",
+      "name": "@pawnia/extension",
       "version": "0.1.0",
       "dependencies": {
-        "@chessy/library": "workspace:*",
+        "@pawnia/library": "workspace:*",
       },
       "devDependencies": {
-        "@chessy/config": "workspace:*",
+        "@pawnia/config": "workspace:*",
         "@types/bun": "^1.4.4",
         "@types/chrome": "0.3.5",
       },
     },
     "apps/web": {
-      "name": "@chessy/web",
+      "name": "@pawnia/web",
       "version": "0.1.0",
       "dependencies": {
-        "@chessy/analysis": "workspace:*",
-        "@chessy/chess": "workspace:*",
-        "@chessy/contracts": "workspace:*",
-        "@chessy/history": "workspace:*",
-        "@chessy/library": "workspace:*",
-        "@chessy/play": "workspace:*",
+        "@pawnia/analysis": "workspace:*",
+        "@pawnia/chess": "workspace:*",
+        "@pawnia/contracts": "workspace:*",
+        "@pawnia/history": "workspace:*",
+        "@pawnia/library": "workspace:*",
+        "@pawnia/play": "workspace:*",
         "@tanstack/react-query": "^5.105.0",
         "@tanstack/react-router": "^1.170.46",
         "chessground": "^9.2.1",
@@ -73,8 +73,8 @@
         "react-dom": "^19.3.1",
       },
       "devDependencies": {
-        "@chessy/api": "workspace:*",
-        "@chessy/config": "workspace:*",
+        "@pawnia/api": "workspace:*",
+        "@pawnia/config": "workspace:*",
         "@playwright/test": "^1.64.1",
         "@types/node": "^24.19.2",
         "@types/react": "^19.3.0",
@@ -86,94 +86,94 @@
       },
     },
     "packages/analysis": {
-      "name": "@chessy/analysis",
+      "name": "@pawnia/analysis",
       "version": "0.0.0",
       "dependencies": {
-        "@chessy/chess": "workspace:*",
+        "@pawnia/chess": "workspace:*",
       },
       "devDependencies": {
-        "@chessy/config": "workspace:*",
+        "@pawnia/config": "workspace:*",
       },
     },
     "packages/chess": {
-      "name": "@chessy/chess",
+      "name": "@pawnia/chess",
       "version": "0.0.0",
       "dependencies": {
         "chessops": "^0.15.1",
       },
       "devDependencies": {
-        "@chessy/config": "workspace:*",
+        "@pawnia/config": "workspace:*",
       },
     },
     "packages/coach": {
-      "name": "@chessy/coach",
+      "name": "@pawnia/coach",
       "version": "0.0.0",
       "dependencies": {
         "zod": "^4.6.7",
       },
       "devDependencies": {
-        "@chessy/config": "workspace:*",
+        "@pawnia/config": "workspace:*",
         "vitest": "^5.0.5",
       },
     },
     "packages/config": {
-      "name": "@chessy/config",
+      "name": "@pawnia/config",
       "version": "0.0.0",
     },
     "packages/contracts": {
-      "name": "@chessy/contracts",
+      "name": "@pawnia/contracts",
       "version": "0.0.0",
       "dependencies": {
-        "@chessy/analysis": "workspace:*",
-        "@chessy/library": "workspace:*",
+        "@pawnia/analysis": "workspace:*",
+        "@pawnia/library": "workspace:*",
         "@hono/zod-openapi": "^1.6.3",
         "zod": "^4.6.7",
       },
       "devDependencies": {
-        "@chessy/config": "workspace:*",
+        "@pawnia/config": "workspace:*",
       },
     },
     "packages/history": {
-      "name": "@chessy/history",
+      "name": "@pawnia/history",
       "version": "0.0.0",
       "dependencies": {
-        "@chessy/analysis": "workspace:*",
-        "@chessy/chess": "workspace:*",
-        "@chessy/library": "workspace:*",
+        "@pawnia/analysis": "workspace:*",
+        "@pawnia/chess": "workspace:*",
+        "@pawnia/library": "workspace:*",
       },
       "devDependencies": {
-        "@chessy/config": "workspace:*",
+        "@pawnia/config": "workspace:*",
         "vitest": "^5.0.5",
       },
     },
     "packages/library": {
-      "name": "@chessy/library",
+      "name": "@pawnia/library",
       "version": "0.0.0",
       "devDependencies": {
-        "@chessy/config": "workspace:*",
+        "@pawnia/config": "workspace:*",
         "vitest": "^5.0.5",
       },
     },
     "packages/maia": {
-      "name": "@chessy/maia",
+      "name": "@pawnia/maia",
       "version": "0.0.0",
       "dependencies": {
-        "@chessy/chess": "workspace:*",
+        "@pawnia/chess": "workspace:*",
       },
       "devDependencies": {
-        "@chessy/config": "workspace:*",
+        "@pawnia/config": "workspace:*",
       },
     },
     "packages/play": {
-      "name": "@chessy/play",
+      "name": "@pawnia/play",
       "version": "0.0.0",
       "dependencies": {
-        "@chessy/analysis": "workspace:*",
-        "@chessy/chess": "workspace:*",
-        "@chessy/library": "workspace:*",
+        "@pawnia/analysis": "workspace:*",
+        "@pawnia/chess": "workspace:*",
+        "@pawnia/library": "workspace:*",
       },
       "devDependencies": {
-        "@chessy/config": "workspace:*",
+        "@pawnia/config": "workspace:*",
       },
     },
   },
@@ -186,29 +186,29 @@
 
     "@badrap/result": ["@badrap/result@0.3.1", "", {}, "sha512-ECvpsyZYknoRD0peG1K+UkX5llld3TyK1Ot9Cq2epSoWK19nyzpGKVl98sadSmohu5wHNuiDl+Ex9SVdcIjiFg=="],
 
-    "@chessy/analysis": ["@chessy/analysis@workspace:packages/analysis"],
+    "@pawnia/analysis": ["@pawnia/analysis@workspace:packages/analysis"],
 
-    "@chessy/api": ["@chessy/api@workspace:apps/api"],
+    "@pawnia/api": ["@pawnia/api@workspace:apps/api"],
 
-    "@chessy/chess": ["@chessy/chess@workspace:packages/chess"],
+    "@pawnia/chess": ["@pawnia/chess@workspace:packages/chess"],
 
-    "@chessy/coach": ["@chessy/coach@workspace:packages/coach"],
+    "@pawnia/coach": ["@pawnia/coach@workspace:packages/coach"],
 
-    "@chessy/config": ["@chessy/config@workspace:packages/config"],
+    "@pawnia/config": ["@pawnia/config@workspace:packages/config"],
 
-    "@chessy/contracts": ["@chessy/contracts@workspace:packages/contracts"],
+    "@pawnia/contracts": ["@pawnia/contracts@workspace:packages/contracts"],
 
-    "@chessy/extension": ["@chessy/extension@workspace:apps/extension"],
+    "@pawnia/extension": ["@pawnia/extension@workspace:apps/extension"],
 
-    "@chessy/history": ["@chessy/history@workspace:packages/history"],
+    "@pawnia/history": ["@pawnia/history@workspace:packages/history"],
 
-    "@chessy/library": ["@chessy/library@workspace:packages/library"],
+    "@pawnia/library": ["@pawnia/library@workspace:packages/library"],
 
-    "@chessy/maia": ["@chessy/maia@workspace:packages/maia"],
+    "@pawnia/maia": ["@pawnia/maia@workspace:packages/maia"],
 
-    "@chessy/play": ["@chessy/play@workspace:packages/play"],
+    "@pawnia/play": ["@pawnia/play@workspace:packages/play"],
 
-    "@chessy/web": ["@chessy/web@workspace:apps/web"],
+    "@pawnia/web": ["@pawnia/web@workspace:apps/web"],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 

@@ -1,4 +1,4 @@
-import type { GameRepository } from '@chessy/library'
+import type { GameRepository } from '@pawnia/library'
 import { gameLine, lineText, type GameLine } from '../domain/line'
 import type { ReviewRepository, StoredReview } from '../ports/reviewRepository'
 

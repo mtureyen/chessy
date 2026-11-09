@@ -1,4 +1,4 @@
-import { isValidUsername, sourceName, type SourceId } from '@chessy/library'
+import { isValidUsername, sourceName, type SourceId } from '@pawnia/library'
 import { useEffect, useRef, useState } from 'react'
 import { PlayerCard } from './PlayerCard'
 import { usePlayer } from './useProfile'

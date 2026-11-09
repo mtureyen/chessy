@@ -1,5 +1,5 @@
-import type { GameReview, ReviewedMove } from '@chessy/analysis'
-import type { CoachWalkthroughBody } from '@chessy/contracts'
+import type { GameReview, ReviewedMove } from '@pawnia/analysis'
+import type { CoachWalkthroughBody } from '@pawnia/contracts'
 import { describe, expect, it } from 'vitest'
 import { momentDrawing, walkthroughSteps } from './walkthrough'
 

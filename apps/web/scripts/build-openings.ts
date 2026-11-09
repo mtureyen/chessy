@@ -7,7 +7,7 @@
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { buildBookData } from '@chessy/analysis'
+import { buildBookData } from '@pawnia/analysis'
 
 const COMMIT = 'a6189a30dc273ccb21fc2536a9a2fefd5592a67a'
 const FILES: Record<string, string> = {

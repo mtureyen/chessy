@@ -1,4 +1,4 @@
-import { createOpeningBook, type BookData, type OpeningBook } from '@chessy/analysis'
+import { createOpeningBook, type BookData, type OpeningBook } from '@pawnia/analysis'
 
 /** Built by scripts/build-openings.ts from lichess' chess-openings data (CC0). */
 export const BOOK_URL = '/openings/book.json'

@@ -1,6 +1,6 @@
-import type { GameReview, ReviewedMove } from '@chessy/analysis'
-import type { Move, SquareName } from '@chessy/chess'
-import type { CoachWalkthroughBody } from '@chessy/contracts'
+import type { GameReview, ReviewedMove } from '@pawnia/analysis'
+import type { Move, SquareName } from '@pawnia/chess'
+import type { CoachWalkthroughBody } from '@pawnia/contracts'
 import type { PlacedDrawing } from '@/features/coach/useCoachChat'
 
 /** One stop of a walkthrough, in the order the user goes through them. */

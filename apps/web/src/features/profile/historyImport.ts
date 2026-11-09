@@ -1,4 +1,4 @@
-import type { LinkedAccount } from '@chessy/library'
+import type { LinkedAccount } from '@pawnia/library'
 import { useSyncExternalStore } from 'react'
 import type { Services } from '@/app/services'
 

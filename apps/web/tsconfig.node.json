@@ -1,5 +1,5 @@
 {
-  "extends": "@chessy/config/tsconfig.base.json",
+  "extends": "@pawnia/config/tsconfig.base.json",
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "types": ["node"],

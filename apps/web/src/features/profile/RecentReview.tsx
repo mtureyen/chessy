@@ -1,4 +1,4 @@
-import type { ReviewQueueBody, StartReviewQueueBody } from '@chessy/contracts'
+import type { ReviewQueueBody, StartReviewQueueBody } from '@pawnia/contracts'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useServices } from '@/app/servicesContext'

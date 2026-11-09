@@ -1,4 +1,4 @@
-import type { GameState } from '@chessy/chess'
+import type { GameState } from '@pawnia/chess'
 import type { GameView } from './useGame'
 import './GamePanel.css'
 

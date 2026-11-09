@@ -1,4 +1,4 @@
-import type { MoveNode } from '@chessy/chess'
+import type { MoveNode } from '@pawnia/chess'
 import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 import { moveTreeItems, type VariationToken } from './moveTreeLayout'
 import './MoveTree.css'

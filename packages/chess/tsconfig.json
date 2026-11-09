@@ -1,4 +1,4 @@
 {
-  "extends": "@chessy/config/tsconfig.base.json",
+  "extends": "@pawnia/config/tsconfig.base.json",
   "include": ["src"]
 }

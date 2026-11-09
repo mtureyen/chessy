@@ -19,7 +19,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { chromium, type Page } from '@playwright/test'
-import { importPgn } from '@chessy/chess'
+import { importPgn } from '@pawnia/chess'
 import { ChessComGameSource } from '../src/adapters/sources/chesscom'
 
 const { values: args, positionals } = parseArgs({

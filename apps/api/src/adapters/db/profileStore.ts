@@ -1,4 +1,4 @@
-import type { Profile, ProfileStore } from '@chessy/library'
+import type { Profile, ProfileStore } from '@pawnia/library'
 import { desc } from 'drizzle-orm'
 import { profiles } from './schema'
 import type { Database } from './types'

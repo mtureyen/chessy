@@ -1,4 +1,4 @@
-import type { CoachAgent } from '@chessy/coach'
+import type { CoachAgent } from '@pawnia/coach'
 import type { CoachDirectory } from '../../adapters/coach/coachDirectory'
 import {
   coachAgentsRoute,
@@ -7,7 +7,7 @@ import {
   coachTryRoute,
   coachWalkthroughRoute,
   type CoachEventBody,
-} from '@chessy/contracts'
+} from '@pawnia/contracts'
 import {
   IllegalTryError,
   NoStoredReviewError,

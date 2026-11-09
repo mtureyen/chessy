@@ -5,7 +5,7 @@ import {
   type GameStatus,
   type MoveNode,
   type SquareName,
-} from '@chessy/chess'
+} from '@pawnia/chess'
 import { useCallback, useState } from 'react'
 
 /** Everything the UI renders from a game, captured once per change. */

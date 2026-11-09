@@ -8,7 +8,7 @@ import {
   type CoachWalkthroughBody,
   type CoachWalkthroughRequestBody,
   type Problem,
-} from '@chessy/contracts'
+} from '@pawnia/contracts'
 import type { ApiClient } from './client'
 
 /** Asks the API's coach; the answer arrives as events while it is written. */

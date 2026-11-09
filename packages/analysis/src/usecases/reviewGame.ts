@@ -4,7 +4,7 @@ import {
   mostExposedPiece,
   type Color,
   type GameStatus,
-} from '@chessy/chess'
+} from '@pawnia/chess'
 import type { EngineLine } from '../domain/analysis'
 import { formatSanLine, toSanLine } from '../domain/line'
 import type { Score } from '../domain/score'

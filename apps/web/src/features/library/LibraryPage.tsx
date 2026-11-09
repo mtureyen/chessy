@@ -1,4 +1,4 @@
-import type { SourceId } from '@chessy/library'
+import type { SourceId } from '@pawnia/library'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useServices } from '@/app/servicesContext'

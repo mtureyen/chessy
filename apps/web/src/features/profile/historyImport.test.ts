@@ -1,4 +1,4 @@
-import type { HistoryImportProgress, LinkedAccount } from '@chessy/library'
+import type { HistoryImportProgress, LinkedAccount } from '@pawnia/library'
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Services } from '@/app/services'
 import { importRecord, runImport } from './historyImport'

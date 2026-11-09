@@ -1,4 +1,4 @@
-import type { GameLine, PuzzleProgress } from '@chessy/history'
+import type { GameLine, PuzzleProgress } from '@pawnia/history'
 import type { Database } from './types'
 import { lineHash } from './lineHash'
 import { trainingProgress } from './schema'

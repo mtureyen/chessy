@@ -1,5 +1,5 @@
-import { formatScore, whiteWinChance, type Score } from '@chessy/analysis'
-import type { Color, GameStatus } from '@chessy/chess'
+import { formatScore, whiteWinChance, type Score } from '@pawnia/analysis'
+import type { Color, GameStatus } from '@pawnia/chess'
 import './EvalBar.css'
 
 interface EvalBarProps {

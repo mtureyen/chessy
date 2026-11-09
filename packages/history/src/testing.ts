@@ -1,10 +1,10 @@
 /**
- * Test helpers for adapters of this context's ports. Import from `@chessy/history/testing`.
+ * Test helpers for adapters of this context's ports. Import from `@pawnia/history/testing`.
  * The same contract suite runs against every ReviewRepository implementation.
  */
-import type { GameReview, ReviewedMove } from '@chessy/analysis'
-import type { GameRepository } from '@chessy/library'
-import { sampleGame } from '@chessy/library/testing'
+import type { GameReview, ReviewedMove } from '@pawnia/analysis'
+import type { GameRepository } from '@pawnia/library'
+import { sampleGame } from '@pawnia/library/testing'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { gameLine, type GameLine } from './domain/line'
 import type { GameSummary } from './domain/playerGames'

@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { EnginePoolEvaluator, UciEngine, type PositionEvaluator } from '@chessy/analysis'
+import { EnginePoolEvaluator, UciEngine, type PositionEvaluator } from '@pawnia/analysis'
 import { describe, expect, it } from 'vitest'
 import { createNativeEngineService } from './native'
 import { SerialEngineService } from './service'

@@ -1,4 +1,4 @@
-import type { Problem, ReviewQueueBody, StartReviewQueueBody } from '@chessy/contracts'
+import type { Problem, ReviewQueueBody, StartReviewQueueBody } from '@pawnia/contracts'
 import type { ApiClient } from './client'
 
 /** The review of the user's recent games, which runs on the server. */

@@ -1,4 +1,4 @@
-import type { CoachSettingsBody, CoachSettingsUpdateBody } from '@chessy/contracts'
+import type { CoachSettingsBody, CoachSettingsUpdateBody } from '@pawnia/contracts'
 import type { Config } from '../../config'
 
 type Effort = CoachSettingsBody['claudeApi']['effort']

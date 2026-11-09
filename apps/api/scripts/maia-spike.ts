@@ -16,9 +16,9 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import * as ort from 'onnxruntime-web'
-import { UciEngine } from '@chessy/analysis'
-import { importPgn } from '@chessy/chess'
-import { OnnxMaiaModel, predictHumanMoves, type MaiaModel } from '@chessy/maia'
+import { UciEngine } from '@pawnia/analysis'
+import { importPgn } from '@pawnia/chess'
+import { OnnxMaiaModel, predictHumanMoves, type MaiaModel } from '@pawnia/maia'
 import {
   BOT_LEVELS,
   MATCH_OPENINGS,
@@ -29,7 +29,7 @@ import {
   seededRandom,
   type MatchGame,
   type MatchPlayer,
-} from '@chessy/play'
+} from '@pawnia/play'
 import { createProcessTransport } from '../src/adapters/engine/processTransport'
 import { resolveStockfishPath } from '../src/adapters/engine/native'
 import { BUNDLED_MAIA as MAIA_MODEL } from '../src/adapters/humanMoves/maia'

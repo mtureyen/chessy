@@ -4,7 +4,7 @@
  * from the side to move as White: with Black to move, the board is flipped top to bottom and
  * the colours are swapped, and the moves are flipped the same way.
  */
-import { createGame, type Color, type Move } from '@chessy/chess'
+import { createGame, type Color, type Move } from '@pawnia/chess'
 
 /** Moves the model can name: every from-to pair (64 × 64) and every promotion from rank 7 (256). */
 export const MOVE_COUNT = 64 * 64 + 8 * 8 * 4

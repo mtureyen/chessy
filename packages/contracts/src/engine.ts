@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi'
-import type { PositionEval } from '@chessy/analysis'
+import type { PositionEval } from '@pawnia/analysis'
 import { ProblemSchema } from './problem'
 
 const ScoreSchema = z.discriminatedUnion('type', [

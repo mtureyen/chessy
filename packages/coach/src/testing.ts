@@ -1,5 +1,5 @@
 /**
- * Test helpers. Import from `@chessy/coach/testing`. The same contract suite runs against every
+ * Test helpers. Import from `@pawnia/coach/testing`. The same contract suite runs against every
  * LlmClient adapter, each with a fake server that speaks its provider's wire format.
  */
 import { beforeEach, describe, expect, it } from 'vitest'

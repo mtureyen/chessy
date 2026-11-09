@@ -6,7 +6,7 @@ import {
   type CoachTool,
   type ConversationStore,
   type LlmClient,
-} from '@chessy/coach'
+} from '@pawnia/coach'
 import type { EffectiveCoach } from '../settings/coachSettings'
 import { AnthropicClient } from './anthropicClient'
 import type { CoachDirectory } from './coachDirectory'

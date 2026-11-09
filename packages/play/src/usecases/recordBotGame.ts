@@ -1,5 +1,5 @@
-import { exportPgn, importPgn, type GameState, type MoveNode } from '@chessy/chess'
-import { LOCAL_PLAYER_NAME, type GameRepository, type LibraryGame } from '@chessy/library'
+import { exportPgn, importPgn, type GameState, type MoveNode } from '@pawnia/chess'
+import { LOCAL_PLAYER_NAME, type GameRepository, type LibraryGame } from '@pawnia/library'
 import { BOT_LEVELS, botLevel } from '../domain/levels'
 import { parsePgnTimeControl, pgnTimeControl, speedOf } from '../domain/timeControl'
 import { botName, opposite, resultOf, type BotGameSetup, type Termination } from '../domain/session'

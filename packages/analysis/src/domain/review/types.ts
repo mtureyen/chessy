@@ -1,4 +1,4 @@
-import type { Color } from '@chessy/chess'
+import type { Color } from '@pawnia/chess'
 import type { EngineLine } from '../analysis'
 import type { Score } from '../score'
 import type { MoveClass, MoveFacts } from './classify'

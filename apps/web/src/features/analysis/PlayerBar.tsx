@@ -1,4 +1,4 @@
-import type { Color } from '@chessy/chess'
+import type { Color } from '@pawnia/chess'
 import { formatClock } from '@/shared/game/clock'
 import './PlayerBar.css'
 

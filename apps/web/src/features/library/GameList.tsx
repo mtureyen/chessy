@@ -5,7 +5,7 @@ import {
   type LibraryGame,
   type PlayerInfo,
   type SourceId,
-} from '@chessy/library'
+} from '@pawnia/library'
 import { Link } from '@tanstack/react-router'
 import { formatTimeControl, SPEED_LABELS } from './format'
 

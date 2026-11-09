@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi'
-import type { PlayerProfile, SourceGame } from '@chessy/library'
+import type { PlayerProfile, SourceGame } from '@pawnia/library'
 import { ProblemSchema } from './problem'
 
 export const SourceIdSchema = z.enum(['lichess', 'chesscom']).openapi({ example: 'lichess' })

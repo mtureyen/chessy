@@ -4,8 +4,8 @@ import {
   type GameReview,
   type OpeningBook,
   type ReviewInput,
-} from '@chessy/analysis'
-import { createGame, mostExposedPiece, type Color } from '@chessy/chess'
+} from '@pawnia/analysis'
+import { createGame, mostExposedPiece, type Color } from '@pawnia/chess'
 import {
   triedText,
   TRY_PROMPT,
@@ -13,13 +13,13 @@ import {
   type CancelSignal,
   type CoachAgent,
   type WalkthroughFacts,
-} from '@chessy/coach'
+} from '@pawnia/coach'
 import type {
   CoachTryBody,
   CoachTryRequestBody,
   CoachWalkthroughBody,
   CoachWalkthroughRequestBody,
-} from '@chessy/contracts'
+} from '@pawnia/contracts'
 import {
   filterGames,
   groupGames,
@@ -33,8 +33,8 @@ import {
   type GameHistory,
   type GameLine,
   type StoredReview,
-} from '@chessy/history'
-import type { Profile } from '@chessy/library'
+} from '@pawnia/history'
+import type { Profile } from '@pawnia/library'
 import type { StoredWalkthrough } from '../db/walkthroughStore'
 import { IllegalTryError, NoStoredReviewError, type WalkthroughService } from './walkthroughService'
 

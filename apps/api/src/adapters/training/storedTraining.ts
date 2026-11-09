@@ -1,4 +1,4 @@
-import type { TrainingBody, TrainingResultBody } from '@chessy/contracts'
+import type { TrainingBody, TrainingResultBody } from '@pawnia/contracts'
 import {
   afterAttempt,
   gameLine,
@@ -10,8 +10,8 @@ import {
   type Puzzle,
   type PuzzleProgress,
   type StoredReview,
-} from '@chessy/history'
-import type { LibraryGame, Profile } from '@chessy/library'
+} from '@pawnia/history'
+import type { LibraryGame, Profile } from '@pawnia/library'
 import type { TrainingService } from './trainingService'
 
 /** The newest reviewed games puzzles come from: training is about how the user plays now. */

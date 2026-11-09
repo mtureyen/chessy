@@ -1,6 +1,6 @@
-import { positionKey } from '@chessy/analysis'
-import type { Color, MoveNode, PgnHeaders } from '@chessy/chess'
-import { LOCAL_PLAYER_NAME, type PlayerProfile, type Profile } from '@chessy/library'
+import { positionKey } from '@pawnia/analysis'
+import type { Color, MoveNode, PgnHeaders } from '@pawnia/chess'
+import { LOCAL_PLAYER_NAME, type PlayerProfile, type Profile } from '@pawnia/library'
 
 /** The longest game the coach is sent (the API's limit); a longer one goes without its PGN. */
 export const MAX_PGN_LENGTH = 20_000

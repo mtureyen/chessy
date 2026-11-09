@@ -1,5 +1,5 @@
-import type { GameReview, ReviewedMove } from '@chessy/analysis'
-import { createGame } from '@chessy/chess'
+import type { GameReview, ReviewedMove } from '@pawnia/analysis'
+import { createGame } from '@pawnia/chess'
 import { describe, expect, it } from 'vitest'
 import { fitsMainline, mainline, reviewedNodes, reviewLine } from './mapping'
 

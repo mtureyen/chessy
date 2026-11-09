@@ -1,5 +1,5 @@
-import type { Color } from '@chessy/chess'
-import { remainingMs, type ClockState } from '@chessy/play'
+import type { Color } from '@pawnia/chess'
+import { remainingMs, type ClockState } from '@pawnia/play'
 import { useEffect, useState } from 'react'
 import { formatClock } from '@/shared/game/clock'
 

@@ -1,4 +1,4 @@
-import type { GameState } from '@chessy/chess'
+import type { GameState } from '@pawnia/chess'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { GameView } from '@/shared/game/useGame'
 import { findPosition, samePosition } from './situation'

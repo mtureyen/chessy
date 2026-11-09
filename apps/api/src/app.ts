@@ -1,5 +1,5 @@
-import { API_V1_PREFIX } from '@chessy/contracts'
-import type { GameSource, SourceId } from '@chessy/library'
+import { API_V1_PREFIX } from '@pawnia/contracts'
+import type { GameSource, SourceId } from '@pawnia/library'
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
 import { problem } from './http/problem'

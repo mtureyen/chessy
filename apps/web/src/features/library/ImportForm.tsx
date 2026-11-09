@@ -4,7 +4,7 @@ import {
   sourceName,
   type LibrarySettings,
   type SourceId,
-} from '@chessy/library'
+} from '@pawnia/library'
 import { useState } from 'react'
 
 interface ImportFormProps {

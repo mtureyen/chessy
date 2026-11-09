@@ -5,8 +5,8 @@ import type {
   PuzzleProgress,
   ReviewedMoveRow,
   StoredReview,
-} from '@chessy/history'
-import type { LibraryGame, Profile } from '@chessy/library'
+} from '@pawnia/history'
+import type { LibraryGame, Profile } from '@pawnia/library'
 import type { LibraryService, LibraryStatus } from './libraryService'
 import type { OpenDatabase } from './types'
 import { PostgresGameHistory } from './gameHistory'

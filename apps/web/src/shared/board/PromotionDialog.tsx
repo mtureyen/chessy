@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react'
-import { PROMOTION_ROLES, type Color, type PromotionRole, type SquareName } from '@chessy/chess'
+import { PROMOTION_ROLES, type Color, type PromotionRole, type SquareName } from '@pawnia/chess'
 
 interface PromotionDialogProps {
   color: Color

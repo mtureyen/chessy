@@ -6,8 +6,8 @@ import {
   EvaluationCancelledError,
   type EvaluationRequest,
   type PositionEval,
-} from '@chessy/analysis'
-import { createGame } from '@chessy/chess'
+} from '@pawnia/analysis'
+import { createGame } from '@pawnia/chess'
 import { describe, expect, it } from 'vitest'
 import type { EngineService } from '../engine/service'
 import type { HumanMoveService } from '../humanMoves/service'

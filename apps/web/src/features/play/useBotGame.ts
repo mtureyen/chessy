@@ -1,5 +1,5 @@
-import { createGame, importPgn, type Color, type GameState, type Move } from '@chessy/chess'
-import type { LibraryGame } from '@chessy/library'
+import { createGame, importPgn, type Color, type GameState, type Move } from '@pawnia/chess'
+import type { LibraryGame } from '@pawnia/library'
 import {
   acceptsDraw,
   botBudget,
@@ -17,7 +17,7 @@ import {
   type Termination,
   type TimeControl,
   type UnfinishedBotGame,
-} from '@chessy/play'
+} from '@pawnia/play'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
 import { useGame } from '@/shared/game/useGame'

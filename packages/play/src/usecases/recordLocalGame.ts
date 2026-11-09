@@ -1,5 +1,5 @@
-import { exportPgn, type GameState, type MoveNode, type PgnHeaders } from '@chessy/chess'
-import type { GameRepository, LibraryGame } from '@chessy/library'
+import { exportPgn, type GameState, type MoveNode, type PgnHeaders } from '@pawnia/chess'
+import type { GameRepository, LibraryGame } from '@pawnia/library'
 import { resultOf } from '../domain/session'
 
 /** Player names of a game two people played on one board here. */

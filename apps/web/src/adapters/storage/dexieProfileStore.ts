@@ -1,4 +1,4 @@
-import type { Profile, ProfileStore } from '@chessy/library'
+import type { Profile, ProfileStore } from '@pawnia/library'
 import type { ChessyDb } from './db'
 
 const KEY = 'profile'

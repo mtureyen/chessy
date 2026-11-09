@@ -1,4 +1,4 @@
-import type { LibraryGame } from '@chessy/library'
+import type { LibraryGame } from '@pawnia/library'
 import { CATEGORY_LABELS, categoryOf, type GameCategory } from './categories'
 
 export type GameFilter = GameCategory | 'all'

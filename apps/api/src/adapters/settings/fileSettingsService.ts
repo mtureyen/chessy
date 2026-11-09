@@ -1,4 +1,4 @@
-import type { CoachSettingsBody, CoachSettingsUpdateBody } from '@chessy/contracts'
+import type { CoachSettingsBody, CoachSettingsUpdateBody } from '@pawnia/contracts'
 import type { Config } from '../../config'
 import type { CoachRegistry } from '../coach/agents'
 import { applyCoachUpdate, coachView, effectiveCoach } from './coachSettings'

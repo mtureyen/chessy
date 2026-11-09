@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { OnnxMaiaModel } from '@chessy/maia'
+import { OnnxMaiaModel } from '@pawnia/maia'
 import * as ort from 'onnxruntime-web'
 import { MaiaHumanMoveService, type HumanMoveService } from './service'
 

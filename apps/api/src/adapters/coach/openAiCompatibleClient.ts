@@ -7,7 +7,7 @@ import type {
   LlmTurn,
   ToolCall,
   TurnStop,
-} from '@chessy/coach'
+} from '@pawnia/coach'
 
 export interface OpenAiCompatibleOptions {
   /** The API root, e.g. "http://localhost:11434/v1" (Ollama) or "https://api.openai.com/v1". */

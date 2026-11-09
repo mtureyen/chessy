@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi'
-import type { LibraryGame, Profile } from '@chessy/library'
+import type { LibraryGame, Profile } from '@pawnia/library'
 import { ProblemSchema } from './problem'
 import { SourceGameSchema, SourceIdSchema } from './sources'
 

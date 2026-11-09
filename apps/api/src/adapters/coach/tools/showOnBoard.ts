@@ -1,5 +1,5 @@
-import { defineTool, type CoachTool, type DrawColor } from '@chessy/coach'
-import { createGame } from '@chessy/chess'
+import { defineTool, type CoachTool, type DrawColor } from '@pawnia/coach'
+import { createGame } from '@pawnia/chess'
 import { z } from 'zod'
 
 const Square = z

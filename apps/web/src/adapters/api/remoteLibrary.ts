@@ -1,12 +1,12 @@
-import type { GameReview } from '@chessy/analysis'
+import type { GameReview } from '@pawnia/analysis'
 import type {
   LibraryStatusBody,
   Problem,
   TrainingBody,
   TrainingResultBody,
-} from '@chessy/contracts'
-import type { GameLine } from '@chessy/history'
-import type { LibraryGame, LibraryMirror, Profile } from '@chessy/library'
+} from '@pawnia/contracts'
+import type { GameLine } from '@pawnia/history'
+import type { LibraryGame, LibraryMirror, Profile } from '@pawnia/library'
 import type { ApiClient } from './client'
 
 /** The API's copy of the game history: games and finished reviews are sent there. */

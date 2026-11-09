@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { GameNotFoundError, SourceUnavailableError, UserNotFoundError } from '@chessy/library'
+import { GameNotFoundError, SourceUnavailableError, UserNotFoundError } from '@pawnia/library'
 import { describe, expect, it } from 'vitest'
 import { ChessComGameSource } from './chesscom'
 import type { Fetch } from './http'

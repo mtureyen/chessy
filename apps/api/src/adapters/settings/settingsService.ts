@@ -1,4 +1,4 @@
-import type { CoachSettingsBody, CoachSettingsUpdateBody } from '@chessy/contracts'
+import type { CoachSettingsBody, CoachSettingsUpdateBody } from '@pawnia/contracts'
 
 // Types only: app.ts (and through it the web app's typed client) sees this file, not the
 // settings file and the agents behind it.

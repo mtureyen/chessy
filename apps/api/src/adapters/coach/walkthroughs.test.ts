@@ -4,13 +4,13 @@ import type {
   OpeningBook,
   ReviewedMove,
   ReviewInput,
-} from '@chessy/analysis'
-import { createGame } from '@chessy/chess'
-import { InMemoryConversationStore, LoopAgent } from '@chessy/coach'
-import { scriptedClient } from '@chessy/coach/testing'
-import { lineText, type GameLine, type StoredReview } from '@chessy/history'
-import { sampleReview, sampleSummary } from '@chessy/history/testing'
-import { buildProfile } from '@chessy/library'
+} from '@pawnia/analysis'
+import { createGame } from '@pawnia/chess'
+import { InMemoryConversationStore, LoopAgent } from '@pawnia/coach'
+import { scriptedClient } from '@pawnia/coach/testing'
+import { lineText, type GameLine, type StoredReview } from '@pawnia/history'
+import { sampleReview, sampleSummary } from '@pawnia/history/testing'
+import { buildProfile } from '@pawnia/library'
 import { describe, expect, it } from 'vitest'
 import type { StoredWalkthrough } from '../db/walkthroughStore'
 import { StoredWalkthroughs, type TryJudge, type WalkthroughLibrary } from './walkthroughs'

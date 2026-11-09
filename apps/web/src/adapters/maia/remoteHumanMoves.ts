@@ -1,6 +1,6 @@
-import type { HumanMoveModel, HumanMoveQuery } from '@chessy/analysis'
-import type { HumanMovePredictionBody, HumanMovesStatusBody } from '@chessy/contracts'
-import type { HumanMoveDistribution, HumanMovePolicy, HumanMoveRequest } from '@chessy/play'
+import type { HumanMoveModel, HumanMoveQuery } from '@pawnia/analysis'
+import type { HumanMovePredictionBody, HumanMovesStatusBody } from '@pawnia/contracts'
+import type { HumanMoveDistribution, HumanMovePolicy, HumanMoveRequest } from '@pawnia/play'
 import type { ApiClient } from '@/adapters/api/client'
 
 /**

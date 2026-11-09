@@ -6,7 +6,7 @@ import {
   type CoachContext,
   type CoachEvent,
   type CommentedMove,
-} from '@chessy/coach'
+} from '@pawnia/coach'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { HeadlessClaudeAgent, type ProcessRun, type RunProcess } from './headlessClaudeAgent'

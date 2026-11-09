@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { llmClientContract, type ScriptedTurn } from '@chessy/coach/testing'
+import { llmClientContract, type ScriptedTurn } from '@pawnia/coach/testing'
 import { describe, expect, it } from 'vitest'
 import { AnthropicClient } from './anthropicClient'
 

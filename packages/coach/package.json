@@ -1,5 +1,5 @@
 {
-  "name": "@chessy/coach",
+  "name": "@pawnia/coach",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@chessy/config": "workspace:*",
+    "@pawnia/config": "workspace:*",
     "vitest": "^5.0.5"
   }
 }

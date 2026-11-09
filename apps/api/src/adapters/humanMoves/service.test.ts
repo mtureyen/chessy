@@ -1,4 +1,4 @@
-import { MOVE_COUNT, moveIndex, type MaiaModel } from '@chessy/maia'
+import { MOVE_COUNT, moveIndex, type MaiaModel } from '@pawnia/maia'
 import { describe, expect, it } from 'vitest'
 import { MaiaHumanMoveService } from './service'
 

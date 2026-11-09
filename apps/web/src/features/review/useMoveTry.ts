@@ -1,5 +1,5 @@
-import { createGame, type Move, type SquareName } from '@chessy/chess'
-import type { CoachTryBody } from '@chessy/contracts'
+import { createGame, type Move, type SquareName } from '@pawnia/chess'
+import type { CoachTryBody } from '@pawnia/contracts'
 import { useCallback, useRef, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
 import type { BoardTry } from './walkthrough'

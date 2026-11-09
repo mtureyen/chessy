@@ -1,6 +1,6 @@
-import type { GameReview, ReviewedMove } from '@chessy/analysis'
-import type { MoveNode } from '@chessy/chess'
-import type { GameLine } from '@chessy/history'
+import type { GameReview, ReviewedMove } from '@pawnia/analysis'
+import type { MoveNode } from '@pawnia/chess'
+import type { GameLine } from '@pawnia/history'
 
 /** The main line's nodes, first move first. */
 export function mainline(root: MoveNode): MoveNode[] {

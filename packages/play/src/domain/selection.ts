@@ -1,5 +1,5 @@
-import { whiteWinChance, type EngineLine, type Score } from '@chessy/analysis'
-import type { Color } from '@chessy/chess'
+import { whiteWinChance, type EngineLine, type Score } from '@pawnia/analysis'
+import type { Color } from '@pawnia/chess'
 import type { BotLevel } from './levels'
 import { pickWeighted, type Random } from './random'
 

@@ -1,4 +1,4 @@
-import type { Color } from '@chessy/chess'
+import type { Color } from '@pawnia/chess'
 
 /** Base time and increment per move. */
 export interface TimeControl {

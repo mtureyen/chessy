@@ -1,4 +1,4 @@
-import type { GameReview } from '@chessy/analysis'
+import type { GameReview } from '@pawnia/analysis'
 import { CLASS_STYLES } from './classes'
 
 const MARKED = new Set(['brilliant', 'great', 'miss', 'mistake', 'blunder'])

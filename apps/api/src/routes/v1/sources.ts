@@ -1,11 +1,11 @@
-import { historyRoute, playerRoute, recentGamesRoute, sourceGameRoute } from '@chessy/contracts'
+import { historyRoute, playerRoute, recentGamesRoute, sourceGameRoute } from '@pawnia/contracts'
 import {
   GameNotFoundError,
   SourceUnavailableError,
   UserNotFoundError,
   type GameSource,
   type SourceId,
-} from '@chessy/library'
+} from '@pawnia/library'
 import type { Context } from 'hono'
 import { problem } from '../../http/problem'
 import { createRouter } from '../../http/router'

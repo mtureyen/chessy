@@ -1,4 +1,4 @@
-import { importPgn } from '@chessy/chess'
+import { importPgn } from '@pawnia/chess'
 
 /**
  * A game's main line: where it starts and its moves (UCI). A review is of a line, so it belongs

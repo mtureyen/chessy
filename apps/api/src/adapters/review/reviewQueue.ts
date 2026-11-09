@@ -4,8 +4,8 @@ import {
   type CancelSignal,
   type GameReview,
   type ReviewInput,
-} from '@chessy/analysis'
-import type { ReviewQueueBody, StartReviewQueueBody } from '@chessy/contracts'
+} from '@pawnia/analysis'
+import type { ReviewQueueBody, StartReviewQueueBody } from '@pawnia/contracts'
 import {
   ensureReview,
   gameLine,
@@ -13,8 +13,8 @@ import {
   recentGames,
   type GameHistory,
   type ReviewRepository,
-} from '@chessy/history'
-import type { LibraryGame, Profile } from '@chessy/library'
+} from '@pawnia/history'
+import type { LibraryGame, Profile } from '@pawnia/library'
 import { ReviewQueueBusyError, type ReviewQueueService } from './reviewQueueService'
 
 /** What survives a restart: the run's games (those reviewed show in the history) and whether it was paused. */

@@ -1,5 +1,5 @@
-import { EngineFailedError, type CancelSignal, type EngineProvider } from '@chessy/analysis'
-import { createGame, type Color } from '@chessy/chess'
+import { EngineFailedError, type CancelSignal, type EngineProvider } from '@pawnia/analysis'
+import { createGame, type Color } from '@pawnia/chess'
 import { botBudget } from '../domain/budget'
 import type { BotLevel } from '../domain/levels'
 import type { Random } from '../domain/random'

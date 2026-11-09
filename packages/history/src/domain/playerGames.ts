@@ -1,4 +1,4 @@
-import type { Color } from '@chessy/chess'
+import type { Color } from '@pawnia/chess'
 import {
   categoryOf,
   sideOf,
@@ -8,7 +8,7 @@ import {
   type GameSpeed,
   type PlayerInfo,
   type Profile,
-} from '@chessy/library'
+} from '@pawnia/library'
 
 /** A stored game without its moves: enough to find it and count it. */
 export interface GameSummary {

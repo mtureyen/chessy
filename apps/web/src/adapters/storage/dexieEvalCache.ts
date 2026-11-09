@@ -1,4 +1,4 @@
-import type { EvalCache, PositionEval } from '@chessy/analysis'
+import type { EvalCache, PositionEval } from '@pawnia/analysis'
 import type { ChessyDb } from './db'
 
 export class DexieEvalCache implements EvalCache {

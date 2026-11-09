@@ -1,4 +1,4 @@
-import { SourceUnavailableError, UserNotFoundError, type SourceId } from '@chessy/library'
+import { SourceUnavailableError, UserNotFoundError, type SourceId } from '@pawnia/library'
 
 export type Fetch = (url: string, init?: RequestInit) => Promise<Response>
 
