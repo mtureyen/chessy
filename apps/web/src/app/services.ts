@@ -145,7 +145,7 @@ export type ReviewEngine = 'server' | 'browser'
 export function createServices(): Services {
   const api = createApiClient(window.location.origin)
   const local = createLazyStorage(() =>
-    import('@/adapters/storage/dexieStorage').then((m) => m.openDexieStorage()),
+    import('@/adapters/storage/dexieStorage').then((m) => m.createDexieStorage()),
   )
   const { settings, evals } = local
   // Everything the library saves also goes to the server's game history (when it keeps one).

@@ -480,13 +480,6 @@ describe('library routes', () => {
     expect(twice.status).toBe(409)
   })
 
-  it("stores a game sent under the app's old name as a pawnia game", async () => {
-    const local = sampleGame({ id: 'lib-5', externalId: 'local-1', source: 'pawnia' })
-    expect((await post('/games', { games: [{ ...local, source: 'chessy' }] })).status).toBe(200)
-    // Stored as pawnia: the same game as pawnia under another id is a duplicate.
-    expect((await post('/games', { games: [{ ...local, id: 'lib-6' }] })).status).toBe(409)
-  })
-
   it('keeps a review of a line, and only of the moves it was sent with', async () => {
     const { line, review } = sampleReview()
     const ok = await post('/reviews', { ...line, review })

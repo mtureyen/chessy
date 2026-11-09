@@ -55,12 +55,7 @@ const EnvSchema = z.object({
 
 export type Config = z.infer<typeof EnvSchema>
 
-/** Variables renamed since; the old name still works while the new one is unset. */
-const RENAMED = { CHESSY_SOURCES: 'PAWNIA_SOURCES' } as const
-
 /** Fails fast on startup if the environment is invalid. */
 export function loadConfig(env: Record<string, string | undefined>): Config {
-  const current = { ...env }
-  for (const [old, now] of Object.entries(RENAMED)) current[now] ??= env[old]
-  return EnvSchema.parse(current)
+  return EnvSchema.parse(env)
 }

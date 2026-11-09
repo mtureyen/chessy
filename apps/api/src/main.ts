@@ -17,7 +17,6 @@ import { openDatabase } from './adapters/db/database'
 import { FileSettingsService } from './adapters/settings/fileSettingsService'
 import { FileSettingsStore } from './adapters/settings/fileSettingsStore'
 import { readJson, writeJson } from './adapters/settings/jsonFile'
-import { moveRenamedFolder } from './adapters/settings/renamedFolder'
 import { DatabaseLibraryService } from './adapters/db/service'
 import { progressKey } from './adapters/db/trainingStore'
 import { createMaiaService } from './adapters/humanMoves/maia'
@@ -56,15 +55,6 @@ const coach = new CoachRegistry(coachTools, {
   baseUrl: `http://127.0.0.1:${config.PORT}`,
   version: pkg.version,
 })
-if (!config.SETTINGS_PATH) {
-  // The folder had the app's old name until the rename; it moves over once.
-  const moved = moveRenamedFolder(
-    fileURLToPath(new URL('../.chessy', import.meta.url)),
-    fileURLToPath(new URL('../.pawnia', import.meta.url)),
-  )
-  if (moved === 'moved') console.log('Moved the settings from apps/api/.chessy to apps/api/.pawnia')
-  if (moved === 'kept') console.warn('apps/api/.chessy left as it is: apps/api/.pawnia is used')
-}
 const settingsPath =
   config.SETTINGS_PATH ?? fileURLToPath(new URL('../.pawnia/settings.json', import.meta.url))
 const settings = new FileSettingsService(config, new FileSettingsStore(settingsPath), coach)
