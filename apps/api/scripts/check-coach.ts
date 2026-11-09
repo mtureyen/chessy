@@ -47,7 +47,7 @@ const server = Bun.serve({
 })
 // The same settings as the API: the settings page's file over .env.
 const stored = await new FileSettingsStore(
-  config.SETTINGS_PATH ?? fileURLToPath(new URL('../.chessy/settings.json', import.meta.url)),
+  config.SETTINGS_PATH ?? fileURLToPath(new URL('../.pawnia/settings.json', import.meta.url)),
 ).load()
 const library = new DatabaseLibraryService(
   config.DATABASE_URL ? () => openDatabase(config.DATABASE_URL!) : undefined,

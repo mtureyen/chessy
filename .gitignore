@@ -44,7 +44,8 @@ apps/web/public/openings/
 apps/api/.engine/
 apps/api/.maia/
 apps/api/.bench/
-# The settings page's file (API keys)
+# The settings page's file (API keys); .chessy is its folder from before the rename
+apps/api/.pawnia/
 apps/api/.chessy/
 # Bot calibration results (bun run bots:calibrate)
 calibration*.json

@@ -38,7 +38,7 @@ export function CoachSettings() {
   return (
     <div className="coach-settings">
       <p className="settings-intro">
-        The coach answers with one of these. Keys stay on this computer (apps/api/.chessy) and are
+        The coach answers with one of these. Keys stay on this computer (apps/api/.pawnia) and are
         never shown again once saved.
       </p>
       <DefaultCoach view={v} agents={agents.data ?? []} {...props} />

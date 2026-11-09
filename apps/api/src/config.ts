@@ -24,7 +24,7 @@ const EnvSchema = z.object({
    * `pglite:<folder>` for an embedded one. Unset: the server keeps no history.
    */
   DATABASE_URL: z.string().min(1).optional(),
-  /** The settings page's file (API keys inside); default: apps/api/.chessy/settings.json. */
+  /** The settings page's file (API keys inside); default: apps/api/.pawnia/settings.json. */
   SETTINGS_PATH: z.string().min(1).optional(),
   /** Claude's API key; the settings page can set one too (it wins). */
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
