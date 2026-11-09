@@ -28,7 +28,7 @@ export default defineConfig({
       origins: [
         {
           origin: `http://localhost:${WEB_PORT}`,
-          localStorage: [{ name: 'chessy.welcome-dismissed', value: '1' }],
+          localStorage: [{ name: 'pawnia.welcome-dismissed', value: '1' }],
         },
       ],
     },

@@ -1,5 +1,5 @@
-const KEY = 'chessy.welcome-dismissed'
-const HAS_PROFILE = 'chessy.has-profile'
+const KEY = 'pawnia.welcome-dismissed'
+const HAS_PROFILE = 'pawnia.has-profile'
 
 /** Whether the user closed the "set up your profile" banner (per browser). */
 export function welcomeDismissed(): boolean {

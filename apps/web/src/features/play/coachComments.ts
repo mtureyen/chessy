@@ -1,4 +1,4 @@
-const KEY = 'chessy.coach-comments'
+const KEY = 'pawnia.coach-comments'
 
 /** Whether the coach comments on the user's moves in bot games (per browser); off until asked. */
 export function coachCommentsOn(): boolean {

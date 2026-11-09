@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { appearanceVariables, parseAppearance, type BoardAppearance } from './appearance'
 
-const KEY = 'chessy.board-appearance'
+const KEY = 'pawnia.board-appearance'
 
 /**
  * The board appearance, kept in localStorage (synchronous, so the first paint already has the
