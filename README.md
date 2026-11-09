@@ -68,7 +68,7 @@ checks the adapters against a real PostgreSQL (as CI does).
 The coach answers questions about positions and games. Its providers are set up on the
 **Settings → Coach** page (http://localhost:5173/settings?tab=coach): switch each on or off, enter
 keys and models, see whether each can answer. The page's values live in
-`apps/api/.chessy/settings.json` (only readable by you, not in Git) and win over `apps/api/.env`;
+`apps/api/.pawnia/settings.json` (only readable by you, not in Git) and win over `apps/api/.env`;
 a saved key is never sent back to the browser, and the settings routes answer only requests from
 this machine. What the page sets, by provider: It states only what its tools return
 (engine evaluations for now), so it doesn't make up lines. Behind it are interchangeable

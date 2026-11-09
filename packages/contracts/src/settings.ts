@@ -108,7 +108,7 @@ export const updateCoachSettingsRoute = createRoute({
   tags: ['settings'],
   summary: "Changes the coach's providers; the agents follow at once",
   description:
-    'Fields left out stay as they are; an API key set to null is removed. Kept in apps/api/.chessy/settings.json, over apps/api/.env. Only from this machine.',
+    'Fields left out stay as they are; an API key set to null is removed. Kept in apps/api/.pawnia/settings.json, over apps/api/.env. Only from this machine.',
   request: {
     body: {
       content: { 'application/json': { schema: CoachSettingsUpdateSchema } },
