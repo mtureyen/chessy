@@ -3,7 +3,8 @@
  * page shows a game. It reads only the page address (no page content), and only on a click
  * sends that address to pawnia, which fetches the game through the platforms' public APIs.
  */
-import { DEFAULT_CHESSY_URL, chessyLink } from './link'
+import { ADDRESS_KEY, loadAddress } from './address'
+import { DEFAULT_PAWNIA_URL, pawniaLink } from './link'
 
 const host = document.createElement('div')
 // A shadow root keeps the page's styles off the button and the button's off the page.
@@ -21,16 +22,15 @@ root.innerHTML = `
   <button type="button" title="Open this game in pawnia">♟ Open in pawnia</button>`
 const button = root.querySelector('button')!
 
-let chessyUrl = DEFAULT_CHESSY_URL
-chrome.storage.sync.get({ chessyUrl: DEFAULT_CHESSY_URL }, (items) => {
-  chessyUrl = String(items.chessyUrl)
-})
+let address = DEFAULT_PAWNIA_URL
+void loadAddress(chrome.storage.sync).then((url) => (address = url))
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.chessyUrl) chessyUrl = String(changes.chessyUrl.newValue ?? DEFAULT_CHESSY_URL)
+  const change = changes[ADDRESS_KEY]
+  if (change) address = String(change.newValue ?? DEFAULT_PAWNIA_URL)
 })
 
 button.addEventListener('click', () => {
-  const link = chessyLink(chessyUrl, location.href)
+  const link = pawniaLink(address, location.href)
   if (link) window.open(link, '_blank', 'noopener')
 })
 
@@ -39,7 +39,7 @@ let shownFor = ''
 function update() {
   if (location.href === shownFor) return
   shownFor = location.href
-  const isGame = chessyLink(chessyUrl, location.href) !== undefined
+  const isGame = pawniaLink(address, location.href) !== undefined
   if (isGame && !host.isConnected) document.body.append(host)
   if (!isGame && host.isConnected) host.remove()
 }
