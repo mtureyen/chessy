@@ -1,11 +1,11 @@
-import { ChessyDb } from './db'
+import { PawniaDb } from './db'
 import { DexieEvalCache } from './dexieEvalCache'
 import { DexieGameRepository } from './dexieGameRepository'
 import { DexieProfileStore } from './dexieProfileStore'
 import { DexieSettingsStore } from './dexieSettingsStore'
 
 /** Everything stored in IndexedDB. Loaded on demand by lazyStorage.ts. */
-export function createDexieStorage(db = new ChessyDb()) {
+export function createDexieStorage(db = new PawniaDb()) {
   return {
     games: new DexieGameRepository(db),
     settings: new DexieSettingsStore(db),

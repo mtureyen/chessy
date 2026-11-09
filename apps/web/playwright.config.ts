@@ -10,7 +10,7 @@ const CI = !!process.env.CI
 // keep runs apart, e.g. in two worktrees: a local run reuses a server it finds on its ports.
 const API_PORT = Number(process.env.E2E_API_PORT ?? 3100)
 /** Never the user's own settings (their API keys): a fresh file per run. */
-const SETTINGS_PATH = join(tmpdir(), `chessy-e2e-settings-${process.pid}.json`)
+const SETTINGS_PATH = join(tmpdir(), `pawnia-e2e-settings-${process.pid}.json`)
 const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 5174)
 
 export default defineConfig({

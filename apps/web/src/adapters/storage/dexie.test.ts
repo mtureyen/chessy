@@ -1,13 +1,13 @@
 import 'fake-indexeddb/auto'
 import { gameRepositoryContract } from '@pawnia/library/testing'
 import { describe, expect, it } from 'vitest'
-import { ChessyDb } from './db'
+import { PawniaDb } from './db'
 import { DexieEvalCache } from './dexieEvalCache'
 import { DexieGameRepository } from './dexieGameRepository'
 import { DexieSettingsStore } from './dexieSettingsStore'
 
 let n = 0
-const freshDb = () => new ChessyDb(`test-${++n}`)
+const freshDb = () => new PawniaDb(`test-${++n}`)
 
 gameRepositoryContract('Dexie (IndexedDB)', () => new DexieGameRepository(freshDb()))
 

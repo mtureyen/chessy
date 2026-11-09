@@ -12,7 +12,7 @@ export function healthRoutes({ version, startedAt, now }: HealthDeps) {
     c.json(
       {
         status: 'ok' as const,
-        service: 'chessy-api',
+        service: 'pawnia-api',
         version,
         uptimeSeconds: Math.floor((now() - startedAt) / 1000),
       },

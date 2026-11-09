@@ -3,7 +3,7 @@ import { createRoute, z } from '@hono/zod-openapi'
 export const HealthSchema = z
   .object({
     status: z.literal('ok'),
-    service: z.string().openapi({ example: 'chessy-api' }),
+    service: z.string().openapi({ example: 'pawnia-api' }),
     version: z.string().openapi({ example: '0.1.0' }),
     uptimeSeconds: z.number().int().nonnegative(),
   })

@@ -219,7 +219,7 @@ const LITE_ENGINE = fileURLToPath(
  * and the web app's package marks .js files as modules, so both files go to a folder of their own.
  */
 function liteEngineCommand(): [string, string[]] {
-  const dir = mkdtempSync(join(tmpdir(), 'chessy-lite-engine-'))
+  const dir = mkdtempSync(join(tmpdir(), 'pawnia-lite-engine-'))
   copyFileSync(`${LITE_ENGINE}.js`, join(dir, 'stockfish.cjs'))
   copyFileSync(`${LITE_ENGINE}.wasm`, join(dir, 'stockfish.wasm'))
   return ['node', [join(dir, 'stockfish.cjs')]]

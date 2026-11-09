@@ -6,7 +6,7 @@ import { FileSettingsStore } from './fileSettingsStore'
 
 describe('FileSettingsStore', () => {
   it('keeps settings in a file only this user can read', async () => {
-    const path = join(mkdtempSync(join(tmpdir(), 'chessy-settings-')), 'nested', 'settings.json')
+    const path = join(mkdtempSync(join(tmpdir(), 'pawnia-settings-')), 'nested', 'settings.json')
     const store = new FileSettingsStore(path)
     expect(await store.load()).toEqual({})
     await store.save({ coach: { claudeApi: { apiKey: 'sk-ant-secret-key-1234' } } })
@@ -17,7 +17,7 @@ describe('FileSettingsStore', () => {
   })
 
   it('treats an unreadable file as no settings', async () => {
-    const path = join(mkdtempSync(join(tmpdir(), 'chessy-settings-')), 'settings.json')
+    const path = join(mkdtempSync(join(tmpdir(), 'pawnia-settings-')), 'settings.json')
     writeFileSync(path, '{ not json')
     expect(await new FileSettingsStore(path).load()).toEqual({})
   })

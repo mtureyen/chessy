@@ -74,7 +74,7 @@ async function main() {
   console.log(`${games.length} games to review (${done.length} already collected)`)
   if (games.length === 0) return
 
-  const profile = mkdtempSync(join(tmpdir(), 'chessy-references-'))
+  const profile = mkdtempSync(join(tmpdir(), 'pawnia-references-'))
   const chrome = spawn(args.chrome, [
     `--remote-debugging-port=${args.port}`,
     `--user-data-dir=${profile}`,

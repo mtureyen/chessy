@@ -53,7 +53,7 @@ const actual = createHash('sha256').update(archive).digest('hex')
 if (actual !== build.sha256)
   throw new Error(`Checksum mismatch: expected ${build.sha256}, got ${actual}`)
 
-const work = await mkdtemp(join(tmpdir(), 'chessy-stockfish-'))
+const work = await mkdtemp(join(tmpdir(), 'pawnia-stockfish-'))
 try {
   await writeFile(join(work, 'stockfish.tar.gz'), archive)
   const entry = `stockfish/${build.asset}`

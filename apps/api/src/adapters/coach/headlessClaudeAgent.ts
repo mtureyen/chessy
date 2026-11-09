@@ -54,7 +54,7 @@ interface ClaudeRun {
 
 /** How long a status check is believed (it starts a process). */
 const STATUS_TTL_MS = 60_000
-const MCP_SERVER = 'chessy'
+const MCP_SERVER = 'pawnia'
 
 /**
  * The coach on Claude Code in headless mode (`claude -p`), on the user's Claude subscription.
@@ -223,7 +223,7 @@ export class HeadlessClaudeAgent implements CoachAgent {
 
   /** An empty folder to run in: no project files, no CLAUDE.md for Claude Code to pick up. */
   private emptyFolder(): string {
-    this.workdir ??= mkdtempSync(join(tmpdir(), 'chessy-coach-'))
+    this.workdir ??= mkdtempSync(join(tmpdir(), 'pawnia-coach-'))
     return this.workdir
   }
 }

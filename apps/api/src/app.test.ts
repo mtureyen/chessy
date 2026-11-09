@@ -111,7 +111,7 @@ const coach = [
     conversations: new InMemoryConversationStore(),
   }),
 ]
-const settingsPath = join(mkdtempSync(join(tmpdir(), 'chessy-app-test-')), 'settings.json')
+const settingsPath = join(mkdtempSync(join(tmpdir(), 'pawnia-app-test-')), 'settings.json')
 const settingsRegistry = new CoachRegistry([], {
   baseUrl: 'http://127.0.0.1:3000',
   version: 'test',
@@ -196,7 +196,7 @@ describe('api', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
       status: 'ok',
-      service: 'chessy-api',
+      service: 'pawnia-api',
       version: '9.9.9',
       uptimeSeconds: 60,
     })

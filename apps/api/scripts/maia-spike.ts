@@ -202,7 +202,7 @@ function maiaPlayer(
 }
 
 async function strength(model: MaiaModel) {
-  const dir = mkdtempSync(join(tmpdir(), 'chessy-lite-engine-'))
+  const dir = mkdtempSync(join(tmpdir(), 'pawnia-lite-engine-'))
   const lite = fileURLToPath(
     new URL('../../web/public/engine/stockfish-19-lite-single', import.meta.url),
   )
