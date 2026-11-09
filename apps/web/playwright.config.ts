@@ -46,7 +46,7 @@ export default defineConfig({
       cwd: '../api',
       env: {
         PORT: String(API_PORT),
-        CHESSY_SOURCES: 'recorded',
+        PAWNIA_SOURCES: 'recorded',
         DATABASE_URL: 'pglite:memory',
         SETTINGS_PATH,
         // No coach request may leave this machine: Claude off, Ollama where nothing listens.

@@ -12,7 +12,7 @@
     "build": "bun build src/main.ts --target=bun --outdir=dist",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
-    "dev:recorded": "CHESSY_SOURCES=recorded bun --watch src/main.ts",
+    "dev:recorded": "PAWNIA_SOURCES=recorded bun --watch src/main.ts",
     "engine:native": "bun scripts/fetch-stockfish.ts",
     "bots:calibrate": "bun scripts/calibrate-bots.ts",
     "maia:fetch": "bun scripts/fetch-maia.ts",
