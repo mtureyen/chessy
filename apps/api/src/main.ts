@@ -102,7 +102,7 @@ const app = createApp({
 })
 
 console.log(
-  `pawnia-api ${pkg.version} listening on http://${config.HOST}:${config.PORT} (${config.NODE_ENV}, sources: ${config.CHESSY_SOURCES}, engine: ${stockfishPath} ×${poolSize}, history: ${config.DATABASE_URL ? 'database' : 'off'}, coach: ${
+  `pawnia-api ${pkg.version} listening on http://${config.HOST}:${config.PORT} (${config.NODE_ENV}, sources: ${config.PAWNIA_SOURCES}, engine: ${stockfishPath} ×${poolSize}, history: ${config.DATABASE_URL ? 'database' : 'off'}, coach: ${
     coach
       .agents()
       .map((a) => a.id)
@@ -117,7 +117,7 @@ export default { port: config.PORT, hostname: config.HOST, fetch: app.fetch, idl
 function createSources(config: Config): Record<SourceId, GameSource> {
   const http = {
     userAgent: `pawnia/${pkg.version} (+https://github.com/mtureyen/pawnia)`,
-    ...(config.CHESSY_SOURCES === 'recorded' ? { fetch: recordedFetch } : {}),
+    ...(config.PAWNIA_SOURCES === 'recorded' ? { fetch: recordedFetch } : {}),
   }
   return {
     lichess: new CachedGameSource(new LichessGameSource(http)),

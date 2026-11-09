@@ -9,7 +9,7 @@ const EnvSchema = z.object({
   HOST: z.string().min(1).default('127.0.0.1'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   /** `live` talks to lichess/chess.com; `recorded` answers from recorded responses (E2E, offline). */
-  CHESSY_SOURCES: z.enum(['live', 'recorded']).default('live'),
+  PAWNIA_SOURCES: z.enum(['live', 'recorded']).default('live'),
   /** Native Stockfish binary; default: apps/api/.engine/stockfish, else `stockfish` on the PATH. */
   STOCKFISH_PATH: z.string().min(1).optional(),
   /** Parallel single-threaded engine processes; default: cores − 2, at most 8. */
@@ -55,7 +55,12 @@ const EnvSchema = z.object({
 
 export type Config = z.infer<typeof EnvSchema>
 
+/** Variables renamed since; the old name still works while the new one is unset. */
+const RENAMED = { CHESSY_SOURCES: 'PAWNIA_SOURCES' } as const
+
 /** Fails fast on startup if the environment is invalid. */
 export function loadConfig(env: Record<string, string | undefined>): Config {
-  return EnvSchema.parse(env)
+  const current = { ...env }
+  for (const [old, now] of Object.entries(RENAMED)) current[now] ??= env[old]
+  return EnvSchema.parse(current)
 }

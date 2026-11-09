@@ -9,7 +9,7 @@ export const RECORDED_USERS = { lichess: 'DrNykterstein', chesscom: 'hikaru' } a
 
 /**
  * A fetch that answers from recorded real responses instead of the network.
- * Used by tests and by `CHESSY_SOURCES=recorded` (E2E, offline development).
+ * Used by tests and by `PAWNIA_SOURCES=recorded` (E2E, offline development).
  */
 export const recordedFetch: Fetch = async (url) => {
   const { pathname } = new URL(url)
