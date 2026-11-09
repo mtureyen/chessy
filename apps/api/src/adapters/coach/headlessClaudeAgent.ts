@@ -1,9 +1,11 @@
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   COMMENT_PROMPT,
   commentText,
+  followUpText,
+  InMemoryConversationStore,
   questionText,
   SYSTEM_PROMPT,
   type CancelSignal,
@@ -14,6 +16,7 @@ import {
   type CoachTool,
   type CommentRequest,
   type ComposeRequest,
+  type ConversationStore,
 } from '@pawnia/coach'
 import type { CoachRuns } from './mcp'
 
@@ -41,6 +44,8 @@ export interface HeadlessClaudeOptions {
   mcpUrl: (token: string) => string
   runs: CoachRuns
   tools: CoachTool[]
+  /** Where conversations are kept: Claude Code keeps none (no session files). */
+  conversations?: ConversationStore
   run?: RunProcess
 }
 
@@ -59,8 +64,10 @@ const MCP_SERVER = 'pawnia'
 /**
  * The coach on Claude Code in headless mode (`claude -p`), on the user's Claude subscription.
  * Claude Code runs its own tool loop; it gets only our tools, over MCP (no shell, no files: its
- * built-in tools are off), works in an empty folder, and keeps each conversation as a session.
- * A comment during a game runs without our tools as well.
+ * built-in tools are off), and runs in an empty folder of its own that is deleted afterwards.
+ * Claude Code keeps nothing: no session, no memory. The conversation is kept here instead, and
+ * each question carries the earlier questions and answers. A comment during a game runs without
+ * our tools as well.
  */
 export class HeadlessClaudeAgent implements CoachAgent {
   readonly id = 'claude-headless'
@@ -68,14 +75,14 @@ export class HeadlessClaudeAgent implements CoachAgent {
   private readonly options: HeadlessClaudeOptions
   private readonly run: RunProcess
   private readonly command: string
-  private readonly sessions = new Set<string>()
-  private workdir: string | undefined
+  private readonly conversations: ConversationStore
   private checked: { at: number; status: Promise<ClientStatus> } | undefined
 
   constructor(options: HeadlessClaudeOptions) {
     this.options = options
     this.command = options.command ?? 'claude'
     this.run = options.run ?? spawnProcess
+    this.conversations = options.conversations ?? new InMemoryConversationStore()
   }
 
   /** Whether Claude Code is installed (`claude --version`). */
@@ -98,11 +105,12 @@ export class HeadlessClaudeAgent implements CoachAgent {
   async answer(request: CoachRequest, onEvent: (event: CoachEvent) => void): Promise<void> {
     const { runs, tools, mcpUrl } = this.options
     const token = runs.start(onEvent, request.context)
-    const resume = this.sessions.has(request.conversationId)
     try {
+      const earlier = (await this.conversations.load(request.conversationId)) ?? []
+      let answer = ''
       const finished = await this.runClaude(
         {
-          prompt: questionText(request.question, request.context),
+          prompt: followUpText(earlier, questionText(request.question, request.context)),
           system: SYSTEM_PROMPT,
           // Only ours, over MCP, all of them allowed without asking.
           extraArgs: [
@@ -110,15 +118,21 @@ export class HeadlessClaudeAgent implements CoachAgent {
             JSON.stringify({ mcpServers: { [MCP_SERVER]: { type: 'http', url: mcpUrl(token) } } }),
             '--allowedTools',
             tools.map((tool) => `mcp__${MCP_SERVER}__${tool.name}`).join(','),
-            ...(resume
-              ? ['--resume', request.conversationId]
-              : ['--session-id', request.conversationId]),
           ],
           ...(request.signal && { signal: request.signal }),
         },
-        onEvent,
+        (event) => {
+          if (event.type === 'text') answer += event.delta
+          onEvent(event)
+        },
       )
-      if (finished) this.sessions.add(request.conversationId)
+      if (finished) {
+        await this.conversations.save(request.conversationId, [
+          ...earlier,
+          { role: 'user', text: request.question },
+          { role: 'assistant', text: answer, toolCalls: [] },
+        ])
+      }
     } finally {
       runs.end(token)
     }
@@ -134,7 +148,7 @@ export class HeadlessClaudeAgent implements CoachAgent {
 
   /**
    * No run token, no MCP server and nothing allowed: Claude Code has no tool to call here, and
-   * with no session kept the writing stays out of every conversation.
+   * the writing stays out of every conversation.
    */
   async compose({ system, text: prompt, signal }: ComposeRequest): Promise<string> {
     let text = ''
@@ -143,7 +157,7 @@ export class HeadlessClaudeAgent implements CoachAgent {
       {
         prompt,
         system,
-        extraArgs: ['--no-session-persistence'],
+        extraArgs: [],
         ...(signal && { signal }),
       },
       (event) => {
@@ -158,8 +172,8 @@ export class HeadlessClaudeAgent implements CoachAgent {
 
   /**
    * One run of Claude Code, its output as events. Never throws, and a cancel ends it silently;
-   * resolves to whether it ended cleanly. Its built-in tools are off in every run, and only MCP
-   * servers in `extraArgs` count.
+   * resolves to whether it ended cleanly. Its built-in tools are off in every run, only MCP
+   * servers in `extraArgs` count, and it keeps no session and no memory.
    */
   private async runClaude(
     { prompt, system, extraArgs, signal }: ClaudeRun,
@@ -181,12 +195,30 @@ export class HeadlessClaudeAgent implements CoachAgent {
       '--permission-mode',
       'dontAsk',
       '--disable-slash-commands',
+      '--no-session-persistence',
+      '--settings',
+      JSON.stringify({ autoMemoryEnabled: false }),
       ...extraArgs,
       ...(model ? ['--model', model] : []),
     ]
+    // An empty folder of its own: no project files, no CLAUDE.md for Claude Code to pick up.
+    const folder = mkdtempSync(join(tmpdir(), 'pawnia-coach-'))
+    try {
+      return await this.runIn(folder, args, signal, onEvent)
+    } finally {
+      rmSync(folder, { recursive: true, force: true })
+    }
+  }
+
+  private async runIn(
+    folder: string,
+    args: string[],
+    signal: CancelSignal | undefined,
+    onEvent: (event: CoachEvent) => void,
+  ): Promise<boolean> {
     let child: ProcessRun
     try {
-      child = this.run(this.command, args, { cwd: this.emptyFolder(), env: childEnv() })
+      child = this.run(this.command, args, { cwd: folder, env: childEnv() })
     } catch (error) {
       onEvent({ type: 'error', message: `Could not start Claude Code: ${String(error)}` })
       return false
@@ -219,12 +251,6 @@ export class HeadlessClaudeAgent implements CoachAgent {
     } finally {
       if (signal instanceof AbortSignal) signal.removeEventListener('abort', cancel)
     }
-  }
-
-  /** An empty folder to run in: no project files, no CLAUDE.md for Claude Code to pick up. */
-  private emptyFolder(): string {
-    this.workdir ??= mkdtempSync(join(tmpdir(), 'pawnia-coach-'))
-    return this.workdir
   }
 }
 
