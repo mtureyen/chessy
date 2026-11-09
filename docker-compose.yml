@@ -1,24 +1,27 @@
 # PostgreSQL for the server's copy of the game history.
 #   docker compose up -d db
-# then run the API with DATABASE_URL=postgres://chessy:chessy@localhost:5433/chessy (see
+# then run the API with DATABASE_URL=postgres://pawnia:pawnia@localhost:5433/pawnia (see
 # apps/api/.env.example). Port 5433, so it doesn't clash with a local PostgreSQL on 5432.
+# A fixed project name, so the container and volume are pawnia-db-1 and pawnia_pawnia-db wherever
+# the repository is checked out.
+name: pawnia
 services:
   db:
     image: postgres:17.10-alpine
     environment:
-      POSTGRES_USER: chessy
-      POSTGRES_PASSWORD: chessy
-      POSTGRES_DB: chessy
+      POSTGRES_USER: pawnia
+      POSTGRES_PASSWORD: pawnia
+      POSTGRES_DB: pawnia
     ports:
       - '127.0.0.1:5433:5432'
     volumes:
-      - chessy-db:/var/lib/postgresql/data
+      - pawnia-db:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U chessy -d chessy']
+      test: ['CMD-SHELL', 'pg_isready -U pawnia -d pawnia']
       interval: 5s
       timeout: 3s
       retries: 10
     restart: unless-stopped
 
 volumes:
-  chessy-db:
+  pawnia-db:
