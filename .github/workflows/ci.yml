@@ -20,13 +20,13 @@ jobs:
       postgres:
         image: postgres:17.10-alpine
         env:
-          POSTGRES_USER: chessy
-          POSTGRES_PASSWORD: chessy
-          POSTGRES_DB: chessy
+          POSTGRES_USER: pawnia
+          POSTGRES_PASSWORD: pawnia
+          POSTGRES_DB: pawnia
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U chessy -d chessy"
+          --health-cmd "pg_isready -U pawnia -d pawnia"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -44,7 +44,7 @@ jobs:
         working-directory: apps/api
         run: bun run db:check
         env:
-          DATABASE_URL: postgres://chessy:chessy@localhost:5432/chessy
+          DATABASE_URL: postgres://pawnia:pawnia@localhost:5432/pawnia
 
   e2e:
     name: E2E (Playwright)

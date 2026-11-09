@@ -3,7 +3,7 @@
  * tests can't (they run on PGlite under Node): games, reviews and the profile must come back
  * unchanged and be stored as JSON objects, not strings, and the history's queries must read them.
  *
- *   DATABASE_URL=postgres://chessy:chessy@localhost:5433/chessy bun run db:check
+ *   DATABASE_URL=postgres://pawnia:pawnia@localhost:5433/pawnia bun run db:check
  *
  * Writes rows under fresh ids and deletes them again, so it is safe on a database in use.
  */
