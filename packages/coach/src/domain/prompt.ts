@@ -1,3 +1,5 @@
+import type { ChatMessage } from './messages'
+
 /** What the coach is told about the situation the user asks in. */
 export interface CoachContext {
   /** The position on the user's board (FEN). */
@@ -88,4 +90,24 @@ export function questionText(question: string, context: CoachContext = {}): stri
     context.rating && `My rating: about ${context.rating}.`,
   ].filter(Boolean)
   return situation.length > 0 ? `${situation.join('\n')}\n\n${question}` : question
+}
+
+/** How many earlier exchanges a follow-up carries. */
+export const FOLLOW_UP_EXCHANGES = 10
+
+/**
+ * A question for an agent that keeps no conversation of its own: the earlier questions and
+ * answers first (only their words, the last FOLLOW_UP_EXCHANGES of them), then the question.
+ */
+export function followUpText(earlier: readonly ChatMessage[], question: string): string {
+  const exchanges: string[] = []
+  for (const message of earlier) {
+    if (message.role === 'user') exchanges.push(`Me: ${message.text}`)
+    if (message.role === 'assistant' && message.text.trim()) {
+      exchanges.push(`You: ${message.text.trim()}`)
+    }
+  }
+  const recent = exchanges.slice(-2 * FOLLOW_UP_EXCHANGES)
+  if (recent.length === 0) return question
+  return `Our conversation so far:\n\n${recent.join('\n\n')}\n\n---\n\n${question}`
 }
