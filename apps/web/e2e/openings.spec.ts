@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { boardDriver } from './board'
 
 const t = (wins: number, draws: number, losses: number) => {
   const games = wins + draws + losses
@@ -117,4 +118,65 @@ test('my openings: worst first, then one opening with where theory was left', as
   await expect.poll(() => new URL(asked.at(-1)!).searchParams.get('speed')).toBe('blitz')
   await page.getByRole('link', { name: '← All openings' }).click()
   await expect(page.getByRole('region', { name: 'Openings as white' })).toBeVisible()
+})
+
+test('practise an opening: theory goes on, a wrong move is taken back, the answer can be shown', async ({
+  page,
+}) => {
+  await scriptedServer(page)
+  const asked: { moves: string[]; tried: string }[] = []
+  const tries = new Map<string, unknown>([
+    ['e2e4', { verdict: 'theory', san: 'e4', replies: [{ san: 'e5', uci: 'e7e5' }] }],
+    ['b1c3', { verdict: 'theory', san: 'Nc3', replies: [{ san: 'Nf6', uci: 'g8f6' }] }],
+    [
+      'd2d3',
+      {
+        verdict: 'wrong',
+        san: 'd3',
+        theory: [{ san: 'Qg4', uci: 'd1g4' }],
+        best: { san: 'Qg4', uci: 'd1g4', line: '3. Qg4 Nf6' },
+      },
+    ],
+    ['d1g4', { verdict: 'theory', san: 'Qg4', replies: [] }],
+  ])
+  await page.route('**/api/v1/training/openings/practice', (route) => {
+    const body = route.request().postDataJSON() as { moves: string[]; tried: string }
+    asked.push(body)
+    return route.fulfill({
+      json: { fen: 'x', theory: [], replies: [], ...(tries.get(body.tried) as object) },
+    })
+  })
+  // Tall enough that the first rank (the knight on b1) is on screen.
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.goto('/training/openings?color=white&family=Vienna%20Game')
+  await page.getByRole('button', { name: 'Practise this opening' }).click()
+  const panel = page.getByRole('complementary', { name: 'Practice' })
+  const board = await boardDriver(page)
+  /** A move, dragged again while the board still moves the opponent's piece into place. */
+  const move = async (from: string, to: string) => {
+    const before = asked.length
+    await expect(async () => {
+      await board.drag(from, to)
+      expect(asked.length).toBe(before + 1)
+    }).toPass({ timeout: 5000 })
+  }
+
+  await move('e2', 'e4')
+  await expect(panel).toContainText('1.e4 is theory.')
+  // The opponent plays what the games met: 1...e5, then after 2.Nc3 only 2...Bb4.
+  await expect(panel.getByRole('status')).toHaveText('Your move.')
+  await move('b1', 'c3')
+  await expect(panel).toContainText('2.Nc3 is theory.')
+  await expect(panel.getByRole('status')).toHaveText('Your move.')
+
+  await move('d2', 'd3')
+  await expect(panel).toContainText("3.d3 isn't good here. Try another move.")
+  expect(asked.at(-1)).toEqual({ moves: ['e2e4', 'e7e5', 'b1c3', 'f8b4'], tried: 'd2d3' })
+  await panel.getByRole('button', { name: 'Show the answer' }).click()
+  await expect(panel).toContainText('The answer was 3.Qg4 (theory).')
+  await expect(panel.getByRole('status')).toHaveText(
+    'Theory and your games stop here: 2 of 3 moves right at the first try.',
+  )
+  await panel.getByRole('button', { name: 'Back to the opening' }).click()
+  await expect(page.getByRole('region', { name: 'Your lines' })).toBeVisible()
 })

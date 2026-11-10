@@ -1,4 +1,10 @@
-import type { OpeningBody, OpeningsBody, Problem } from '@pawnia/contracts'
+import type {
+  OpeningBody,
+  OpeningsBody,
+  PracticeCheckBody,
+  PracticeCheckRequest,
+  Problem,
+} from '@pawnia/contracts'
 import type { ApiClient } from './client'
 
 export type OpeningsSpeed = 'bullet' | 'blitz' | 'rapid' | 'classical'
@@ -24,6 +30,10 @@ export class RemoteOpenings {
     return (await res.json()) as OpeningsBody
   }
 
+  check(request: PracticeCheckRequest): Promise<PracticeCheckBody> {
+    return checkPracticeMove(this.api, request)
+  }
+
   async one(
     color: 'white' | 'black',
     family: string,
@@ -36,6 +46,16 @@ export class RemoteOpenings {
     if (res.status !== 200) throw new Error(await problemText(res))
     return (await res.json()) as OpeningBody
   }
+}
+
+/** Judges a move tried while practising: theory first, then the engine. */
+export async function checkPracticeMove(
+  api: ApiClient,
+  request: PracticeCheckRequest,
+): Promise<PracticeCheckBody> {
+  const res = await api.api.v1.training.openings.practice.$post({ json: request })
+  if (res.status !== 200) throw new Error(await problemText(res))
+  return (await res.json()) as PracticeCheckBody
 }
 
 async function problemText(res: Response): Promise<string> {
