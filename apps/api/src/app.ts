@@ -10,6 +10,7 @@ import type { McpEndpoint } from './adapters/coach/mcpEndpoint'
 import type { SettingsService } from './adapters/settings/settingsService'
 import { onlyLocalHostNames } from './http/local'
 import type { ReviewQueueService } from './adapters/review/reviewQueueService'
+import type { OpeningService } from './adapters/openings/openingService'
 import type { StatsService } from './adapters/stats/statsService'
 import type { TrainingService } from './adapters/training/trainingService'
 import type { LibraryService } from './adapters/db/libraryService'
@@ -23,6 +24,7 @@ import { libraryRoutes } from './routes/v1/library'
 import { reviewQueueRoutes } from './routes/v1/reviewQueue'
 import { settingsRoutes } from './routes/v1/settings'
 import { sourceRoutes } from './routes/v1/sources'
+import { openingRoutes } from './routes/v1/openings'
 import { statsRoutes } from './routes/v1/stats'
 import { trainingRoutes } from './routes/v1/training'
 
@@ -40,6 +42,8 @@ export interface AppDeps {
   training: TrainingService
   /** The stats page: the user's own numbers, and anyone's on a platform. */
   stats: StatsService
+  /** The user's openings, for training them. */
+  openings: OpeningService
   /** The coach's agents (they follow the settings), the default first; none: the coach is off. */
   coach: CoachDirectory
   /** The coach's walkthroughs of reviewed games. */
@@ -67,6 +71,7 @@ export function createApp({
   reviewQueue,
   training,
   stats,
+  openings,
   coach,
   walkthroughs,
   mcp,
@@ -85,6 +90,7 @@ export function createApp({
     .route('/', reviewQueueRoutes({ reviewQueue }))
     .route('/', trainingRoutes({ training }))
     .route('/', statsRoutes({ stats }))
+    .route('/', openingRoutes({ openings }))
     .route('/', coachRoutes({ coach, walkthroughs }))
     .route('/', settingsRoutes({ settings }))
 

@@ -5,6 +5,7 @@ import {
   type GameSource,
   type SourceGame,
 } from '@pawnia/library'
+import { buildBookData, createOpeningBook } from '@pawnia/analysis'
 import { CoachEventSchema, type TrainingResultBody } from '@pawnia/contracts'
 import { InMemoryConversationStore, LoopAgent } from '@pawnia/coach'
 import { scriptedClient } from '@pawnia/coach/testing'
@@ -29,6 +30,7 @@ import {
 } from './adapters/coach/walkthroughService'
 import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/service'
 import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review/reviewQueueService'
+import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
 import type { TrainingService } from './adapters/training/trainingService'
 import { createApp } from './app'
@@ -167,6 +169,11 @@ const walkthroughs: WalkthroughService = {
   },
 }
 
+/** Theory for the openings routes: the Vienna's first moves. */
+const smallBook = createOpeningBook(
+  buildBookData([{ eco: 'C25', name: 'Vienna Game', pgn: '1. e4 e5 2. Nc3' }]),
+)
+
 const sources = {
   lichess: fakeSource('lichess', (username, max) => {
     requests.push({ username, max })
@@ -192,6 +199,7 @@ const app = createApp({
   now: () => 61_000,
   sources,
   stats: new LiveStats({ library, sources }),
+  openings: new StoredOpenings(library, async () => smallBook),
 })
 
 describe('api', () => {
@@ -239,6 +247,8 @@ describe('api', () => {
       '/stats/me',
       '/stats/players/{source}/{username}',
       '/training',
+      '/training/openings',
+      '/training/openings/{color}',
       '/training/results',
     ])
   })
@@ -532,6 +542,7 @@ describe('library routes', () => {
       reviewQueue,
       training,
       stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
+      openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
       coach: { agents: () => [] },
       walkthroughs,
       settings,
@@ -734,6 +745,17 @@ describe('stats routes', () => {
   })
 })
 
+describe('opening routes', () => {
+  it('lists the user’s openings and answers 404 for one they never played', async () => {
+    const list = await app.request('/api/v1/training/openings?last=300')
+    expect(list.status).toBe(200)
+    expect(await list.json()).toMatchObject({ window: { last: 300 }, openings: [] })
+    const none = await app.request('/api/v1/training/openings/white?family=Nowhere%20Gambit')
+    expect(none.status).toBe(404)
+    expect((await app.request('/api/v1/training/openings/green?family=x')).status).toBe(400)
+  })
+})
+
 describe('review queue routes', () => {
   const start = (body: unknown) =>
     app.request('/api/v1/library/review-queue', {
@@ -842,6 +864,7 @@ describe('coach routes', () => {
         reviewQueue,
         training,
         stats: new LiveStats({ library, sources }),
+        openings: new StoredOpenings(library, async () => smallBook),
         walkthroughs,
         coach: {
           agents: () => [
@@ -964,6 +987,7 @@ describe('local host names only', () => {
       reviewQueue,
       training,
       stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
+      openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
       coach: { agents: () => [] },
       walkthroughs,
       settings,
