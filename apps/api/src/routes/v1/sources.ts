@@ -58,7 +58,7 @@ export function sourceRoutes({ sources }: SourcesDeps) {
 }
 
 /** The platform's failures as problem responses: 404, 429 (with Retry-After) or 502. */
-function sourceProblem(c: Context, error: unknown) {
+export function sourceProblem(c: Context, error: unknown) {
   if (error instanceof UserNotFoundError)
     return problem(c, 404, 'User not found', { detail: error.message })
   if (error instanceof GameNotFoundError)

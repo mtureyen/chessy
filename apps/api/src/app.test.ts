@@ -29,6 +29,7 @@ import {
 } from './adapters/coach/walkthroughService'
 import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/service'
 import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review/reviewQueueService'
+import { LiveStats } from './adapters/stats/liveStats'
 import type { TrainingService } from './adapters/training/trainingService'
 import { createApp } from './app'
 
@@ -166,6 +167,17 @@ const walkthroughs: WalkthroughService = {
   },
 }
 
+const sources = {
+  lichess: fakeSource('lichess', (username, max) => {
+    requests.push({ username, max })
+    if (username === 'ghost') throw new UserNotFoundError('lichess', username)
+    if (username === 'busy') throw new SourceUnavailableError('lichess', 'rate limited', 60)
+    if (username === 'down') throw new SourceUnavailableError('lichess', 'HTTP 503')
+    return games.slice(0, max)
+  }),
+  chesscom: fakeSource('chesscom', () => []),
+}
+
 const app = createApp({
   engine,
   humanMoves,
@@ -178,16 +190,8 @@ const app = createApp({
   version: '9.9.9',
   startedAt: 1_000,
   now: () => 61_000,
-  sources: {
-    lichess: fakeSource('lichess', (username, max) => {
-      requests.push({ username, max })
-      if (username === 'ghost') throw new UserNotFoundError('lichess', username)
-      if (username === 'busy') throw new SourceUnavailableError('lichess', 'rate limited', 60)
-      if (username === 'down') throw new SourceUnavailableError('lichess', 'HTTP 503')
-      return games.slice(0, max)
-    }),
-    chesscom: fakeSource('chesscom', () => []),
-  },
+  sources,
+  stats: new LiveStats({ library, sources }),
 })
 
 describe('api', () => {
@@ -232,6 +236,8 @@ describe('api', () => {
       '/sources/{source}/users/{username}',
       '/sources/{source}/users/{username}/games',
       '/sources/{source}/users/{username}/history',
+      '/stats/me',
+      '/stats/players/{source}/{username}',
       '/training',
       '/training/results',
     ])
@@ -518,6 +524,7 @@ describe('library routes', () => {
       library: new DatabaseLibraryService(undefined),
       reviewQueue,
       training,
+      stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
       coach: { agents: () => [] },
       walkthroughs,
       settings,
@@ -688,6 +695,38 @@ describe('training routes', () => {
   })
 })
 
+describe('stats routes', () => {
+  it('counts the user’s own games from the stored history', async () => {
+    const res = await app.request('/api/v1/stats/me?tz=Europe/Berlin&speed=blitz')
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      player: { kind: 'me' },
+      window: { last: 30, speed: 'blitz' },
+      activity: { timeZone: 'Europe/Berlin' },
+    })
+  })
+
+  it('looks anyone up on a platform, reading their history', async () => {
+    const res = await app.request('/api/v1/stats/players/lichess/alice?last=5')
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { repertoire: { white: unknown[] } }
+    expect(body).toMatchObject({
+      player: { kind: 'lookup', profile: { username: 'alice' } },
+      window: { last: 5, found: 2, more: false },
+      record: { games: 2, wins: 2 },
+      endings: { wins: [{ reason: 'checkmate', games: 2 }] },
+    })
+    expect(body.repertoire.white[0]).toMatchObject({ moves: ['e4'], tally: { games: 2 } })
+    expect(body).not.toHaveProperty('quality')
+  })
+
+  it('answers 404 for an unknown player and 400 for a bad query', async () => {
+    expect((await app.request('/api/v1/stats/players/lichess/ghost')).status).toBe(404)
+    expect((await app.request('/api/v1/stats/me?tz=Mars/Olympus')).status).toBe(400)
+    expect((await app.request('/api/v1/stats/me?last=301')).status).toBe(400)
+  })
+})
+
 describe('review queue routes', () => {
   const start = (body: unknown) =>
     app.request('/api/v1/library/review-queue', {
@@ -795,6 +834,7 @@ describe('coach routes', () => {
         library,
         reviewQueue,
         training,
+        stats: new LiveStats({ library, sources }),
         walkthroughs,
         coach: {
           agents: () => [
@@ -916,6 +956,7 @@ describe('local host names only', () => {
       library: new DatabaseLibraryService(undefined),
       reviewQueue,
       training,
+      stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
       coach: { agents: () => [] },
       walkthroughs,
       settings,

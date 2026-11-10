@@ -12,6 +12,7 @@ import { StoredWalkthroughs } from './adapters/coach/walkthroughs'
 import { createBookLoader } from './adapters/review/openingBook'
 import { ReviewQueue, type ReviewJob } from './adapters/review/reviewQueue'
 import { createServerReviewer, SERVER_REVIEW_NODES } from './adapters/review/serverReviewer'
+import { LiveStats } from './adapters/stats/liveStats'
 import { StoredTraining } from './adapters/training/storedTraining'
 import { openDatabase } from './adapters/db/database'
 import { FileSettingsService } from './adapters/settings/fileSettingsService'
@@ -75,15 +76,17 @@ const reviewQueue = new ReviewQueue({
 })
 // A run the last shutdown interrupted goes on; without a database there is none to go on with.
 reviewQueue.restore().catch((error: unknown) => console.error('Review queue:', error))
+const sources = createSources(config)
 const app = createApp({
   version: pkg.version,
   startedAt: Date.now(),
-  sources: createSources(config),
+  sources,
   engine,
   humanMoves,
   library,
   reviewQueue,
   training: new StoredTraining(library, progressKey),
+  stats: new LiveStats({ library, sources }),
   coach,
   walkthroughs: new StoredWalkthroughs(library, createBookLoader(bookPath), {
     review: createServerReviewer(reviewing),
