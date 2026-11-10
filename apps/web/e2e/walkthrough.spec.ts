@@ -182,6 +182,37 @@ test('look for the better move on the board: a wrong try, then the right one', a
   await expect(page.getByTestId('engine-status')).toBeVisible()
 })
 
+test('nothing shows where the game went wrong while the coach walks through it', async ({
+  page,
+}) => {
+  await scriptedServer(page)
+  const graph = page.getByRole('img', { name: 'Evaluation graph' })
+  const moments = page.getByRole('heading', { name: 'Key moments' })
+  const badges = page.locator('.move-tree .class-badge')
+  await expect(graph).toBeVisible()
+  await expect(moments).toBeVisible()
+  await page.getByRole('tab', { name: 'Moves' }).click()
+  await expect(badges).toHaveCount(1)
+
+  await page.getByRole('tab', { name: 'Review' }).click()
+  await page.getByRole('button', { name: 'Walk me through it' }).click()
+  const tour = page.getByRole('region', { name: 'Coach walkthrough' })
+  await expect(tour).toContainText('1 of 4')
+  await expect(graph).toHaveCount(0)
+  await expect(moments).toHaveCount(0)
+  await page.getByRole('tab', { name: 'Moves' }).click()
+  await expect(page.locator('.move-tree [data-san]')).toHaveCount(6)
+  await expect(badges).toHaveCount(0)
+
+  // All of it is back once the walkthrough is over.
+  await page.getByRole('tab', { name: 'Review' }).click()
+  await tour.getByRole('button', { name: 'Close' }).click()
+  await expect(graph).toBeVisible()
+  await expect(moments).toBeVisible()
+  await page.getByRole('tab', { name: 'Moves' }).click()
+  await expect(badges).toHaveCount(1)
+})
+
 test('the board turns to the side the user played', async ({ page }) => {
   const asBlack = GAME.replace('White "8sly"', 'White "rival"').replace(
     'Black "rival"',
