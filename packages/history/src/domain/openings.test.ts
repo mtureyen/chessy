@@ -7,6 +7,8 @@ import {
   openingDetail,
   openingOverview,
   openingPath,
+  practiceVerdict,
+  theoryChoices,
   type OpeningGame,
 } from './openings'
 import { playerGames } from './playerGames'
@@ -148,5 +150,22 @@ describe('afterOpening', () => {
       ]),
     ).toEqual({ reviewedGames: 2, win: 55, errorsPerGame: 1.5 })
     expect(afterOpening([])).toEqual({ reviewedGames: 0, errorsPerGame: 0 })
+  })
+})
+
+describe('practice', () => {
+  it('lists theory’s moves from a position with their UCI', () => {
+    const afterNf6 = 'rnbqkb1r/pppp1ppp/5n2/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 3'
+    expect(theoryChoices(afterNf6, book)).toEqual([
+      { san: 'Bc4', uci: 'f1c4' },
+      { san: 'f4', uci: 'f2f4' },
+    ])
+  })
+
+  it('counts a move off theory by its review', () => {
+    expect(practiceVerdict('best')).toBe('good')
+    expect(practiceVerdict('excellent')).toBe('good')
+    expect(practiceVerdict('good')).toBe('playable')
+    expect(practiceVerdict('inaccuracy')).toBe('wrong')
   })
 })

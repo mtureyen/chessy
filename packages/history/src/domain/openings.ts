@@ -54,15 +54,36 @@ export function openingPath(pgn: string, book: OpeningBook): OpeningPath | undef
   return { moves, ...(departure && { departure }) }
 }
 
-/** The moves from a position that theory goes on with (SAN, in move-generation order). */
-export function theoryMoves(fen: string, book: OpeningBook): string[] {
+/** A move theory knows from a position. */
+export interface TheoryMove {
+  san: string
+  uci: string
+}
+
+/** The moves from a position that theory goes on with, in move-generation order. */
+export function theoryChoices(fen: string, book: OpeningBook): TheoryMove[] {
   return createGame(fen)
     .legalMoves()
     .flatMap((move) => {
-      const game = createGame(fen)
-      const node = game.play(move)
-      return node?.move && book.isBook(node.fen) ? [node.move.san] : []
+      const node = createGame(fen).play(move)
+      return node?.move && book.isBook(node.fen) ? [{ san: node.move.san, uci: node.move.uci }] : []
     })
+}
+
+/** The same, as SAN. */
+export function theoryMoves(fen: string, book: OpeningBook): string[] {
+  return theoryChoices(fen, book).map((move) => move.san)
+}
+
+/**
+ * How a practised move counts, once it isn't theory: as good as the engine's choice, playable
+ * (the review calls it good), or wrong.
+ */
+export type PracticeVerdict = 'theory' | 'good' | 'playable' | 'wrong'
+
+export function practiceVerdict(classification: string): Exclude<PracticeVerdict, 'theory'> {
+  if (['brilliant', 'great', 'best', 'excellent', 'book'].includes(classification)) return 'good'
+  return classification === 'good' ? 'playable' : 'wrong'
 }
 
 /** A game seen from the player's side, with its way through the opening (if readable). */

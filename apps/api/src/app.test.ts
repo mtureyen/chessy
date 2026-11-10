@@ -5,7 +5,7 @@ import {
   type GameSource,
   type SourceGame,
 } from '@pawnia/library'
-import { buildBookData, createOpeningBook } from '@pawnia/analysis'
+import { buildBookData, createOpeningBook, type ReviewedMove } from '@pawnia/analysis'
 import { CoachEventSchema, type TrainingResultBody } from '@pawnia/contracts'
 import { InMemoryConversationStore, LoopAgent } from '@pawnia/coach'
 import { scriptedClient } from '@pawnia/coach/testing'
@@ -30,6 +30,7 @@ import {
 } from './adapters/coach/walkthroughService'
 import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/service'
 import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review/reviewQueueService'
+import { OpeningPractice } from './adapters/openings/practice'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
 import type { TrainingService } from './adapters/training/trainingService'
@@ -174,6 +175,33 @@ const smallBook = createOpeningBook(
   buildBookData([{ eco: 'C25', name: 'Vienna Game', pgn: '1. e4 e5 2. Nc3' }]),
 )
 
+/** Practice against the small book, with a reviewer that calls every move off theory a mistake. */
+const practice = new OpeningPractice(
+  async () => smallBook,
+  async (input) => ({
+    startFen: input.startFen,
+    positions: [],
+    moves: [
+      {
+        ply: 1,
+        moveNumber: 1,
+        color: 'white',
+        san: 'x',
+        uci: input.moves[0]!,
+        winBefore: 50,
+        winAfter: 30,
+        accuracy: 40,
+        classification: 'mistake',
+        facts: {} as ReviewedMove['facts'],
+        best: { uci: 'b1c3', san: 'Nc3', line: ['b1c3', 'g8f6'] },
+      },
+    ],
+    accuracy: {},
+    counts: { white: {}, black: {} },
+    settings: { engine: 'test', nodes: 1 },
+  }),
+)
+
 const sources = {
   lichess: fakeSource('lichess', (username, max) => {
     requests.push({ username, max })
@@ -200,6 +228,7 @@ const app = createApp({
   sources,
   stats: new LiveStats({ library, sources }),
   openings: new StoredOpenings(library, async () => smallBook),
+  practice,
 })
 
 describe('api', () => {
@@ -248,6 +277,7 @@ describe('api', () => {
       '/stats/players/{source}/{username}',
       '/training',
       '/training/openings',
+      '/training/openings/practice',
       '/training/openings/{color}',
       '/training/results',
     ])
@@ -543,6 +573,7 @@ describe('library routes', () => {
       training,
       stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
       openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
+      practice,
       coach: { agents: () => [] },
       walkthroughs,
       settings,
@@ -754,6 +785,30 @@ describe('opening routes', () => {
     expect(none.status).toBe(404)
     expect((await app.request('/api/v1/training/openings/green?family=x')).status).toBe(400)
   })
+
+  it('judges practice moves: theory first, then the review', async () => {
+    const check = (moves: string[], tried: string) =>
+      app.request('/api/v1/training/openings/practice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moves, tried }),
+      })
+    const theory = await check(['e2e4', 'e7e5'], 'b1c3')
+    expect(await theory.json()).toMatchObject({
+      verdict: 'theory',
+      san: 'Nc3',
+      theory: [{ san: 'Nc3', uci: 'b1c3' }],
+      replies: [],
+    })
+    const off = await check(['e2e4', 'e7e5'], 'h2h3')
+    expect(await off.json()).toMatchObject({
+      verdict: 'wrong',
+      san: 'h3',
+      best: { san: 'Nc3', uci: 'b1c3', line: '2. Nc3 Nf6' },
+    })
+    expect((await check(['e2e4', 'e2e4'], 'b1c3')).status).toBe(400)
+    expect((await check(['e2e4'], 'a1a8')).status).toBe(400)
+  })
 })
 
 describe('review queue routes', () => {
@@ -865,6 +920,7 @@ describe('coach routes', () => {
         training,
         stats: new LiveStats({ library, sources }),
         openings: new StoredOpenings(library, async () => smallBook),
+        practice,
         walkthroughs,
         coach: {
           agents: () => [
@@ -988,6 +1044,7 @@ describe('local host names only', () => {
       training,
       stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
       openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
+      practice,
       coach: { agents: () => [] },
       walkthroughs,
       settings,

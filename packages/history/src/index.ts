@@ -78,6 +78,8 @@ export {
   openingDetail,
   openingOverview,
   openingPath,
+  practiceVerdict,
+  theoryChoices,
   theoryMoves,
   type AfterOpening,
   type Departure,
@@ -90,6 +92,8 @@ export {
   type OpeningMove,
   type OpeningOverview,
   type OpeningPath,
+  type PracticeVerdict,
+  type TheoryMove,
 } from './domain/openings'
 export type { GameHistory } from './ports/gameHistory'
 export type { ReviewRepository, StoredReview } from './ports/reviewRepository'

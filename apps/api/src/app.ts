@@ -11,6 +11,7 @@ import type { SettingsService } from './adapters/settings/settingsService'
 import { onlyLocalHostNames } from './http/local'
 import type { ReviewQueueService } from './adapters/review/reviewQueueService'
 import type { OpeningService } from './adapters/openings/openingService'
+import type { OpeningPractice } from './adapters/openings/practice'
 import type { StatsService } from './adapters/stats/statsService'
 import type { TrainingService } from './adapters/training/trainingService'
 import type { LibraryService } from './adapters/db/libraryService'
@@ -44,6 +45,8 @@ export interface AppDeps {
   stats: StatsService
   /** The user's openings, for training them. */
   openings: OpeningService
+  /** Judges moves while the user practises an opening. */
+  practice: Pick<OpeningPractice, 'check'>
   /** The coach's agents (they follow the settings), the default first; none: the coach is off. */
   coach: CoachDirectory
   /** The coach's walkthroughs of reviewed games. */
@@ -72,6 +75,7 @@ export function createApp({
   training,
   stats,
   openings,
+  practice,
   coach,
   walkthroughs,
   mcp,
@@ -90,7 +94,7 @@ export function createApp({
     .route('/', reviewQueueRoutes({ reviewQueue }))
     .route('/', trainingRoutes({ training }))
     .route('/', statsRoutes({ stats }))
-    .route('/', openingRoutes({ openings }))
+    .route('/', openingRoutes({ openings, practice }))
     .route('/', coachRoutes({ coach, walkthroughs }))
     .route('/', settingsRoutes({ settings }))
 
