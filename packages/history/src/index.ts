@@ -72,6 +72,25 @@ export {
   type StatsGameRow,
   type Weekday,
 } from './domain/profileStats'
+export {
+  afterOpening,
+  OPENING_PLIES,
+  openingDetail,
+  openingOverview,
+  openingPath,
+  theoryMoves,
+  type AfterOpening,
+  type Departure,
+  type Departures,
+  type LeftBy,
+  type OpeningDetail,
+  type OpeningGame,
+  type OpeningGameRow,
+  type OpeningLine,
+  type OpeningMove,
+  type OpeningOverview,
+  type OpeningPath,
+} from './domain/openings'
 export type { GameHistory } from './ports/gameHistory'
 export type { ReviewRepository, StoredReview } from './ports/reviewRepository'
 export { InMemoryReviewRepository } from './adapters/inMemoryReviewRepository'
