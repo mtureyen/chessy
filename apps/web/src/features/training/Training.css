@@ -77,3 +77,18 @@
   color: var(--text-muted);
   font-size: 0.85rem;
 }
+
+.training-why {
+  margin: 0 0 0.5rem;
+  padding-left: 0.6rem;
+  border-left: 3px solid var(--accent);
+}
+
+.training-why p:last-child {
+  margin-bottom: 0;
+}
+
+.training-text .training-why-none {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}

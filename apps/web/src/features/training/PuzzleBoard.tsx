@@ -1,6 +1,7 @@
 import type { PuzzleBody } from '@pawnia/contracts'
 import { Link } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
+import { Markdown } from '@/features/coach/Markdown'
 import { SearchStatus } from '@/features/review/SearchStatus'
 import { useMoveTry } from '@/features/review/useMoveTry'
 import type { BoardTry } from '@/features/review/walkthrough'
@@ -83,9 +84,21 @@ export function PuzzleBoard({
           </p>
           {search && <SearchStatus search={search} />}
           {done && (
-            <p className="training-answer">
-              Best was <strong>{puzzle.best.move}</strong>: {puzzle.best.line}
-            </p>
+            <>
+              <p className="training-answer">
+                Best was <strong>{puzzle.best.move}</strong>: {puzzle.best.line}
+              </p>
+              {puzzle.explanation ? (
+                <div className="training-why">
+                  <Markdown text={puzzle.explanation} />
+                </div>
+              ) : (
+                <p className="training-why-none">
+                  The coach hasn't written about this move: a walkthrough covers only a game's key
+                  moments. Open the game to look at it there.
+                </p>
+              )}
+            </>
           )}
         </div>
         <div className="training-actions">
