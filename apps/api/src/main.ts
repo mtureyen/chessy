@@ -12,6 +12,7 @@ import { StoredWalkthroughs } from './adapters/coach/walkthroughs'
 import { createBookLoader } from './adapters/review/openingBook'
 import { ReviewQueue, type ReviewJob } from './adapters/review/reviewQueue'
 import { createServerReviewer, SERVER_REVIEW_NODES } from './adapters/review/serverReviewer'
+import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
 import { StoredTraining } from './adapters/training/storedTraining'
 import { openDatabase } from './adapters/db/database'
@@ -44,6 +45,7 @@ const bookPath =
   config.OPENING_BOOK_PATH ??
   fileURLToPath(new URL('../../web/public/openings/book.json', import.meta.url))
 const reviewing = { engine, humanMoves, bookPath }
+const book = createBookLoader(bookPath)
 const coachTools = createCoachTools({
   engine,
   humanMoves,
@@ -87,8 +89,9 @@ const app = createApp({
   reviewQueue,
   training: new StoredTraining(library, progressKey),
   stats: new LiveStats({ library, sources }),
+  openings: new StoredOpenings(library, book),
   coach,
-  walkthroughs: new StoredWalkthroughs(library, createBookLoader(bookPath), {
+  walkthroughs: new StoredWalkthroughs(library, book, {
     review: createServerReviewer(reviewing),
     bestReply: async (fen) => {
       const [position] = await engine.evaluate({
