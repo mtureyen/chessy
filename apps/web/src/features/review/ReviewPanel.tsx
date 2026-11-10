@@ -16,6 +16,8 @@ interface ReviewPanelProps {
   onStart: (nodes: number, engine: ReviewEngine) => void
   onCancel: () => void
   onSelectPly: (ply: number) => void
+  /** The coach is walking through the game: the key moments would show where it goes wrong. */
+  touring: boolean
   /** What the coach's walkthrough of a finished review needs. */
   walkthrough: Omit<CoachWalkthroughProps, 'review' | 'onSelectPly'>
 }
@@ -26,6 +28,7 @@ export function ReviewPanel({
   onStart,
   onCancel,
   onSelectPly,
+  touring,
   walkthrough,
 }: ReviewPanelProps) {
   const { review } = useServices()
@@ -131,6 +134,7 @@ export function ReviewPanel({
         <ReviewReport
           review={state.review}
           onSelectPly={onSelectPly}
+          touring={touring}
           walkthrough={walkthrough}
           again={startControls('Review again')}
         />
@@ -141,11 +145,13 @@ export function ReviewPanel({
 function ReviewReport({
   review,
   onSelectPly,
+  touring,
   walkthrough,
   again,
 }: {
   review: GameReview
   onSelectPly: (ply: number) => void
+  touring: boolean
   walkthrough: ReviewPanelProps['walkthrough']
   again: ReactNode
 }) {
@@ -181,7 +187,7 @@ function ReviewReport({
         </tbody>
       </table>
 
-      {moments.length > 0 && (
+      {!touring && moments.length > 0 && (
         <div className="review-moments">
           <h3>Key moments</h3>
           <ul>

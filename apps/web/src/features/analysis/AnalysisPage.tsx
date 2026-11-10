@@ -68,7 +68,8 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   const [tab, setTab] = useState<'moves' | 'review' | 'coach'>(initial.review ? 'review' : 'moves')
   const profile = useProfile()
   const userSide = userColor(headers, profile.data)
-  // During the coach's walkthrough the engine rests: it would give the better moves away.
+  // During the coach's walkthrough the engine rests: it would give the better moves away. The
+  // eval graph, the key moments and the badges in the move list rest too: they show where.
   const [touring, setTouring] = useState(false)
   const [attempt, setAttempt] = useState<BoardTry>()
   const account = profile.data?.accounts[0]
@@ -185,7 +186,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
         <GameStatusBar status={view.status} turn={view.turn} check={view.check} />
         {boot.error && <p className="message message-error analysis-load-error">{boot.error}</p>}
 
-        {review.state.status === 'done' && (
+        {review.state.status === 'done' && !touring && (
           <EvalGraph
             review={review.state.review}
             currentPly={currentPlyOnMainline(view.current, reviewed)}
@@ -237,6 +238,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
               current={view.current}
               onSelect={(node) => update((g) => g.goTo(node))}
               renderSuffix={(node) => {
+                if (touring) return null
                 const cls = reviewed?.get(node.id)?.classification
                 return cls && LIST_BADGES.has(cls) ? <ClassBadge cls={cls} /> : null
               }}
@@ -250,6 +252,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
               onStart={review.start}
               onCancel={review.cancel}
               onSelectPly={goToPly}
+              touring={touring}
               walkthrough={{
                 side: userSide,
                 ready: !profile.isPending,
