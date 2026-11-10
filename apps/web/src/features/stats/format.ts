@@ -74,17 +74,19 @@ export function percent(part: number, whole: number): number {
   return whole > 0 ? Math.round((part / whole) * 100) : 0
 }
 
-export interface RepertoireTree {
-  line: RepertoireLine
-  children: RepertoireTree[]
+export interface RepertoireTree<T extends { moves: string[] } = RepertoireLine> {
+  line: T
+  children: RepertoireTree<T>[]
 }
 
 /** The flat lines (depth first, as the API sends them) back as a tree. */
-export function repertoireTree(lines: readonly RepertoireLine[]): RepertoireTree[] {
-  const roots: RepertoireTree[] = []
-  const stack: RepertoireTree[] = []
+export function repertoireTree<T extends { moves: string[] }>(
+  lines: readonly T[],
+): RepertoireTree<T>[] {
+  const roots: RepertoireTree<T>[] = []
+  const stack: RepertoireTree<T>[] = []
   for (const line of lines) {
-    const node = { line, children: [] }
+    const node: RepertoireTree<T> = { line, children: [] }
     while (stack.length >= line.moves.length) stack.pop()
     const parent = stack.at(-1)
     ;(parent ? parent.children : roots).push(node)

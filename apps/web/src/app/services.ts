@@ -43,6 +43,7 @@ import { RemoteLibrary } from '@/adapters/api/remoteLibrary'
 import { RemoteCoach } from '@/adapters/api/remoteCoach'
 import { RemoteReviewQueue } from '@/adapters/api/remoteReviewQueue'
 import { RemoteSettings } from '@/adapters/api/remoteSettings'
+import { RemoteOpenings } from '@/adapters/api/remoteOpenings'
 import { RemoteStats } from '@/adapters/api/remoteStats'
 import { createApiClient, type ApiClient } from '@/adapters/api/client'
 import { RemoteEvaluator } from '@/adapters/engine/remoteEvaluator'
@@ -108,6 +109,9 @@ export interface Services {
   training: {
     list: RemoteLibrary['training']
     record: RemoteLibrary['recordTraining']
+    /** The user's openings, worst first, and one of them in detail. */
+    openings: RemoteOpenings['list']
+    opening: RemoteOpenings['one']
   }
   /** The AI coach: its agents, and questions answered as they are written. */
   coach: {
@@ -160,6 +164,7 @@ export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {})
   const remoteLibrary = new RemoteLibrary(api)
   const remoteSettings = new RemoteSettings(api)
   const remoteCoach = new RemoteCoach(api)
+  const remoteOpenings = new RemoteOpenings(api)
   const games = new MirroredGameRepository(local.games, remoteLibrary, undefined, onGamesChanged)
   const sources: Record<SourceId, GameSource> = {
     lichess: new ApiGameSource('lichess', api),
@@ -229,6 +234,8 @@ export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {})
     training: {
       list: () => remoteLibrary.training(),
       record: (result) => remoteLibrary.recordTraining(result),
+      openings: (query) => remoteOpenings.list(query),
+      opening: (color, family, query) => remoteOpenings.one(color, family, query),
     },
     coach: {
       agents: () => remoteSettings.agents(),

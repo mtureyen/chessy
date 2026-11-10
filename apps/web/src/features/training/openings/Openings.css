@@ -1,0 +1,82 @@
+.openings-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.openings-list li {
+  border-bottom: 1px solid var(--border);
+}
+
+.openings-list a {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1.4fr) 2rem minmax(9rem, 1.3fr);
+  grid-template-areas: 'name games record' 'departure departure departure';
+  align-items: center;
+  gap: 0.15rem 0.5rem;
+  padding: 0.45rem 0.25rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.openings-list a:hover {
+  background: var(--hover);
+}
+
+.openings-name {
+  grid-area: name;
+}
+
+.openings-list .stats-number {
+  text-align: right;
+}
+
+.openings-departure {
+  grid-area: departure;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.openings-back {
+  align-self: flex-start;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.openings-title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.openings-title::first-letter {
+  text-transform: uppercase;
+}
+
+/* A move that left theory: who did, and what theory had. */
+.openings-left {
+  grid-area: opening;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.openings-left-you {
+  color: var(--wdl-loss);
+}
+
+.openings-left-them {
+  color: var(--text-muted);
+}
+
+.openings-games a {
+  color: var(--text);
+}
+
+.openings-tree .stats-tree-row {
+  max-width: 48rem;
+}
+
+.openings-more summary {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}

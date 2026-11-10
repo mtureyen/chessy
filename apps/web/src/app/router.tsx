@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { parseAnalysisSearch } from '@/features/analysis/search'
 import { parseStatsSearch } from '@/features/stats/search'
+import { parseOpeningsSearch } from '@/features/training/openings/search'
 import { PlayPage } from '@/features/play/PlayPage'
 import { RootLayout } from './RootLayout'
 
@@ -63,6 +64,16 @@ const trainingRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/training/TrainingPage'), 'TrainingPage'),
 })
 
+const openingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/training/openings',
+  validateSearch: parseOpeningsSearch,
+  component: lazyRouteComponent(
+    () => import('@/features/training/openings/OpeningsPage'),
+    'OpeningsPage',
+  ),
+})
+
 const statsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/stats',
@@ -87,6 +98,7 @@ const routeTree = rootRoute.addChildren([
   welcomeRoute,
   profileRoute,
   trainingRoute,
+  openingsRoute,
   statsRoute,
   settingsRoute,
 ])
