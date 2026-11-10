@@ -112,6 +112,8 @@ export interface Services {
     /** The user's openings, worst first, and one of them in detail. */
     openings: RemoteOpenings['list']
     opening: RemoteOpenings['one']
+    /** Judges a move while practising an opening. */
+    checkPractice: RemoteOpenings['check']
   }
   /** The AI coach: its agents, and questions answered as they are written. */
   coach: {
@@ -236,6 +238,7 @@ export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {})
       record: (result) => remoteLibrary.recordTraining(result),
       openings: (query) => remoteOpenings.list(query),
       opening: (color, family, query) => remoteOpenings.one(color, family, query),
+      checkPractice: (request) => remoteOpenings.check(request),
     },
     coach: {
       agents: () => remoteSettings.agents(),

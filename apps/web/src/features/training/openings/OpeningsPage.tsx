@@ -14,6 +14,7 @@ import {
 import { Record } from '@/features/stats/StatsView'
 import { TrainingTabs } from '../TrainingTabs'
 import { departureText, moveText, openingLabel, theoryText } from './format'
+import { OpeningPractice } from './OpeningPractice'
 import '@/features/stats/Stats.css'
 import '../Training.css'
 import './Openings.css'
@@ -147,6 +148,7 @@ function OneOpening({
   query: OpeningsQuery
 }) {
   const { training } = useServices()
+  const [practising, setPractising] = useState(false)
   const one = useQuery({
     queryKey: ['openings', color, family, query.last, query.speed ?? 'all'],
     queryFn: () => training.opening(color, family, query),
@@ -169,6 +171,7 @@ function OneOpening({
       </>
     )
   const opening = one.data
+  if (practising) return <OpeningPractice opening={opening} onExit={() => setPractising(false)} />
   const { after } = opening
   const tree = repertoireTree(opening.lines)
   return (
@@ -181,6 +184,9 @@ function OneOpening({
             <span className="stats-note">as {color === 'white' ? 'White' : 'Black'}</span>
           </h1>
           <p className="stats-note">{departureText(opening.departures)}.</p>
+          <button type="button" className="openings-practise" onClick={() => setPractising(true)}>
+            Practise this opening
+          </button>
         </div>
         <div className="stats-summary-record">
           <p className="stats-note">

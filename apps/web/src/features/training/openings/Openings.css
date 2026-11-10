@@ -80,3 +80,39 @@
   font-size: 0.9rem;
   cursor: pointer;
 }
+
+.openings-practise {
+  margin-top: 0.6rem;
+  padding: 0.45rem 1rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.practice-turn,
+.practice-done {
+  font-weight: 600;
+}
+
+.practice-feedback {
+  padding: 0.5rem 0.7rem;
+  border-left: 3px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+.practice-right {
+  border-left-color: var(--accent);
+}
+
+.practice-note {
+  border-left-color: var(--text-muted);
+}
+
+.practice-wrong {
+  border-left-color: var(--danger);
+}
