@@ -106,6 +106,10 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
     return (await this.connected()).history.reviewedMoves()
   }
 
+  async pgns(ids: readonly string[]): Promise<Map<string, string>> {
+    return (await this.connected()).history.pgns(ids)
+  }
+
   private connected(): Promise<Stores> {
     const open = this.open
     if (!open) return Promise.reject(new Error('No database configured (DATABASE_URL)'))

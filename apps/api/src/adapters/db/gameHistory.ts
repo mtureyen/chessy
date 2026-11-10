@@ -2,7 +2,7 @@ import type { MoveClass } from '@pawnia/analysis'
 import type { Color } from '@pawnia/chess'
 import type { GameHistory, GameSummary, ReviewedMoveRow } from '@pawnia/history'
 import type { GameOrigin, GameResult, GameSpeed } from '@pawnia/library'
-import { desc, eq, sql } from 'drizzle-orm'
+import { desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Database } from './types'
 import { games, reviewMoves, reviews } from './schema'
 
@@ -63,6 +63,16 @@ export class PostgresGameHistory implements GameHistory {
         ...(Object.keys(accuracy).length > 0 && { accuracy }),
       }
     })
+  }
+
+  /** The PGNs of these stored games, by id (unknown ids left out). */
+  async pgns(ids: readonly string[]): Promise<Map<string, string>> {
+    if (ids.length === 0) return new Map()
+    const rows = await this.db
+      .select({ id: games.id, pgn: sql<string>`${games.data}->>'pgn'` })
+      .from(games)
+      .where(inArray(games.id, [...ids]))
+    return new Map(rows.map((row) => [row.id, row.pgn]))
   }
 
   async reviewedMoves(): Promise<ReviewedMoveRow[]> {

@@ -38,6 +38,15 @@ describe('PostgresGameRepository', () => {
 })
 
 describe('PostgresGameHistory', () => {
+  it('reads the PGNs of the games asked for', async () => {
+    const db = await fresh()
+    const [a, b] = [sampleGame(), sampleGame({ pgn: '1. d4 d5 *' })]
+    await new PostgresGameRepository(db).saveAll([a, b])
+    const history = new PostgresGameHistory(db)
+    expect(await history.pgns([b.id, 'unknown'])).toEqual(new Map([[b.id, '1. d4 d5 *']]))
+    expect(await history.pgns([])).toEqual(new Map())
+  })
+
   it('lists games without their moves, newest first, with their reviews', async () => {
     const db = await fresh()
     const older = sampleGame({ playedAt: '2026-10-01T10:00:00.000Z' })
