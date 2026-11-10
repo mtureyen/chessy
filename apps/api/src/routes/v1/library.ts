@@ -39,12 +39,11 @@ export function libraryRoutes({
         return problem(c, 503, 'Library unavailable', { detail: status.reason })
       }
       try {
-        await library.saveGames(games as LibraryGame[])
+        return c.json(await library.saveGames(games as LibraryGame[]), 200)
       } catch (error) {
         if (!(error instanceof DuplicateGameError)) throw error
         return problem(c, 409, 'Duplicate game', { detail: error.message })
       }
-      return c.json({ stored: games.length }, 200)
     })
     .openapi(missingLibraryGamesRoute, async (c) => {
       const status = await library.status()

@@ -145,7 +145,12 @@ export interface Services {
 export type ReviewEngine = 'server' | 'browser'
 
 /** Composition root: the only place that decides which adapter fills which port. */
-export function createServices(): Services {
+export interface ServiceHooks {
+  /** Local games changed in the background (they took the server's ids), e.g. to refresh lists. */
+  onGamesChanged?: () => void
+}
+
+export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {}): Services {
   const api = createApiClient(window.location.origin)
   const local = createLazyStorage(() =>
     import('@/adapters/storage/dexieStorage').then((m) => m.createDexieStorage()),
@@ -155,7 +160,7 @@ export function createServices(): Services {
   const remoteLibrary = new RemoteLibrary(api)
   const remoteSettings = new RemoteSettings(api)
   const remoteCoach = new RemoteCoach(api)
-  const games = new MirroredGameRepository(local.games, remoteLibrary)
+  const games = new MirroredGameRepository(local.games, remoteLibrary, undefined, onGamesChanged)
   const sources: Record<SourceId, GameSource> = {
     lichess: new ApiGameSource('lichess', api),
     chesscom: new ApiGameSource('chesscom', api),
@@ -271,7 +276,12 @@ export function createServices(): Services {
         if (mine && (!kept || kept.updatedAt < mine.updatedAt)) {
           await remoteLibrary.saveProfile(mine)
         }
-        return (await mirrorLibrary({ games: local.games, mirror: remoteLibrary })).uploaded
+        const { uploaded } = await mirrorLibrary({
+          games: local.games,
+          mirror: remoteLibrary,
+          adopt: (renamed) => games.adoptIds(renamed),
+        })
+        return uploaded
       },
     },
     library: {

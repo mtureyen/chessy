@@ -51,6 +51,22 @@ export class PostgresGameRepository implements GameRepository {
     })
   }
 
+  /** The ids these platform games are stored under, for those stored (by source and external id). */
+  async idsOf(
+    batch: readonly Pick<LibraryGame, 'source' | 'externalId'>[],
+  ): Promise<Map<string, string>> {
+    if (batch.length === 0) return new Map()
+    const rows = await this.db
+      .select({ id: games.id, source: games.source, externalId: games.externalId })
+      .from(games)
+      .where(
+        or(
+          ...batch.map((g) => and(eq(games.source, g.source), eq(games.externalId, g.externalId))),
+        ),
+      )
+    return new Map(rows.map((row) => [externalKey(row), row.id]))
+  }
+
   async get(id: string): Promise<LibraryGame | undefined> {
     const [row] = await this.db.select({ data: games.data }).from(games).where(eq(games.id, id))
     return row?.data
@@ -118,4 +134,9 @@ function toRow(game: LibraryGame): typeof games.$inferInsert {
 /** The SQL column of a schema property (e.g. playedAt → played_at). */
 function columnName(key: string): string {
   return games[key as keyof typeof games.$inferInsert].name
+}
+
+/** A platform game's identity: its source and its id there. */
+export function externalKey(game: { source: string; externalId: string }): string {
+  return `${game.source}\n${game.externalId}`
 }

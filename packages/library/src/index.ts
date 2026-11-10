@@ -42,5 +42,5 @@ export { openGame, UnsupportedGameUrlError, type OpenGameDeps } from './usecases
 export { CachedGameSource, type CachedGameSourceOptions } from './adapters/cachedGameSource'
 export { InMemoryGameRepository } from './adapters/inMemoryGameRepository'
 export { MirroredGameRepository } from './adapters/mirroredGameRepository'
-export type { LibraryMirror } from './ports/libraryMirror'
-export { mirrorLibrary } from './usecases/mirrorLibrary'
+export type { GameRename, LibraryMirror } from './ports/libraryMirror'
+export { adoptMirrorIds, mirrorLibrary } from './usecases/mirrorLibrary'
