@@ -193,8 +193,8 @@ const LINE_PLIES = 16
 
 /**
  * One opening with one colour: the lines the player's games took (moves played twice or more, and
- * every move up to where a game left theory, so each departure shows), results per line, and the
- * games. Undefined when the player has no such games.
+ * every move up to where the player left theory, so each of their departures shows), results per
+ * line, and the games. Undefined when the player has no such games.
  */
 export function openingDetail(
   games: readonly OpeningGame[],
@@ -233,9 +233,10 @@ function openingLines(games: readonly OpeningGame[], color: Color): OpeningLine[
       const move = game.path?.moves[ply]
       if (move) next.set(move.san, [...(next.get(move.san) ?? []), game])
     }
-    // A move one game played shows only on the way to where that game left theory.
+    // A move one game played shows only on the way to where the player left theory in it: what
+    // a single opponent tried once is in the games, not worth a branch.
     const children = [...next]
-      .filter(([, group]) => group.length >= 2 || group.some((g) => departsAtOrAfter(g, ply + 1)))
+      .filter(([, group]) => group.length >= 2 || group.some((g) => youDepartAtOrAfter(g, ply + 1)))
       .sort(([a, x], [b, y]) => y.length - x.length || a.localeCompare(b))
     for (const [san, group] of children) {
       const move = group[0]!.path!.moves[ply]!
@@ -255,10 +256,10 @@ function openingLines(games: readonly OpeningGame[], color: Color): OpeningLine[
   return lines
 }
 
-/** The game left theory at this half-move or later: the way to its departure is shown. */
-function departsAtOrAfter(game: OpeningGame, ply: number): boolean {
+/** The player left theory in this game at this half-move or later. */
+function youDepartAtOrAfter(game: OpeningGame, ply: number): boolean {
   const left = game.path?.departure?.ply
-  return left !== undefined && left >= ply
+  return left !== undefined && left >= ply && leftBy(game) === 'you'
 }
 
 // ---------------------------------------------------------------------------------------------
