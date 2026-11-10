@@ -12,6 +12,7 @@ import {
   type StoredReview,
 } from '@pawnia/history'
 import type { LibraryGame, Profile } from '@pawnia/library'
+import type { StoredWalkthrough } from '../db/walkthroughStore'
 import type { TrainingService } from './trainingService'
 
 /** The newest reviewed games puzzles come from: training is about how the user plays now. */
@@ -23,6 +24,7 @@ export interface TrainingLibrary extends Pick<GameHistory, 'summaries'> {
   profile(): Promise<Profile | undefined>
   game(id: string): Promise<LibraryGame | undefined>
   findReview(line: GameLine): Promise<StoredReview | undefined>
+  findWalkthrough(line: GameLine, side: string): Promise<StoredWalkthrough | undefined>
   trainingProgress(): Promise<Map<string, PuzzleProgress>>
   saveTrainingProgress(line: GameLine, ply: number, progress: PuzzleProgress): Promise<void>
 }
@@ -66,7 +68,7 @@ export class StoredTraining implements TrainingService {
     await this.library.saveTrainingProgress(line, ply, next)
   }
 
-  private async puzzles(): Promise<Puzzle[]> {
+  private async puzzles(): Promise<(Puzzle & { explanation?: string })[]> {
     const { library } = this
     const [summaries, profile] = await Promise.all([library.summaries(), library.profile()])
     const games = playerGames(summaries, profile)
@@ -78,9 +80,33 @@ export class StoredTraining implements TrainingService {
         if (!stored) return []
         const line = gameLine(stored.pgn)
         const review = await library.findReview(line)
-        return review ? gamePuzzles(game, line, review.review) : []
+        if (!review) return []
+        const why = await this.explanations(line, game.side, review.reviewedAt)
+        return gamePuzzles(game, line, review.review).map((puzzle) => {
+          const explanation = why.get(puzzle.ply)
+          return explanation ? { ...puzzle, explanation } : puzzle
+        })
       }),
     )
     return found.flat()
+  }
+
+  /**
+   * Why the better move is better, by ply: the coach's walkthrough of the game tells it once the
+   * user found the move, if it was written from this review and the moment is one it covers.
+   */
+  private async explanations(
+    line: GameLine,
+    side: string,
+    reviewedAt: string,
+  ): Promise<Map<number, string>> {
+    for (const wanted of [side, 'both']) {
+      const kept = await this.library.findWalkthrough(line, wanted)
+      if (kept?.reviewedAt !== reviewedAt) continue
+      return new Map(
+        kept.walkthrough.moments.flatMap(({ ply, better }) => (better ? [[ply, better]] : [])),
+      )
+    }
+    return new Map()
   }
 }

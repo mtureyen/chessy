@@ -4,6 +4,7 @@ import { sampleReview, sampleSummary } from '@pawnia/history/testing'
 import { buildProfile } from '@pawnia/library'
 import { sampleGame } from '@pawnia/library/testing'
 import { describe, expect, it } from 'vitest'
+import type { StoredWalkthrough } from '../db/walkthroughStore'
 import { StoredTraining, type TrainingLibrary } from './storedTraining'
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -29,7 +30,26 @@ function stored(): StoredReview {
   return review
 }
 
-function setup() {
+/** The coach's walkthrough of the game, for `side`, written from the review `stored` gives. */
+function walkthrough(side: string, reviewedAt = stored().reviewedAt) {
+  const kept: StoredWalkthrough = {
+    reviewedAt,
+    walkthrough: {
+      summary: 'A short game.',
+      moments: [
+        { ply: 3, what: 'The queen comes out early.' },
+        { ply: 5, what: 'Qxf7+ gives the queen away.', better: `Bc4 (${side}) adds an attacker.` },
+      ],
+      focus: 'Count the defenders.',
+      agent: 'Test',
+      writtenAt: '2026-11-06T12:00:00.000Z',
+    },
+  }
+  return [side, kept] as const
+}
+
+function setup(walkthroughs: (readonly [string, StoredWalkthrough])[] = []) {
+  const kept = new Map(walkthroughs)
   const progress = new Map<string, PuzzleProgress>()
   const key = (at: GameLine, ply: number) => `${lineText(at)}:${ply}`
   const library: TrainingLibrary = {
@@ -44,6 +64,8 @@ function setup() {
       ),
     game: async (id) => sampleGame({ id, pgn: PGN }),
     findReview: async () => stored(),
+    findWalkthrough: async (at, side) =>
+      lineText(at) === lineText(line) ? kept.get(side) : undefined,
     trainingProgress: async () => progress,
     saveTrainingProgress: async (at, ply, value) => void progress.set(key(at, ply), value),
   }
@@ -60,6 +82,27 @@ describe('StoredTraining', () => {
     const { due, waiting, solved } = await training.training()
     expect(due.map((p) => [p.game.id, p.ply, p.best.move])).toEqual([['reviewed', 5, 'Bc4']])
     expect({ waiting, solved }).toEqual({ waiting: 0, solved: 0 })
+  })
+
+  it("explains the better move from the coach's walkthrough for the user's side, else both", async () => {
+    const explained = async (...kept: (readonly [string, StoredWalkthrough])[]) =>
+      (await setup(kept).training.training()).due[0]!.explanation
+    expect(await explained(walkthrough('white'), walkthrough('both'))).toBe(
+      'Bc4 (white) adds an attacker.',
+    )
+    expect(await explained(walkthrough('black'), walkthrough('both'))).toBe(
+      'Bc4 (both) adds an attacker.',
+    )
+  })
+
+  it('has no explanation without a walkthrough of this review, or one that skips the move', async () => {
+    const explained = async (...kept: (readonly [string, StoredWalkthrough])[]) =>
+      (await setup(kept).training.training()).due[0]!.explanation
+    expect(await explained()).toBeUndefined()
+    expect(await explained(walkthrough('white', '2026-11-01T10:00:00.000Z'))).toBeUndefined()
+    const [side, other] = walkthrough('white')
+    other.walkthrough.moments = other.walkthrough.moments.slice(0, 1)
+    expect(await explained([side, other])).toBeUndefined()
   })
 
   it('is done with a puzzle solved at the first try', async () => {

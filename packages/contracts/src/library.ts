@@ -335,6 +335,8 @@ const PuzzleSchema = z.object({
   played: z.string(),
   verdict: z.string(),
   best: z.object({ move: z.string(), uci: z.string(), line: z.string() }),
+  /** Why `best` is better, from the coach's walkthrough of the game, when it covers the move. */
+  explanation: z.string().optional(),
   game: z.object({
     id: z.string(),
     opponent: z.string(),
