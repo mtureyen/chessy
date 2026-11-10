@@ -68,3 +68,18 @@
 .app-main {
   flex: 1;
 }
+
+/* Phones: the nav gets a row of its own and scrolls sideways if it must. */
+@media (max-width: 40rem) {
+  .app-header {
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .app-nav {
+    order: 3;
+    flex-basis: 100%;
+    overflow-x: auto;
+  }
+}
