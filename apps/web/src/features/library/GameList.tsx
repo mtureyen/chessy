@@ -35,6 +35,12 @@ export function GameList({ games, usernames, filtered = false, onDelete }: GameL
       {games.map((game) => {
         const me = game.source === 'pawnia' ? LOCAL_PLAYER_NAME : usernames[game.source]
         const outcome = me ? outcomeFor(game, me) : 'unknown'
+        const opponent =
+          game.source !== 'pawnia' && outcome !== 'unknown'
+            ? game.white.name.toLowerCase() === me?.toLowerCase()
+              ? game.black.name
+              : game.white.name
+            : undefined
         return (
           <li key={game.id} className="game-row" data-testid="game-row">
             <span
@@ -72,6 +78,17 @@ export function GameList({ games, usernames, filtered = false, onDelete }: GameL
               <Link to="/analysis" search={{ game: game.id }} className="button">
                 Analyse
               </Link>
+              {opponent && game.source !== 'pawnia' && (
+                <Link
+                  to="/stats"
+                  search={{ source: game.source, user: opponent }}
+                  className="button"
+                  title={`Stats of ${opponent} on ${sourceName(game.source)}`}
+                  aria-label={`Stats of ${opponent}`}
+                >
+                  Stats
+                </Link>
+              )}
               {game.url && (
                 <a
                   href={game.url}

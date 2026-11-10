@@ -161,3 +161,114 @@ test('stats: without linked accounts it says where to start', async ({ page }) =
     page.getByRole('link', { name: /Link your chess.com or lichess account/ }),
   ).toHaveAttribute('href', '/profile')
 })
+
+/** knightowl88 on chess.com: his games, and one of them by its page id. */
+async function lookupServer(page: Page) {
+  const asked: string[] = []
+  await page.route('**/api/v1/stats/players/**', (route) => {
+    const url = new URL(route.request().url())
+    asked.push(`${url.pathname} ${url.searchParams.get('last')}`)
+    if (url.pathname.endsWith('/ghost'))
+      return route.fulfill({
+        status: 404,
+        contentType: 'application/problem+json',
+        json: { title: 'User not found', status: 404, detail: 'No chess.com user "ghost"' },
+      })
+    const own = stats(100)
+    return route.fulfill({
+      json: {
+        ...own,
+        player: {
+          kind: 'lookup',
+          profile: {
+            source: 'chesscom',
+            username: 'knightowl88',
+            url: 'https://www.chess.com/member/knightowl88',
+            ratings: { blitz: 1642 },
+          },
+        },
+        window: { last: 100, found: 4, since: '2025-11-10T00:00:00.000Z', more: false },
+        quality: undefined,
+        // Page links like chess.com's own: the game's number.
+        games: own.games.map((g, i) => ({
+          ...g,
+          url: `https://www.chess.com/game/live/${2000 + i}`,
+        })),
+      },
+    })
+  })
+  await page.route('**/api/v1/sources/chesscom/games/2001?*', (route) =>
+    route.fulfill({
+      json: {
+        game: {
+          source: 'chesscom',
+          externalId: 'uuid-g2',
+          url: 'https://www.chess.com/game/live/2001',
+          pgn: '[White "knightowl88"]\n[Black "rival-g2"]\n[Result "0-1"]\n\n1. e4 e5 2. Nf3 Nc6 0-1',
+          white: { name: 'knightowl88' },
+          black: { name: 'rival-g2' },
+          result: '0-1',
+          speed: 'blitz',
+          rated: true,
+          playedAt: '2026-11-08T20:00:00.000Z',
+        },
+      },
+    }),
+  )
+  return asked
+}
+
+test('stats: look anyone up, with what stands out, and open one of their games', async ({
+  page,
+}) => {
+  const asked = await lookupServer(page)
+  await page.goto('/stats')
+  const search = page.getByRole('search', { name: 'Look up a player' })
+  await search.getByLabel('Platform').selectOption('chesscom')
+  await search.getByLabel('Username').fill('knightowl88')
+  await search.getByRole('button', { name: 'Look up' }).click()
+
+  await expect(page).toHaveURL(/\/stats\?source=chesscom&user=knightowl88/)
+  const summary = page.getByRole('region', { name: 'Summary' })
+  await expect(summary).toContainText('knightowl88')
+  await expect(summary).toContainText('Blitz 1642')
+  await expect(summary).toContainText('Last 4 games (all since')
+  expect(asked[0]).toBe('/api/v1/stats/players/chesscom/knightowl88 100')
+  await expect(page.getByRole('region', { name: 'Against knightowl88' })).toContainText(
+    'As White almost always 1.e4',
+  )
+  await expect(page.getByRole('region', { name: 'Move quality' })).toHaveCount(0)
+
+  // One of the games opens on the board without going into the library.
+  await page.getByRole('region', { name: 'Openings' }).getByText('Vienna Game').click()
+  await page.getByRole('button', { name: /rival-g2/ }).click()
+  await expect(page).toHaveURL(/\/analysis\?pgn=/)
+  await expect(page.locator('.move-tree [data-san]')).toHaveCount(4)
+
+  // The search is remembered.
+  await page.goto('/stats')
+  await expect(page.locator('.stats-recent')).toContainText('knightowl88')
+  await page.locator('.stats-recent').getByRole('link', { name: 'knightowl88' }).click()
+  await expect(page.getByRole('region', { name: 'Summary' })).toContainText('knightowl88')
+})
+
+test('stats: an unknown player is said so', async ({ page }) => {
+  await lookupServer(page)
+  await page.goto('/stats?source=chesscom&user=ghost')
+  await expect(page.getByRole('alert')).toHaveText('No chess.com user "ghost"')
+})
+
+test('stats: from a game in the library to the opponent’s stats', async ({ page }) => {
+  await page.goto('/games')
+  await page.getByRole('radio', { name: 'lichess' }).click()
+  await page.getByRole('textbox', { name: 'lichess username' }).fill('DrNykterstein')
+  await page.getByRole('button', { name: 'Import recent games' }).click()
+  await expect(page.getByRole('status')).toContainText('2 games imported')
+  // A recorded game DrNykterstein played with White against Night-King96 (other tests may add
+  // more games to the shared server, so find it by name).
+  const row = page.getByTestId('game-row').filter({ hasText: 'Night-King96' }).first()
+  await expect(row.getByRole('link', { name: 'Stats of Night-King96' })).toHaveAttribute(
+    'href',
+    '/stats?source=lichess&user=Night-King96',
+  )
+})

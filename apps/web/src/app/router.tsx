@@ -5,6 +5,7 @@ import {
   lazyRouteComponent,
 } from '@tanstack/react-router'
 import { parseAnalysisSearch } from '@/features/analysis/search'
+import { parseStatsSearch } from '@/features/stats/search'
 import { PlayPage } from '@/features/play/PlayPage'
 import { RootLayout } from './RootLayout'
 
@@ -65,6 +66,7 @@ const trainingRoute = createRoute({
 const statsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/stats',
+  validateSearch: parseStatsSearch,
   component: lazyRouteComponent(() => import('@/features/stats/StatsPage'), 'StatsPage'),
 })
 

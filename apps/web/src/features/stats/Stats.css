@@ -564,3 +564,105 @@ details > summary::-webkit-details-marker {
     grid-template-columns: minmax(6rem, 1fr) minmax(3rem, 1fr) 1.6rem 2.6rem;
   }
 }
+
+/* Whose stats: "You", or a lookup form with the recent searches. */
+.stats-modes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.stats-modes > a {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.stats-modes > a[aria-current='page'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.stats-lookup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stats-lookup select,
+.stats-lookup input,
+.stats-lookup button {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.stats-lookup input {
+  width: 12rem;
+  max-width: 100%;
+}
+
+.stats-lookup button {
+  cursor: pointer;
+}
+
+.stats-lookup button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.stats-recent {
+  flex-basis: 100%;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.stats-recent a {
+  color: var(--text);
+}
+
+.stats-scouting {
+  border-left: 3px solid var(--accent);
+}
+
+.stats-scouting ul {
+  margin: 0 0 0.6rem;
+  padding-left: 1.2rem;
+}
+
+.stats-scouting li {
+  padding: 0.15rem 0;
+}
+
+/* A looked-up game opens like a link. */
+.stats-game-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.stats-game-link:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+@media (max-width: 40rem) {
+  .stats-lookup input {
+    flex: 1;
+    width: auto;
+  }
+}
