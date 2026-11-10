@@ -42,7 +42,43 @@ export {
   type PuzzleProgress,
   type PuzzleState,
 } from './domain/training'
+export {
+  endReason,
+  gameFacts,
+  OPENING_MOVES_KEPT,
+  type EndReason,
+  type GameFacts,
+} from './domain/gameFacts'
+export {
+  activity,
+  endings,
+  isTimeZone,
+  openingsAs,
+  profileStats,
+  ratingHistory,
+  repertoire,
+  repertoireLines,
+  REPERTOIRE_PLIES,
+  type Activity,
+  type DayPart,
+  type EndingCount,
+  type Endings,
+  type OpeningStats,
+  type ProfileStats,
+  type RatingSeries,
+  type RepertoireLine,
+  type RepertoireNode,
+  type StatsGame,
+  type StatsGameRow,
+  type Weekday,
+} from './domain/profileStats'
 export type { GameHistory } from './ports/gameHistory'
 export type { ReviewRepository, StoredReview } from './ports/reviewRepository'
 export { InMemoryReviewRepository } from './adapters/inMemoryReviewRepository'
 export { ensureReview, type EnsureReviewDeps } from './usecases/ensureReview'
+export {
+  lookupGames,
+  LOOKUP_MONTHS,
+  type LookupGames,
+  type LookupOptions,
+} from './usecases/lookupGames'
