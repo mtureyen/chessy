@@ -113,11 +113,8 @@ describe('openings', () => {
       yours: true,
       theory: ['Bc4', 'f4'],
     })
-    expect(line('e4 e5 Nc3 Nc6 Bc4 Bc5')).toMatchObject({
-      yours: false,
-      book: false,
-      theory: ['Nf6'],
-    })
+    // One game where the opponent left theory: in the games, not a branch of its own.
+    expect(line('e4 e5 Nc3 Nc6 Bc4 Bc5')).toBeUndefined()
     // A game that stayed in theory as far as the book goes shows only where others went too.
     expect(line('e4 e5 Nc3 Nf6 Bc4')).toBeUndefined()
     // After 3.d3 the two games split once each, past their departure: not shown.
