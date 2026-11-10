@@ -268,7 +268,7 @@ export const coachTryRoute = createRoute({
   tags: ['coach'],
   summary: 'Judges a move the user tries at a moment of a reviewed game',
   description:
-    'The review decides: the better move or one nearly as good is right, a decent one close, and a wrong one gets a word from the coach, with no tools, that does not give the better move away.',
+    'The review decides: the better move or one nearly as good is right, a decent one close, and a wrong one gets a word from the coach, with no tools, that does not give the better move away. The answer is kept: the same move tried again gets it at once, until a newer review replaces the one it was judged by.',
   request: {
     body: { content: { 'application/json': { schema: CoachTryRequestSchema } }, required: true },
   },

@@ -36,6 +36,13 @@
       "when": 1794004158316,
       "tag": "0004_training",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794345991262,
+      "tag": "0005_coach_tries",
+      "breakpoints": true
     }
   ]
 }

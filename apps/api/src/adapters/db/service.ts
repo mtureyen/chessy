@@ -14,6 +14,7 @@ import { PostgresGameRepository } from './gameRepository'
 import { PostgresProfileStore } from './profileStore'
 import { PostgresReviewRepository } from './reviewRepository'
 import { PostgresTrainingStore } from './trainingStore'
+import { PostgresTryStore, type StoredTry } from './tryStore'
 import { PostgresWalkthroughStore, type StoredWalkthrough } from './walkthroughStore'
 
 interface Stores {
@@ -24,6 +25,7 @@ interface Stores {
   history: PostgresGameHistory
   walkthroughs: PostgresWalkthroughStore
   training: PostgresTrainingStore
+  tries: PostgresTryStore
 }
 
 /**
@@ -82,6 +84,14 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
     await (await this.connected()).walkthroughs.save(line, side, stored)
   }
 
+  async findTry(line: GameLine, ply: number, tried: string): Promise<StoredTry | undefined> {
+    return (await this.connected()).tries.find(line, ply, tried)
+  }
+
+  async saveTry(line: GameLine, ply: number, tried: string, stored: StoredTry): Promise<void> {
+    await (await this.connected()).tries.save(line, ply, tried, stored)
+  }
+
   async trainingProgress(): Promise<Map<string, PuzzleProgress>> {
     return (await this.connected()).training.all()
   }
@@ -122,6 +132,7 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
         history: new PostgresGameHistory(db),
         walkthroughs: new PostgresWalkthroughStore(db),
         training: new PostgresTrainingStore(db),
+        tries: new PostgresTryStore(db),
       }))
       .catch((error: unknown) => {
         this.stores = undefined

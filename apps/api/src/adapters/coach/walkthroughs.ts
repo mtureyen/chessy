@@ -3,6 +3,7 @@ import {
   toSanLine,
   type GameReview,
   type OpeningBook,
+  type ReviewedMove,
   type ReviewInput,
 } from '@pawnia/analysis'
 import { createGame, mostExposedPiece, type Color } from '@pawnia/chess'
@@ -35,6 +36,7 @@ import {
   type StoredReview,
 } from '@pawnia/history'
 import type { Profile } from '@pawnia/library'
+import type { StoredTry } from '../db/tryStore'
 import type { StoredWalkthrough } from '../db/walkthroughStore'
 import { IllegalTryError, NoStoredReviewError, type WalkthroughService } from './walkthroughService'
 
@@ -43,6 +45,8 @@ export interface WalkthroughLibrary extends Pick<GameHistory, 'summaries'> {
   findReview(line: GameLine): Promise<StoredReview | undefined>
   findWalkthrough(line: GameLine, side: string): Promise<StoredWalkthrough | undefined>
   saveWalkthrough(line: GameLine, side: string, stored: StoredWalkthrough): Promise<void>
+  findTry(line: GameLine, ply: number, tried: string): Promise<StoredTry | undefined>
+  saveTry(line: GameLine, ply: number, tried: string, stored: StoredTry): Promise<void>
 }
 
 /** What judging a tried move takes: a review of it, and the engine's answer to it (UCI). */
@@ -115,7 +119,7 @@ export class StoredWalkthroughs implements WalkthroughService {
     agent: CoachAgent | undefined,
     signal?: CancelSignal,
   ): Promise<CoachTryBody> {
-    const { review } = await this.review({ startFen, moves })
+    const { line, review, reviewedAt } = await this.review({ startFen, moves })
     const moment = review.moves.find((move) => move.ply === ply)
     const fen = review.positions[ply - 1]?.fen
     if (!moment || !fen) throw new NoStoredReviewError()
@@ -125,6 +129,26 @@ export class StoredWalkthroughs implements WalkthroughService {
     if (tried === moment.uci) return { verdict: 'played', ...answer }
     if (tried === moment.best?.uci) return { verdict: 'right', ...answer }
 
+    // The same move tried again gets the same answer, without the engine or the coach.
+    const kept = await this.library.findTry(line, ply, tried)
+    if (kept?.reviewedAt === reviewedAt) return kept.judged
+    const judged = await this.judgeOther(fen, moment, tried, answer, agent, signal)
+    // A wrong try the coach said nothing on is asked again: it may have something to say then.
+    if (judged.verdict !== 'wrong' || judged.comment) {
+      await this.library.saveTry(line, ply, tried, { reviewedAt, judged })
+    }
+    return judged
+  }
+
+  /** A move that is neither the one played nor the better one: the review and the coach judge. */
+  private async judgeOther(
+    fen: string,
+    moment: ReviewedMove,
+    tried: string,
+    answer: { san: string; fen: string },
+    agent: CoachAgent | undefined,
+    signal: CancelSignal | undefined,
+  ): Promise<CoachTryBody> {
     const { rating } = moment.facts
     const judged = await this.tries.review({
       startFen: fen,
@@ -136,15 +160,15 @@ export class StoredWalkthroughs implements WalkthroughService {
     if (verdict !== 'wrong' || !agent) return { verdict, ...answer }
 
     const reply = formatSanLine(
-      toSanLine(after.fen, await this.tries.bestReply(after.fen), REPLY_MOVES),
+      toSanLine(answer.fen, await this.tries.bestReply(answer.fen), REPLY_MOVES),
     )
-    const exposed = mostExposedPiece(after.fen, moment.color)
+    const exposed = mostExposedPiece(answer.fen, moment.color)
     const comment = await agent
       .compose({
         system: TRY_PROMPT,
         text: triedText({
           fen,
-          tried: after.move.san,
+          tried: answer.san,
           played: moment.san,
           verdict: move.classification,
           winBefore: Math.round(move.winBefore),

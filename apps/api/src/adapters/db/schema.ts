@@ -1,5 +1,5 @@
 import type { GameReview } from '@pawnia/analysis'
-import type { CoachWalkthroughBody } from '@pawnia/contracts'
+import type { CoachTryBody, CoachWalkthroughBody } from '@pawnia/contracts'
 import type { LibraryGame, Profile } from '@pawnia/library'
 import { sql } from 'drizzle-orm'
 import {
@@ -109,6 +109,23 @@ export const walkthroughs = pgTable(
     data: json<CoachWalkthroughBody>('data').notNull(),
   },
   (t) => [primaryKey({ columns: [t.lineHash, t.side] })],
+)
+
+/** The verdict on a move the user tried at a move of a reviewed line, from one review. */
+export const coachTries = pgTable(
+  'coach_tries',
+  {
+    lineHash: text('line_hash')
+      .notNull()
+      .references(() => reviews.lineHash, { onDelete: 'cascade' }),
+    ply: integer('ply').notNull(),
+    /** The move tried (UCI). */
+    tried: text('tried').notNull(),
+    /** When the review it was judged by was made: a newer review outdates it. */
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }).notNull(),
+    data: json<CoachTryBody>('data').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.lineHash, t.ply, t.tried] })],
 )
 
 /** How far the user is with the puzzle at a move of a reviewed line. */

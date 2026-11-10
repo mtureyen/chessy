@@ -12,6 +12,7 @@ import { lineText, type GameLine, type StoredReview } from '@pawnia/history'
 import { sampleReview, sampleSummary } from '@pawnia/history/testing'
 import { buildProfile } from '@pawnia/library'
 import { describe, expect, it } from 'vitest'
+import type { StoredTry } from '../db/tryStore'
 import type { StoredWalkthrough } from '../db/walkthroughStore'
 import { StoredWalkthroughs, type TryJudge, type WalkthroughLibrary } from './walkthroughs'
 import { IllegalTryError, NoStoredReviewError } from './walkthroughService'
@@ -43,10 +44,13 @@ function reviewed(reviewedAt = '2026-11-05T10:00:00.000Z'): StoredReview {
   return { line, review: withPositions, reviewedAt }
 }
 
-function setup(stored: StoredReview | undefined = reviewed()) {
+function setup(first: StoredReview | undefined = reviewed()) {
   const tryClass: { value: MoveClass } = { value: 'mistake' }
+  const current = { stored: first }
   const kept = new Map<string, StoredWalkthrough>()
+  const keptTries = new Map<string, StoredTry>()
   const key = (line: GameLine, side: string) => `${lineText(line)}|${side}`
+  const tryKey = (line: GameLine, ply: number, tried: string) => `${lineText(line)}|${ply}|${tried}`
   const library: WalkthroughLibrary = {
     summaries: async () => [
       sampleSummary({
@@ -62,9 +66,11 @@ function setup(stored: StoredReview | undefined = reviewed()) {
         { accounts: [{ source: 'chesscom', username: '8sly' }] },
         { id: 'p', now: '2026-11-05T00:00:00.000Z' },
       ),
-    findReview: async () => stored,
+    findReview: async () => current.stored,
     findWalkthrough: async (line, side) => kept.get(key(line, side)),
     saveWalkthrough: async (line, side, value) => void kept.set(key(line, side), value),
+    findTry: async (line, ply, tried) => keptTries.get(tryKey(line, ply, tried)),
+    saveTry: async (line, ply, tried, value) => void keptTries.set(tryKey(line, ply, tried), value),
   }
   const book: OpeningBook = {
     isBook: () => true,
@@ -91,7 +97,7 @@ function setup(stored: StoredReview | undefined = reviewed()) {
     tries,
     () => new Date('2026-11-06T12:00:00.000Z'),
   )
-  return { service, kept, judged, tryClass }
+  return { service, kept, keptTries, judged, tryClass, current }
 }
 
 const reply = JSON.stringify({
@@ -158,6 +164,8 @@ describe('StoredWalkthroughs', () => {
         findReview: async () => undefined,
         findWalkthrough: async () => undefined,
         saveWalkthrough: async () => {},
+        findTry: async () => undefined,
+        saveTry: async () => {},
       },
       async () => undefined,
       { review: async () => reviewed().review, bestReply: async () => [] },
@@ -193,7 +201,7 @@ describe('StoredWalkthroughs', () => {
       })
       expect(judged[0]).toMatchObject({ moves: ['f1c4'], ratings: { white: 790 } })
       tryClass.value = 'good'
-      expect((await service.judge({ ...at, tried: 'f1c4' }, undefined)).verdict).toBe('close')
+      expect((await service.judge({ ...at, tried: 'g1e2' }, undefined)).verdict).toBe('close')
     })
 
     it('has the coach comment on a wrong try, with no better move in what it gets', async () => {
@@ -222,6 +230,48 @@ describe('StoredWalkthroughs', () => {
       const failing = agent()
       const answer = await service.judge({ ...at, tried: 'd1g4' }, failing.coach)
       expect(answer).not.toHaveProperty('comment')
+    })
+
+    it('answers the same wrong try again from what it kept, without the engine or the coach', async () => {
+      const { service, judged } = setup()
+      const { coach, requests } = agent('That leaves your queen with nowhere to go.', 'Again?')
+      const first = await service.judge({ ...at, tried: 'd1g4' }, coach)
+      expect(await service.judge({ ...at, tried: 'd1g4' }, coach)).toEqual(first)
+      // Another agent, or none, gets the kept answer too.
+      expect(await service.judge({ ...at, tried: 'd1g4' }, undefined)).toEqual(first)
+      expect(requests).toHaveLength(1)
+      expect(judged).toHaveLength(1)
+
+      const other = await service.judge({ ...at, tried: 'd1f3' }, coach)
+      expect(other).toMatchObject({ san: 'Qf3', comment: 'Again?' })
+      expect(requests).toHaveLength(2)
+    })
+
+    it('judges again after a newer review', async () => {
+      const { service, judged, current } = setup()
+      const { coach, requests } = agent('Not that.', 'Still not that.')
+      await service.judge({ ...at, tried: 'd1g4' }, coach)
+      current.stored = reviewed('2026-11-06T10:00:00.000Z')
+      const again = await service.judge({ ...at, tried: 'd1g4' }, coach)
+      expect(again.comment).toBe('Still not that.')
+      expect(requests).toHaveLength(2)
+      expect(judged).toHaveLength(2)
+    })
+
+    it('keeps a close try, but not a wrong one the coach said nothing on', async () => {
+      const { service, keptTries, tryClass } = setup()
+      await service.judge({ ...at, tried: 'd1g4' }, undefined)
+      await service.judge({ ...at, tried: 'd1g4' }, agent().coach)
+      expect(keptTries.size).toBe(0)
+      const { coach, requests } = agent('Now I have something to say.')
+      expect((await service.judge({ ...at, tried: 'd1g4' }, coach)).comment).toBe(
+        'Now I have something to say.',
+      )
+      expect(requests).toHaveLength(1)
+
+      tryClass.value = 'good'
+      await service.judge({ ...at, tried: 'f1c4' }, undefined)
+      expect([...keptTries.values()].map((kept) => kept.judged.verdict)).toEqual(['wrong', 'close'])
     })
 
     it('refuses an illegal move and a moment that is not there', async () => {
