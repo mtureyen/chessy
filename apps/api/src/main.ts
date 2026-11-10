@@ -12,6 +12,7 @@ import { StoredWalkthroughs } from './adapters/coach/walkthroughs'
 import { createBookLoader } from './adapters/review/openingBook'
 import { ReviewQueue, type ReviewJob } from './adapters/review/reviewQueue'
 import { createServerReviewer, SERVER_REVIEW_NODES } from './adapters/review/serverReviewer'
+import { OpeningPractice } from './adapters/openings/practice'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
 import { StoredTraining } from './adapters/training/storedTraining'
@@ -90,6 +91,7 @@ const app = createApp({
   training: new StoredTraining(library, progressKey),
   stats: new LiveStats({ library, sources }),
   openings: new StoredOpenings(library, book),
+  practice: new OpeningPractice(book, createServerReviewer(reviewing)),
   coach,
   walkthroughs: new StoredWalkthroughs(library, book, {
     review: createServerReviewer(reviewing),

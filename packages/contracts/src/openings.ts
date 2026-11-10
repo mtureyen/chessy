@@ -145,3 +145,62 @@ export const openingRoute = createRoute({
     503: problem('No game database or no opening book on this server'),
   },
 })
+
+const MoveSchema = z.object({
+  san: z.string().openapi({ example: 'Qg4' }),
+  uci: z.string().openapi({ example: 'd1g4' }),
+})
+
+export const PracticeCheckRequestSchema = z
+  .object({
+    /** The moves so far from the start (UCI): the position the move is tried in. */
+    moves: z.array(z.string().min(4).max(5)).max(40),
+    /** The move tried there (UCI). */
+    tried: z.string().min(4).max(5),
+  })
+  .openapi('PracticeCheckRequest')
+
+export type PracticeCheckRequest = z.infer<typeof PracticeCheckRequestSchema>
+
+export const PracticeCheckSchema = z
+  .object({
+    verdict: z.enum(['theory', 'good', 'playable', 'wrong']).openapi({
+      description:
+        'theory: the book goes on with it; good: as good as the engine’s choice; playable: the review calls it good, a better one exists; wrong: a better move is needed',
+    }),
+    san: z.string(),
+    /** The position after the tried move. */
+    fen: z.string(),
+    /** What theory has in the position the move was tried in. */
+    theory: z.array(MoveSchema),
+    /** The engine's choice there and its line, when the move isn't theory. */
+    best: MoveSchema.extend({ line: z.string() }).optional(),
+    /** The replies theory has after the tried move, for the practice to go on with. */
+    replies: z.array(MoveSchema),
+  })
+  .openapi('PracticeCheck')
+
+export type PracticeCheckBody = z.infer<typeof PracticeCheckSchema>
+
+export const practiceCheckRoute = createRoute({
+  method: 'post',
+  path: '/training/openings/practice',
+  tags: ['library'],
+  summary: 'Judges a move tried while practising an opening',
+  description:
+    'Theory decides first (the opening book); a move off theory is reviewed by the engine. Answers with what theory has there, the engine’s choice, and theory’s replies to go on with.',
+  request: {
+    body: {
+      content: { 'application/json': { schema: PracticeCheckRequestSchema } },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: 'The verdict',
+      content: { 'application/json': { schema: PracticeCheckSchema } },
+    },
+    400: problem('An illegal move in the line or the try'),
+    503: problem('No opening book or no engine on this server'),
+  },
+})
