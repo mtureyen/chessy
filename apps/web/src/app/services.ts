@@ -43,6 +43,7 @@ import { RemoteLibrary } from '@/adapters/api/remoteLibrary'
 import { RemoteCoach } from '@/adapters/api/remoteCoach'
 import { RemoteReviewQueue } from '@/adapters/api/remoteReviewQueue'
 import { RemoteSettings } from '@/adapters/api/remoteSettings'
+import { RemoteStats } from '@/adapters/api/remoteStats'
 import { createApiClient, type ApiClient } from '@/adapters/api/client'
 import { RemoteEvaluator } from '@/adapters/engine/remoteEvaluator'
 import { createBrowserEngine } from '@/adapters/engine/stockfish'
@@ -101,6 +102,8 @@ export interface Services {
   settings: Pick<RemoteSettings, 'coach' | 'updateCoach' | 'agents'>
   /** The review of the user's recent games, which runs on the server. */
   reviewQueue: Pick<RemoteReviewQueue, 'status' | 'start' | 'pause' | 'resume'>
+  /** The stats page's numbers: the user's own, or anyone's on a platform. */
+  stats: Pick<RemoteStats, 'mine' | 'player'>
   /** The user's mistakes as puzzles. */
   training: {
     list: RemoteLibrary['training']
@@ -211,6 +214,13 @@ export function createServices(): Services {
       agents: () => remoteSettings.agents(),
     },
     reviewQueue: new RemoteReviewQueue(api),
+    stats: (() => {
+      const stats = new RemoteStats(api)
+      return {
+        mine: (query) => stats.mine(query),
+        player: (source, username, query) => stats.player(source, username, query),
+      }
+    })(),
     training: {
       list: () => remoteLibrary.training(),
       record: (result) => remoteLibrary.recordTraining(result),

@@ -62,6 +62,12 @@ const trainingRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/training/TrainingPage'), 'TrainingPage'),
 })
 
+const statsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/stats',
+  component: lazyRouteComponent(() => import('@/features/stats/StatsPage'), 'StatsPage'),
+})
+
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
@@ -79,6 +85,7 @@ const routeTree = rootRoute.addChildren([
   welcomeRoute,
   profileRoute,
   trainingRoute,
+  statsRoute,
   settingsRoute,
 ])
 

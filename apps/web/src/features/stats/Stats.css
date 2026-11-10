@@ -1,0 +1,566 @@
+/* Wins, draws and losses: the app's green and red, with a light grey for draws that stays
+   apart from both (checked for colour-blind readers against both surfaces). */
+.stats-page {
+  --wdl-win: var(--accent);
+  --wdl-draw: #cfcac2;
+  --wdl-loss: var(--danger);
+  --chart-line: #6da7ec;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+@media (prefers-color-scheme: light) {
+  .stats-page {
+    --wdl-draw: #c4bfb7;
+    --chart-line: #2a78d6;
+  }
+}
+
+.stats-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.stats-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.stats-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.stats-filters fieldset {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.stats-filters legend {
+  float: left;
+  margin-right: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.stats-filters button {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.stats-filters button:hover {
+  background: var(--hover);
+}
+
+.stats-filters button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.stats-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: opacity 0.15s;
+}
+
+.stats-stale {
+  opacity: 0.6;
+}
+
+.stats-summary,
+.stats-section,
+.stats-empty {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.stats-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.stats-summary h2,
+.stats-summary p {
+  margin: 0;
+}
+
+.stats-summary-record {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: min(20rem, 100%);
+}
+
+.stats-summary-record .stats-record {
+  font-size: 1.1rem;
+}
+
+.stats-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.stats-section h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+}
+
+.stats-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.stats-note {
+  margin: 0 0 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.stats-columns {
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  gap: 1rem 2rem;
+}
+
+.stats-number,
+.stats-share,
+.stats-wdl,
+.stats-score {
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-share,
+.stats-wdl {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Score · bar · W-D-L, the same everywhere. */
+.stats-record {
+  display: inline-grid;
+  grid-template-columns: 2.6rem minmax(4rem, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.stats-score {
+  font-weight: 600;
+  text-align: right;
+}
+
+.wdl-bar {
+  display: flex;
+  gap: 2px;
+  height: 0.6rem;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+.wdl-bar > span {
+  min-width: 2px;
+}
+
+.wdl-win {
+  background: var(--wdl-win);
+}
+
+.wdl-draw {
+  background: var(--wdl-draw);
+}
+
+.wdl-loss {
+  background: var(--wdl-loss);
+}
+
+.share-bar {
+  display: block;
+  height: 0.6rem;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+.share-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+/* Tables: label, numbers, record. */
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.stats-table th,
+.stats-table td {
+  padding: 0.3rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.stats-table thead th {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.stats-table tbody th {
+  font-weight: 500;
+}
+
+.stats-table td.stats-number,
+.stats-table th.stats-number {
+  text-align: right;
+}
+
+.stats-section,
+.stats-summary {
+  min-width: 0;
+}
+
+/* Openings: a row per family, open for variations and games. */
+.stats-opening {
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-opening summary,
+.stats-tree-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 1.3fr) 2.2rem minmax(9rem, 1.4fr);
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.25rem;
+  cursor: pointer;
+}
+
+.stats-opening summary:hover,
+.stats-tree-row:hover {
+  background: var(--hover);
+}
+
+.stats-opening-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-opening .stats-number {
+  text-align: right;
+}
+
+.stats-variations,
+.stats-games {
+  margin: 0 0 0.5rem;
+  padding: 0 0 0 1rem;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.stats-variations li {
+  display: grid;
+  grid-template-columns: 1fr 2rem 4rem;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+
+.stats-variations .stats-number,
+.stats-variations .stats-wdl {
+  text-align: right;
+}
+
+.stats-games li {
+  padding: 0.15rem 0;
+}
+
+.stats-games a,
+.stats-all-games a {
+  color: var(--text);
+}
+
+.stats-outcome {
+  display: inline-block;
+  min-width: 2.6rem;
+  font-weight: 600;
+}
+
+.stats-outcome-win {
+  color: var(--wdl-win);
+}
+
+.stats-outcome-loss {
+  color: var(--wdl-loss);
+}
+
+/* Repertoire: nested moves. */
+.stats-tree,
+.stats-tree ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats-tree ul {
+  padding-left: 1.1rem;
+  border-left: 1px solid var(--border);
+  margin-left: 0.4rem;
+}
+
+.stats-tree-row {
+  grid-template-columns: 4.5rem 2rem 2.6rem minmax(8rem, 1fr);
+  grid-template-areas: 'move games share record' 'opening opening opening opening';
+  row-gap: 0;
+}
+
+.stats-tree-leaf {
+  cursor: default;
+}
+
+.stats-move {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.stats-tree-row .stats-number,
+.stats-tree-row .stats-share {
+  text-align: right;
+}
+
+.stats-tree-row .stats-record {
+  grid-area: record;
+}
+
+.stats-tree-opening {
+  grid-area: opening;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+details > summary {
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Endings: bars of a share each. */
+.stats-bars {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats-bars li {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) minmax(4rem, 1.5fr) 2rem 2.6rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.stats-bars .stats-number,
+.stats-bars .stats-share {
+  text-align: right;
+}
+
+.stats-rating h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.stats-rating .stats-note {
+  margin: 0;
+}
+
+.stats-rating-now {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Line chart: the plot in SVG, its labels and hover in HTML (they stay sharp). */
+.line-chart {
+  margin: 0;
+}
+
+.line-chart-plot {
+  position: relative;
+  height: 8.5rem;
+  margin-left: 2.6rem;
+  touch-action: pan-y;
+}
+
+.line-chart-plot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.line-chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.line-chart-line {
+  fill: none;
+  stroke: var(--chart-line);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.line-chart-axis {
+  position: absolute;
+  left: -2.6rem;
+  width: 2.3rem;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.line-chart-dot {
+  position: absolute;
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--chart-line);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.line-chart-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--text-muted);
+  pointer-events: none;
+}
+
+.line-chart-tooltip {
+  position: absolute;
+  top: 0;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  transform: translateX(0.5rem);
+  pointer-events: none;
+}
+
+.line-chart-tooltip[data-side='left'] {
+  transform: translateX(calc(-100% - 0.5rem));
+}
+
+.line-chart-dates {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.2rem 0 0 2.6rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* All games: a table that scrolls on its own on narrow screens. */
+.stats-all-games summary h2 {
+  display: inline;
+  margin: 0;
+  cursor: pointer;
+}
+
+.stats-all-games summary h2::before {
+  content: '▸ ';
+  color: var(--text-muted);
+}
+
+.stats-all-games[open] summary h2::before {
+  content: '▾ ';
+}
+
+.stats-scroll {
+  margin-top: 0.6rem;
+  overflow-x: auto;
+}
+
+.stats-scroll .stats-table td {
+  white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  .stats-page {
+    padding: 1rem;
+  }
+
+  .stats-summary,
+  .stats-section {
+    padding: 0.8rem;
+  }
+
+  .stats-opening summary {
+    grid-template-columns: minmax(5rem, 1fr) 1.6rem minmax(7rem, 1.3fr);
+  }
+
+  /* Narrow rows keep the score and the bar; the counts are in the bar's tooltip. */
+  .stats-opening .stats-wdl,
+  .stats-tree .stats-wdl,
+  .stats-tree .stats-share {
+    display: none;
+  }
+
+  .stats-record {
+    grid-template-columns: 2.6rem minmax(3rem, 1fr) auto;
+  }
+
+  .stats-tree-row {
+    grid-template-columns: 4rem 1.6rem minmax(5rem, 1fr);
+    grid-template-areas: 'move games record' 'opening opening opening';
+  }
+
+  .stats-tree ul {
+    padding-left: 0.6rem;
+  }
+
+  .stats-bars li {
+    grid-template-columns: minmax(6rem, 1fr) minmax(3rem, 1fr) 1.6rem 2.6rem;
+  }
+}
