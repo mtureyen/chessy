@@ -6,11 +6,11 @@ import type {
   ReviewedMoveRow,
   StoredReview,
 } from '@pawnia/history'
-import type { LibraryGame, Profile } from '@pawnia/library'
-import type { LibraryService, LibraryStatus } from './libraryService'
+import type { GameRename, LibraryGame, Profile } from '@pawnia/library'
+import type { LibraryService, LibraryStatus, SavedGames } from './libraryService'
 import type { OpenDatabase } from './types'
 import { PostgresGameHistory } from './gameHistory'
-import { PostgresGameRepository } from './gameRepository'
+import { externalKey, PostgresGameRepository } from './gameRepository'
 import { PostgresProfileStore } from './profileStore'
 import { PostgresReviewRepository } from './reviewRepository'
 import { PostgresTrainingStore } from './trainingStore'
@@ -56,8 +56,20 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
     }
   }
 
-  async saveGames(games: LibraryGame[]): Promise<void> {
-    await (await this.connected()).games.saveAll(games)
+  async saveGames(batch: LibraryGame[]): Promise<SavedGames> {
+    const { games } = await this.connected()
+    // A platform game imported again in another browser got a new id there: keep the stored one
+    // and tell the browser, instead of failing the whole batch.
+    const stored = await games.idsOf(batch)
+    const renamed: GameRename[] = []
+    const fresh: LibraryGame[] = []
+    for (const game of batch) {
+      const id = stored.get(externalKey(game))
+      if (id !== undefined && id !== game.id) renamed.push({ id: game.id, as: id })
+      else fresh.push(game)
+    }
+    await games.saveAll(fresh)
+    return { stored: fresh.length, renamed }
   }
 
   async missingGames(ids: readonly string[]): Promise<string[]> {

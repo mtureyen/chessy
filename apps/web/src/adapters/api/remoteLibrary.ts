@@ -6,7 +6,7 @@ import type {
   TrainingResultBody,
 } from '@pawnia/contracts'
 import type { GameLine } from '@pawnia/history'
-import type { LibraryGame, LibraryMirror, Profile } from '@pawnia/library'
+import type { GameRename, LibraryGame, LibraryMirror, Profile } from '@pawnia/library'
 import type { ApiClient } from './client'
 
 /** The API's copy of the game history: games and finished reviews are sent there. */
@@ -28,9 +28,11 @@ export class RemoteLibrary implements LibraryMirror {
     return ((await res.json()) as { missing: string[] }).missing
   }
 
-  async upload(games: LibraryGame[]): Promise<void> {
+  async upload(games: LibraryGame[]): Promise<{ renamed: GameRename[] }> {
     const res = await this.api.api.v1.library.games.$post({ json: { games } })
     if (res.status !== 200) throw new Error(`Library sync failed: HTTP ${res.status}`)
+    const { renamed } = (await res.json()) as { renamed: GameRename[] }
+    return { renamed }
   }
 
   async saveReview(line: GameLine, review: GameReview): Promise<void> {

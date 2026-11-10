@@ -479,11 +479,18 @@ describe('library routes', () => {
     expect(await status.json()).toMatchObject({ available: true, games: 1 })
   })
 
-  it('rejects unreadable PGNs and a platform game under a second id', async () => {
+  it('rejects unreadable PGNs', async () => {
     const broken = await post('/games', { games: [{ ...game, id: 'lib-3', pgn: '1. e5 e4' }] })
     expect(broken.status).toBe(400)
-    const twice = await post('/games', { games: [{ ...game, id: 'lib-4' }] })
-    expect(twice.status).toBe(409)
+  })
+
+  it('keeps a platform game once: sent under a second id, it answers with the id it keeps', async () => {
+    const fresh = sampleGame({ id: 'lib-5', externalId: 'lib-ext-5' })
+    const res = await post('/games', { games: [{ ...game, id: 'lib-4' }, fresh] })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ stored: 1, renamed: [{ id: 'lib-4', as: 'lib-1' }] })
+    const missing = await post('/games/missing', { ids: ['lib-1', 'lib-4', 'lib-5'] })
+    expect(await missing.json()).toEqual({ missing: ['lib-4'] })
   })
 
   it('keeps a review of a line, and only of the moves it was sent with', async () => {

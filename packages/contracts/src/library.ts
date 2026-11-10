@@ -127,7 +127,8 @@ export const saveLibraryGamesRoute = createRoute({
   path: '/library/games',
   tags: ['library'],
   summary: 'Stores games (insert or update by id)',
-  description: 'The app sends what it saves or imports; sending a game again updates it.',
+  description:
+    'The app sends what it saves or imports; sending a game again updates it. A platform game already stored under another id (imported in another browser) is not stored twice: it comes back in `renamed` with the id it is kept under, for the app to use too.',
   request: {
     body: {
       content: {
@@ -140,11 +141,23 @@ export const saveLibraryGamesRoute = createRoute({
   },
   responses: {
     200: {
-      description: 'Stored',
-      content: { 'application/json': { schema: z.object({ stored: z.number().int() }) } },
+      description: 'Stored; games kept under another id are listed in `renamed`',
+      content: {
+        'application/json': {
+          schema: z.object({
+            stored: z.number().int(),
+            renamed: z.array(
+              z.object({
+                id: z.string().openapi({ description: 'The id the app sent' }),
+                as: z.string().openapi({ description: 'The id the game is kept under' }),
+              }),
+            ),
+          }),
+        },
+      },
     },
     400: problem('Invalid game or PGN'),
-    409: problem('A platform game is already stored under another id'),
+    409: problem('Another upload stored the same platform game at the same time; send it again'),
     503: unavailable,
   },
 })
