@@ -92,3 +92,25 @@
   color: var(--text-muted);
   font-size: 0.9rem;
 }
+
+/* Mistakes or openings. */
+.training-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.training-tabs a {
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.training-tabs a[aria-current='page'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}

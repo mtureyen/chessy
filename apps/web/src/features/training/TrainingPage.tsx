@@ -4,6 +4,7 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useServices } from '@/app/servicesContext'
 import { PuzzleBoard } from './PuzzleBoard'
+import { TrainingTabs } from './TrainingTabs'
 import '@/shared/game/GamePanel.css'
 import './Training.css'
 
@@ -40,6 +41,7 @@ export function TrainingPage() {
   const due = list.data?.due.length ?? 0
   return (
     <div className="training-page">
+      <TrainingTabs />
       <h1>Train my mistakes</h1>
       <p className="training-intro">
         Your mistakes from reviewed games, as puzzles. Solve one at the first try and it's done;
