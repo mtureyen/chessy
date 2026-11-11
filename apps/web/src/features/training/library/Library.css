@@ -1,0 +1,228 @@
+.library-intro h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.4rem;
+}
+
+.library-side {
+  margin-top: 0.5rem;
+}
+
+.library-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  height: 100%;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.library-card:hover {
+  border-color: var(--accent);
+}
+
+.library-card-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.library-card-line {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+.library-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.library-chip {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.library-chip-low {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.library-chip-strong {
+  border-color: #6da7ec;
+  color: var(--text);
+}
+
+.library-chip-trap {
+  border-color: var(--danger);
+  color: var(--text);
+}
+
+.library-scores {
+  max-width: 22rem;
+}
+
+.library-scores caption {
+  text-align: left;
+}
+
+.library-layout {
+  align-items: flex-start;
+}
+
+.library-panel {
+  padding: 1rem;
+}
+
+.library-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.library-nav button,
+.library-trap button {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.library-bands {
+  margin: 0.25rem 0 0.6rem;
+}
+
+.library-bands button {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.library-move {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-family: var(--mono);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* White wins, draws, Black wins, as lichess' explorer shows them. */
+.library-result {
+  display: flex;
+  overflow: hidden;
+  min-width: 8rem;
+  height: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  line-height: 1.1rem;
+  text-align: center;
+}
+
+.library-result-white {
+  background: #f2f0ec;
+  color: #2b2a28;
+}
+
+.library-result-draw {
+  background: #9a958e;
+  color: #161512;
+}
+
+.library-result-black {
+  background: #34312d;
+  color: #f2f0ec;
+}
+
+.library-traps {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-trap {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.library-trap p {
+  margin: 0.4rem 0;
+}
+
+.library-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-line {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1.2fr) minmax(8rem, 2fr) 3rem 3rem;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.35rem 0.25rem;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.library-line:hover,
+.library-line[aria-current='true'] {
+  background: var(--hover);
+}
+
+.library-line .stats-number {
+  text-align: right;
+}
+
+@media (max-width: 40rem) {
+  .library-line {
+    grid-template-columns: 1fr 3rem 3rem;
+  }
+
+  .library-line .library-card-line {
+    display: none;
+  }
+}
+
+.library-more {
+  margin-top: 0.6rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}

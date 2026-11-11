@@ -43,6 +43,7 @@ import { RemoteLibrary } from '@/adapters/api/remoteLibrary'
 import { RemoteCoach } from '@/adapters/api/remoteCoach'
 import { RemoteReviewQueue } from '@/adapters/api/remoteReviewQueue'
 import { RemoteSettings } from '@/adapters/api/remoteSettings'
+import { RemoteOpeningLibrary } from '@/adapters/api/remoteOpeningLibrary'
 import { RemoteOpenings } from '@/adapters/api/remoteOpenings'
 import { RemoteStats } from '@/adapters/api/remoteStats'
 import { createApiClient, type ApiClient } from '@/adapters/api/client'
@@ -105,6 +106,8 @@ export interface Services {
   reviewQueue: Pick<RemoteReviewQueue, 'status' | 'start' | 'pause' | 'resume'>
   /** The stats page's numbers: the user's own, or anyone's on a platform. */
   stats: Pick<RemoteStats, 'mine' | 'player'>
+  /** The opening library: openings to study, their lines, real games and traps. */
+  openingLibrary: Pick<RemoteOpeningLibrary, 'list' | 'opening' | 'position'>
   /** The user's mistakes as puzzles. */
   training: {
     list: RemoteLibrary['training']
@@ -226,6 +229,14 @@ export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {})
       agents: () => remoteSettings.agents(),
     },
     reviewQueue: new RemoteReviewQueue(api),
+    openingLibrary: (() => {
+      const library = new RemoteOpeningLibrary(api)
+      return {
+        list: () => library.list(),
+        opening: (id) => library.opening(id),
+        position: (moves) => library.position(moves),
+      }
+    })(),
     stats: (() => {
       const stats = new RemoteStats(api)
       return {
