@@ -15,6 +15,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { CoachRegistry } from './adapters/coach/agents'
 import { evaluatePositionTool } from './adapters/coach/tools/evaluatePosition'
 import { FileSettingsService } from './adapters/settings/fileSettingsService'
@@ -30,6 +31,7 @@ import {
 } from './adapters/coach/walkthroughService'
 import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/service'
 import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review/reviewQueueService'
+import { FileOpeningLibrary, libraryFile } from './adapters/library/openingLibrary'
 import { OpeningPractice } from './adapters/openings/practice'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
@@ -175,6 +177,11 @@ const smallBook = createOpeningBook(
   buildBookData([{ eco: 'C25', name: 'Vienna Game', pgn: '1. e4 e5 2. Nc3' }]),
 )
 
+/** The checked-in library file. */
+const openingLibrary = new FileOpeningLibrary(
+  libraryFile(fileURLToPath(new URL('../data/opening-library.json', import.meta.url))),
+)
+
 /** Practice against the small book, with a reviewer that calls every move off theory a mistake. */
 const practice = new OpeningPractice(
   async () => smallBook,
@@ -229,6 +236,7 @@ const app = createApp({
   stats: new LiveStats({ library, sources }),
   openings: new StoredOpenings(library, async () => smallBook),
   practice,
+  openingLibrary,
 })
 
 describe('api', () => {
@@ -267,6 +275,9 @@ describe('api', () => {
       '/library/review-queue/resume',
       '/library/reviews',
       '/library/reviews/find',
+      '/opening-library',
+      '/opening-library/position',
+      '/opening-library/{id}',
       '/profile',
       '/settings/coach',
       '/sources/{source}/games/{id}',
@@ -574,6 +585,7 @@ describe('library routes', () => {
       stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
       openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
       practice,
+      openingLibrary,
       coach: { agents: () => [] },
       walkthroughs,
       settings,
@@ -811,6 +823,31 @@ describe('opening routes', () => {
   })
 })
 
+describe('opening library routes', () => {
+  it('lists the openings for White and Black, with tags and trap counts', async () => {
+    const res = await app.request('/api/v1/opening-library')
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { openings: { id: string; side: string; traps: number }[] }
+    expect(body.openings.find((o) => o.id === 'italian')).toMatchObject({ side: 'white' })
+    expect(body.openings.find((o) => o.id === 'caro-kann')).toMatchObject({ side: 'black' })
+    expect(body.openings.find((o) => o.id === 'italian')!.traps).toBeGreaterThan(0)
+  })
+
+  it('shows one opening with its tree and traps, and what is played in a position', async () => {
+    const italian = (await (await app.request('/api/v1/opening-library/italian')).json()) as {
+      tree: { moves: string[]; name?: string }[]
+      traps: { bait: string; yours: boolean }[]
+    }
+    expect(italian.tree.some((n) => n.name === 'Italian Game')).toBe(true)
+    expect(italian.traps.find((t) => t.bait === 'Ke8')).toMatchObject({ yours: true })
+    const position = await app.request('/api/v1/opening-library/position?moves=e4,c6')
+    expect(position.status).toBe(200)
+    expect(((await position.json()) as { moves: { san: string }[] }).moves[0]?.san).toBe('d4')
+    expect((await app.request('/api/v1/opening-library/nope')).status).toBe(404)
+    expect((await app.request('/api/v1/opening-library/position?moves=h4,h5,h3')).status).toBe(404)
+  })
+})
+
 describe('review queue routes', () => {
   const start = (body: unknown) =>
     app.request('/api/v1/library/review-queue', {
@@ -921,6 +958,7 @@ describe('coach routes', () => {
         stats: new LiveStats({ library, sources }),
         openings: new StoredOpenings(library, async () => smallBook),
         practice,
+        openingLibrary,
         walkthroughs,
         coach: {
           agents: () => [
@@ -1045,6 +1083,7 @@ describe('local host names only', () => {
       stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
       openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
       practice,
+      openingLibrary,
       coach: { agents: () => [] },
       walkthroughs,
       settings,

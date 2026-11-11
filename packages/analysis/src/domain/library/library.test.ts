@@ -7,9 +7,11 @@ import {
   entryLines,
   LibraryCounter,
   libraryKeys,
+  libraryTree,
   lineKeys,
   openingNumbers,
   openingTags,
+  positionMoves,
   sanMoves,
   scoreFor,
   trapCandidates,
@@ -209,5 +211,39 @@ describe('which opening a trap belongs to', () => {
   it('leaves out traps before the main position or elsewhere', () => {
     expect(trapInOpening(['e4', 'e5'], italian)).toBeUndefined()
     expect(trapInOpening('d4 e5 dxe5'.split(' '), italian)).toBeUndefined()
+  })
+})
+
+describe('reading the library', () => {
+  const lines: BookLine[] = [
+    { eco: 'B10', name: 'Caro-Kann Defense', moves: 'e4 c6' },
+    { eco: 'B12', name: 'Caro-Kann Defense: Advance Variation', moves: 'e4 c6 d4 d5 e5' },
+    { eco: 'B13', name: 'Caro-Kann Defense: Exchange Variation', moves: 'e4 c6 d4 d5 exd5' },
+  ]
+  const counter = new LibraryCounter(libraryKeys([{ main: 'e4 c6', lines }]))
+  for (let i = 0; i < 3; i++) counter.add('e4 c6 d4 d5 exd5 cxd5'.split(' '), '1-0', 1000, 1000)
+  counter.add('e4 c6 d4 d5 e5 Bf5'.split(' '), '0-1', 2100, 2100)
+  const positions = Object.fromEntries(counter.positions)
+
+  it('makes a tree of the named lines, the most played first, with stats per band', () => {
+    const tree = libraryTree(lines, positions)
+    expect(tree.map((n) => [n.moves.join(' '), n.name ?? ''])).toEqual([
+      ['e4', ''],
+      ['e4 c6', 'Caro-Kann Defense'],
+      ['e4 c6 d4', ''],
+      ['e4 c6 d4 d5', ''],
+      ['e4 c6 d4 d5 exd5', 'Caro-Kann Defense: Exchange Variation'],
+      ['e4 c6 d4 d5 e5', 'Caro-Kann Defense: Advance Variation'],
+    ])
+    expect(tree[4]!.stats['under-1200']).toEqual([3, 0, 0])
+    expect(tree[5]!.stats['2000+']).toEqual([0, 0, 1])
+  })
+
+  it('tells what was played in a position, most first', () => {
+    expect(positionMoves('e4 c6 d4 d5'.split(' '), positions)?.map((m) => m.san)).toEqual([
+      'exd5',
+      'e5',
+    ])
+    expect(positionMoves(['h4'], positions)).toBeUndefined()
   })
 })

@@ -12,6 +12,7 @@ import { StoredWalkthroughs } from './adapters/coach/walkthroughs'
 import { createBookLoader } from './adapters/review/openingBook'
 import { ReviewQueue, type ReviewJob } from './adapters/review/reviewQueue'
 import { createServerReviewer, SERVER_REVIEW_NODES } from './adapters/review/serverReviewer'
+import { FileOpeningLibrary, libraryFile } from './adapters/library/openingLibrary'
 import { OpeningPractice } from './adapters/openings/practice'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
@@ -92,6 +93,9 @@ const app = createApp({
   stats: new LiveStats({ library, sources }),
   openings: new StoredOpenings(library, book),
   practice: new OpeningPractice(book, createServerReviewer(reviewing)),
+  openingLibrary: new FileOpeningLibrary(
+    libraryFile(fileURLToPath(new URL('../data/opening-library.json', import.meta.url))),
+  ),
   coach,
   walkthroughs: new StoredWalkthroughs(library, book, {
     review: createServerReviewer(reviewing),
