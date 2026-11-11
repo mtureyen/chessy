@@ -38,4 +38,12 @@ export {
 } from './domain/walkthrough'
 export { LoopAgent } from './usecases/loopAgent'
 export { writeWalkthrough } from './usecases/writeWalkthrough'
+export {
+  OPENING_GUIDE_PROMPT,
+  openingGuideText,
+  parseOpeningGuide,
+  type OpeningGuide,
+  type OpeningGuideFacts,
+} from './domain/openingGuide'
+export { writeOpeningGuide } from './usecases/writeOpeningGuide'
 export { CoachCancelledError, MAX_TOOL_ROUNDS, runToolLoop } from './usecases/runToolLoop'
