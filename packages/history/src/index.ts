@@ -95,6 +95,13 @@ export {
   type PracticeVerdict,
   type TheoryMove,
 } from './domain/openings'
+export {
+  afterReview,
+  newLine,
+  REVIEW_DAYS,
+  reviewDue,
+  type ReviewProgress,
+} from './domain/repertoire'
 export type { GameHistory } from './ports/gameHistory'
 export type { ReviewRepository, StoredReview } from './ports/reviewRepository'
 export { InMemoryReviewRepository } from './adapters/inMemoryReviewRepository'
