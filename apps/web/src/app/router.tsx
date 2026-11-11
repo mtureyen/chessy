@@ -74,6 +74,17 @@ const openingsRoute = createRoute({
   ),
 })
 
+const libraryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/training/library',
+  validateSearch: (search: Record<string, unknown>): { id?: string } =>
+    typeof search.id === 'string' && /^[a-z0-9-]{1,40}$/.test(search.id) ? { id: search.id } : {},
+  component: lazyRouteComponent(
+    () => import('@/features/training/library/LibraryPage'),
+    'LibraryPage',
+  ),
+})
+
 const statsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/stats',
@@ -99,6 +110,7 @@ const routeTree = rootRoute.addChildren([
   profileRoute,
   trainingRoute,
   openingsRoute,
+  libraryRoute,
   statsRoute,
   settingsRoute,
 ])
