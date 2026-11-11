@@ -77,3 +77,9 @@ export function trapText(trap: Trap): string {
   const trapper = trap.trapper === 'white' ? 'White' : 'Black'
   return `${where}, ${trap.baitShare}% of ${victim} players under 1600 play ${trap.bait}. ${trapper} then scores ${trap.trapperScore}%.`
 }
+
+/** A move with its number, from its half-move: "2.d4", "2...d5". */
+export function moveLabel(ply: number, san: string): string {
+  const number = Math.ceil(ply / 2)
+  return ply % 2 === 1 ? `${number}.${san}` : `${number}...${san}`
+}

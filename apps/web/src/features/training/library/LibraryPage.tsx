@@ -8,6 +8,7 @@ import { lineText } from '@/features/stats/format'
 import { Board } from '@/shared/board/Board'
 import { TrainingTabs } from '../TrainingTabs'
 import { Guide } from './Guide'
+import { LineTrainer } from './LineTrainer'
 import {
   BAND_LABELS,
   BANDS,
@@ -162,9 +163,31 @@ function OneOpening({ id }: { id: string }) {
 }
 
 function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
+  const { openingLibrary } = useServices()
   const main = opening.main.split(' ')
   const [path, setPath] = useState<string[]>(main)
   const [band, setBand] = useState<BandChoice>('all')
+  const [learning, setLearning] = useState<string[]>()
+  // The same query as the guide's section: its notes go with the moves they are about.
+  const guide = useQuery({
+    queryKey: ['opening-library', opening.id, 'guide'],
+    queryFn: () => openingLibrary.guide(opening.id),
+  })
+  if (learning) {
+    const named = opening.tree.find((n) => n.name && n.moves.join(' ') === learning.join(' '))
+    return (
+      <LineTrainer
+        line={learning}
+        side={opening.side}
+        title={named?.name ?? `${opening.name}, ${lineText(learning)}`}
+        notes={guideNotes(learning, guide.data?.moves ?? [])}
+        onExit={() => {
+          setPath(learning)
+          setLearning(undefined)
+        }}
+      />
+    )
+  }
   return (
     <>
       <section className="stats-summary" aria-label="Summary">
@@ -181,14 +204,19 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
 
       <div className="layout library-layout">
         <section className="board-column">
-          <ExplorerBoard path={path} side={opening.side} onPath={setPath} />
+          <ExplorerBoard
+            path={path}
+            side={opening.side}
+            onPath={setPath}
+            onLearn={() => setLearning(path)}
+          />
         </section>
         <aside className="panel library-panel" aria-label="What is played here">
           <Explorer path={path} side={opening.side} band={band} onBand={setBand} onPath={setPath} />
         </aside>
       </div>
 
-      <Guide opening={opening} path={path} onPath={setPath} />
+      <Guide opening={opening} path={path} onPath={setPath} onLearn={(line) => setLearning(line)} />
 
       {opening.traps.length > 0 && (
         <section className="stats-section" aria-label="Traps">
@@ -286,6 +314,19 @@ function NamedLines({
   )
 }
 
+/** The guide's notes for a line, by ply, as far as the line follows the guide's moves. */
+function guideNotes(
+  line: readonly string[],
+  moves: readonly { ply: number; san: string; note: string }[],
+): Map<number, string> {
+  const notes = new Map<number, string>()
+  for (const move of moves) {
+    if (line[move.ply - 1] !== move.san) break
+    notes.set(move.ply, move.note)
+  }
+  return notes
+}
+
 /** The variation's name without the family in front ("Caro-Kann Defense: Advance" → "Advance"). */
 function shortName(name: string, family: string): string {
   if (name === family) return 'Main line'
@@ -337,10 +378,12 @@ function ExplorerBoard({
   path,
   side,
   onPath,
+  onLearn,
 }: {
   path: string[]
   side: 'white' | 'black'
   onPath: (path: string[]) => void
+  onLearn: () => void
 }) {
   const game = useMemo(() => {
     const g = createGame()
@@ -377,6 +420,15 @@ function ExplorerBoard({
         <span className="library-card-line">
           {path.length > 0 ? lineText(path) : 'Start position'}
         </span>
+        <button
+          type="button"
+          className="library-learn"
+          onClick={onLearn}
+          disabled={path.length < 2}
+          title="Watch the moves on the board, then play them from memory"
+        >
+          Learn this line
+        </button>
       </div>
     </>
   )
