@@ -405,3 +405,90 @@ export interface LibraryFile {
   /** Per library position (book key), the moves played and their results per band. */
   positions: Record<string, PositionCounts>
 }
+
+// ---------------------------------------------------------------------------------------------
+// Reading the library
+
+/** A move in an opening's tree of named lines, with how it does in real games. */
+export interface LibraryNode {
+  /** SAN from the start. */
+  moves: string[]
+  /** The named line that ends here, if one does. */
+  name?: string
+  eco?: string
+  /** The move's games and results per band (white, draws, black), from the position before it. */
+  stats: Record<Band, [number, number, number]>
+}
+
+/** The named lines as a tree, depth first (a line's moves in the book's order), with their stats. */
+export function libraryTree(
+  lines: readonly BookLine[],
+  positions: Readonly<Record<string, PositionCounts>>,
+): LibraryNode[] {
+  const nodes = new Map<string, LibraryNode>()
+  for (const line of lines) {
+    const moves = line.moves.split(' ')
+    const keys = lineKeys(moves)
+    if (!keys) continue
+    moves.slice(0, LIBRARY_PLIES).forEach((san, i) => {
+      const path = moves.slice(0, i + 1)
+      const id = path.join(' ')
+      const node = nodes.get(id) ?? { moves: path, stats: moveStats(positions[keys[i]!]?.[san]) }
+      if (i === moves.length - 1) {
+        node.name = line.name
+        node.eco = line.eco
+      }
+      nodes.set(id, node)
+    })
+  }
+  return sortTree([...nodes.values()])
+}
+
+/** Depth first: each node right after its parent, siblings by games played. */
+function sortTree(nodes: LibraryNode[]): LibraryNode[] {
+  const children = new Map<string, LibraryNode[]>()
+  for (const node of nodes) {
+    const parent = node.moves.slice(0, -1).join(' ')
+    children.set(parent, [...(children.get(parent) ?? []), node])
+  }
+  const games = (n: LibraryNode) =>
+    Object.values(n.stats).reduce((sum, [w, d, b]) => sum + w + d + b, 0)
+  const out: LibraryNode[] = []
+  const walk = (parent: string) => {
+    const kids = (children.get(parent) ?? []).sort((a, b) => games(b) - games(a))
+    for (const kid of kids) {
+      out.push(kid)
+      walk(kid.moves.join(' '))
+    }
+  }
+  // Roots: nodes whose parent isn't in the tree (a line's first move, or past LIBRARY_PLIES).
+  const ids = new Set(nodes.map((n) => n.moves.join(' ')))
+  const roots = [...new Set(nodes.map((n) => n.moves.slice(0, -1).join(' ')))].filter(
+    (parent) => !ids.has(parent),
+  )
+  for (const root of roots) walk(root)
+  return out
+}
+
+/** A move's counts as results per band. */
+export function moveStats(move: BandCounts | undefined): Record<Band, [number, number, number]> {
+  const stats = {} as Record<Band, [number, number, number]>
+  BANDS.forEach((band, i) => {
+    stats[band] = move ? [move[i * 3]!, move[i * 3 + 1]!, move[i * 3 + 2]!] : [0, 0, 0]
+  })
+  return stats
+}
+
+/** What real games played in a position of the library, most played first; undefined if unknown. */
+export function positionMoves(
+  moves: readonly string[],
+  positions: Readonly<Record<string, PositionCounts>>,
+): { san: string; stats: Record<Band, [number, number, number]> }[] | undefined {
+  const key = lineKeys(moves)?.at(-1)
+  const counts = key === undefined ? undefined : positions[key]
+  if (!counts) return undefined
+  return Object.entries(counts)
+    .map(([san, move]) => ({ san, stats: moveStats(move), games: move.reduce((a, b) => a + b, 0) }))
+    .sort((a, b) => b.games - a.games)
+    .map(({ san, stats }) => ({ san, stats }))
+}
