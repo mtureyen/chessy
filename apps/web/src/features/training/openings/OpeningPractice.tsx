@@ -1,6 +1,7 @@
 import { createGame, type Move } from '@pawnia/chess'
 import type { OpeningBody, PracticeCheckBody } from '@pawnia/contracts'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Link } from '@tanstack/react-router'
 import { useServices } from '@/app/servicesContext'
 import { Board } from '@/shared/board/Board'
 import { useGame } from '@/shared/game/useGame'
@@ -21,7 +22,7 @@ type Feedback = { tone: 'right' | 'note' | 'wrong'; text: ReactNode }
  * by theory first, then the engine; a wrong one is taken back to try again.
  */
 export function OpeningPractice({ opening, onExit }: { opening: OpeningBody; onExit: () => void }) {
-  const { training } = useServices()
+  const { training, repertoire } = useServices()
   const table = useMemo(() => nextMoves(opening.lines), [opening.lines])
   const { game, view, update, replace } = useGame()
   const color = opening.color
@@ -32,6 +33,8 @@ export function OpeningPractice({ opening, onExit }: { opening: OpeningBody; onE
   /** A wrong try in the position on the board: its check (for the answer), and that it missed. */
   const [wrong, setWrong] = useState<PracticeCheckBody>()
   const [score, setScore] = useState({ moves: 0, firstTry: 0 })
+  /** A missed position went into the repertoire. */
+  const [keptMiss, setKeptMiss] = useState(false)
 
   const played = () => game.line().flatMap((node) => (node.move ? [node.move] : []))
   const sans = () => played().map((move) => move.san)
@@ -82,6 +85,19 @@ export function OpeningPractice({ opening, onExit }: { opening: OpeningBody; onE
         return
       }
       const firstTry = !wrong && !answer
+      if (!firstTry) {
+        // A position missed here comes back for review: the line up to the right move.
+        const label = openingLabel(opening.family, color)
+        repertoire
+          .add({
+            side: color,
+            title: `${label.charAt(0).toUpperCase()}${label.slice(1)}, missed in practice`,
+            moves: line,
+            source: 'practice',
+          })
+          .then(() => setKeptMiss(true))
+          .catch(() => undefined)
+      }
       setScore((s) => ({ moves: s.moves + 1, firstTry: s.firstTry + (firstTry ? 1 : 0) }))
       setWrong(undefined)
       setAccepted(checked)
@@ -168,6 +184,12 @@ export function OpeningPractice({ opening, onExit }: { opening: OpeningBody; onE
           )}
           {feedback && (
             <p className={`practice-feedback practice-${feedback.tone}`}>{feedback.text}</p>
+          )}
+          {keptMiss && (
+            <p className="stats-note">
+              Missed positions go into <Link to="/training/repertoire">your repertoire</Link> to
+              review.
+            </p>
           )}
         </div>
         <div className="training-actions">

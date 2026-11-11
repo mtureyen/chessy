@@ -174,6 +174,17 @@ test('practise an opening: theory goes on, a wrong move is taken back, the answe
   expect(asked.at(-1)).toEqual({ moves: ['e2e4', 'e7e5', 'b1c3', 'f8b4'], tried: 'd2d3' })
   await panel.getByRole('button', { name: 'Show the answer' }).click()
   await expect(panel).toContainText('The answer was 3.Qg4 (theory).')
+  // The missed position comes back for review.
+  await expect(panel).toContainText('Missed positions go into your repertoire')
+  const kept = await page.request.get('/api/v1/repertoire')
+  const lines = ((await kept.json()) as { lines: { title: string; moves: string[] }[] }).lines
+  expect(lines.find((l) => l.title === 'Vienna Game, missed in practice')?.moves).toEqual([
+    'e4',
+    'e5',
+    'Nc3',
+    'Bb4',
+    'Qg4',
+  ])
   await expect(panel.getByRole('status')).toHaveText(
     'Theory and your games stop here: 2 of 3 moves right at the first try.',
   )

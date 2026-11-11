@@ -45,6 +45,7 @@ import { RemoteReviewQueue } from '@/adapters/api/remoteReviewQueue'
 import { RemoteSettings } from '@/adapters/api/remoteSettings'
 import { RemoteOpeningLibrary } from '@/adapters/api/remoteOpeningLibrary'
 import { RemoteOpenings } from '@/adapters/api/remoteOpenings'
+import { RemoteRepertoire } from '@/adapters/api/remoteRepertoire'
 import { RemoteStats } from '@/adapters/api/remoteStats'
 import { createApiClient, type ApiClient } from '@/adapters/api/client'
 import { RemoteEvaluator } from '@/adapters/engine/remoteEvaluator'
@@ -106,6 +107,8 @@ export interface Services {
   reviewQueue: Pick<RemoteReviewQueue, 'status' | 'start' | 'pause' | 'resume'>
   /** The stats page's numbers: the user's own, or anyone's on a platform. */
   stats: Pick<RemoteStats, 'mine' | 'player'>
+  /** The user's repertoire: lines to keep, reviewed with growing gaps. */
+  repertoire: Pick<RemoteRepertoire, 'list' | 'add' | 'remove' | 'review'>
   /** The opening library: openings to study, their lines, real games and traps. */
   openingLibrary: Pick<
     RemoteOpeningLibrary,
@@ -232,6 +235,15 @@ export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {})
       agents: () => remoteSettings.agents(),
     },
     reviewQueue: new RemoteReviewQueue(api),
+    repertoire: (() => {
+      const repertoire = new RemoteRepertoire(api)
+      return {
+        list: () => repertoire.list(),
+        add: (line) => repertoire.add(line),
+        remove: (id) => repertoire.remove(id),
+        review: (id, passed) => repertoire.review(id, passed),
+      }
+    })(),
     openingLibrary: (() => {
       const library = new RemoteOpeningLibrary(api)
       return {
