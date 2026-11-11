@@ -105,3 +105,46 @@ test('opening library: the coach writes a guide once, and its moves go on the bo
   await section.getByRole('button', { name: '2...d5' }).click()
   await expect(page.locator('.library-nav')).toContainText('1.e4 c6 2.d4 d5')
 })
+
+test('opening library: learn a line, watching it first, then playing it from memory', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.goto('/training/library?id=caro-kann')
+  await page
+    .getByRole('region', { name: 'Named lines' })
+    .getByRole('button', { name: /^Advance Variation/ })
+    .first()
+    .click()
+  await expect(page.locator('.library-nav')).toContainText('3.e5')
+  await page.getByRole('button', { name: 'Learn this line' }).first().click()
+
+  const panel = page.getByRole('complementary', { name: 'Learn the line' })
+  await expect(panel).toContainText('Step 1 of 2: watch the line.')
+  await expect(panel.getByRole('status')).toHaveText('The start position.')
+  await panel.getByRole('button', { name: 'Next ▶' }).click()
+  await expect(panel.getByRole('status')).toHaveText('1.e4')
+  await panel.getByRole('button', { name: 'Next ▶' }).click()
+  await expect(panel.getByRole('status')).toHaveText('1...c6')
+
+  await panel.getByRole('button', { name: 'Play it yourself' }).click()
+  await expect(panel).toContainText('Step 2 of 2')
+  const board = await boardDriver(page)
+  board.setFlipped(true) // Black at the bottom
+  /** A move once it's the user's turn (the board may still be moving the other side's piece). */
+  const move = async (from: string, to: string, expected: RegExp) => {
+    await expect(panel.getByRole('status')).toHaveText(/^Your move/)
+    await expect(async () => {
+      await board.drag(from, to)
+      await expect(panel.locator('.practice-feedback')).toHaveText(expected, { timeout: 500 })
+    }).toPass({ timeout: 5000 })
+  }
+  await move('c7', 'c6', /^1\.\.\.c6, right\./)
+  await move('g7', 'g6', /Not the line’s move\. Try again\./)
+  await move('d7', 'd5', /^2\.\.\.d5, right\./)
+  await expect(panel.getByRole('status')).toHaveText(
+    'Line done: 1 of 2 moves right at the first try.',
+  )
+  await panel.getByRole('button', { name: 'Back to the opening' }).click()
+  await expect(page.locator('.library-nav')).toContainText('3.e5')
+})

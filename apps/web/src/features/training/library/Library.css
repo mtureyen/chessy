@@ -251,3 +251,32 @@
 .library-move[aria-current='true'] {
   color: var(--accent);
 }
+
+.library-learn {
+  padding: 0.3rem 0.8rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.library-learn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.library-nav .library-learn {
+  margin-left: auto;
+}
+
+.library-guide .library-learn {
+  margin-bottom: 0.5rem;
+}
+
+.line-trainer-move {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+}

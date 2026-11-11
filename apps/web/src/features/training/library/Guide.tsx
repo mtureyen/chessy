@@ -2,12 +2,7 @@ import type { LibraryOpeningBody, OpeningGuideBody } from '@pawnia/contracts'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useServices } from '@/app/servicesContext'
 import { Markdown } from '@/features/coach/Markdown'
-
-/** "2.d4", "2...d5": a move with its number, from its half-move. */
-function moveLabel(ply: number, san: string): string {
-  const number = Math.ceil(ply / 2)
-  return ply % 2 === 1 ? `${number}.${san}` : `${number}...${san}`
-}
+import { moveLabel } from './format'
 
 /**
  * The coach's study guide of an opening: the story and name, the ideas, what opponents try, and
@@ -17,10 +12,13 @@ export function Guide({
   opening,
   path,
   onPath,
+  onLearn,
 }: {
   opening: LibraryOpeningBody
   path: string[]
   onPath: (path: string[]) => void
+  /** Learn the guide's line on the board. */
+  onLearn: (line: string[]) => void
 }) {
   const { openingLibrary } = useServices()
   const client = useQueryClient()
@@ -66,6 +64,7 @@ export function Guide({
       guide={guide}
       path={path}
       onPath={onPath}
+      onLearn={() => onLearn(guide.moves.map((m) => m.san))}
       onRewrite={() => write.mutate(true)}
       writing={writing}
       error={error}
@@ -77,6 +76,7 @@ function WrittenGuide({
   guide,
   path,
   onPath,
+  onLearn,
   onRewrite,
   writing,
   error,
@@ -84,6 +84,7 @@ function WrittenGuide({
   guide: OpeningGuideBody
   path: string[]
   onPath: (path: string[]) => void
+  onLearn: () => void
   onRewrite: () => void
   writing: boolean
   error: Error | null
@@ -103,6 +104,9 @@ function WrittenGuide({
         </div>
         <div>
           <h3>The main line, move by move</h3>
+          <button type="button" className="library-learn" onClick={onLearn}>
+            Learn this line
+          </button>
           <ol className="library-guide-moves">
             {guide.moves.map((move) => {
               const to = sans.slice(0, move.ply)
