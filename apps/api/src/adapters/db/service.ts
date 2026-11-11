@@ -5,6 +5,7 @@ import type {
   GameSummary,
   PuzzleProgress,
   ReviewedMoveRow,
+  ReviewProgress,
   StoredReview,
 } from '@pawnia/history'
 import type { GameRename, LibraryGame, Profile } from '@pawnia/library'
@@ -18,6 +19,7 @@ import { PostgresTrainingStore } from './trainingStore'
 import { PostgresTryStore, type StoredTry } from './tryStore'
 import { PostgresWalkthroughStore, type StoredWalkthrough } from './walkthroughStore'
 import { PostgresGuideStore } from './guideStore'
+import { PostgresRepertoireStore, type StoredRepertoireLine } from './repertoireStore'
 
 interface Stores {
   name: string
@@ -27,6 +29,7 @@ interface Stores {
   history: PostgresGameHistory
   walkthroughs: PostgresWalkthroughStore
   guides: PostgresGuideStore
+  repertoire: PostgresRepertoireStore
   training: PostgresTrainingStore
   tries: PostgresTryStore
 }
@@ -89,6 +92,26 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
 
   async findReview(line: GameLine): Promise<StoredReview | undefined> {
     return (await this.connected()).reviews.find(line)
+  }
+
+  async repertoireLines(): Promise<StoredRepertoireLine[]> {
+    return (await this.connected()).repertoire.list()
+  }
+
+  async repertoireLine(id: string): Promise<StoredRepertoireLine | undefined> {
+    return (await this.connected()).repertoire.find(id)
+  }
+
+  async addRepertoireLine(line: StoredRepertoireLine): Promise<StoredRepertoireLine> {
+    return (await this.connected()).repertoire.add(line)
+  }
+
+  async removeRepertoireLine(id: string): Promise<boolean> {
+    return (await this.connected()).repertoire.remove(id)
+  }
+
+  async saveRepertoireProgress(id: string, progress: ReviewProgress): Promise<void> {
+    await (await this.connected()).repertoire.saveProgress(id, progress)
   }
 
   async findGuide(openingId: string): Promise<OpeningGuideBody | undefined> {
@@ -155,6 +178,7 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
         history: new PostgresGameHistory(db),
         walkthroughs: new PostgresWalkthroughStore(db),
         guides: new PostgresGuideStore(db),
+        repertoire: new PostgresRepertoireStore(db),
         training: new PostgresTrainingStore(db),
         tries: new PostgresTryStore(db),
       }))

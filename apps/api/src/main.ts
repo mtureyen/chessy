@@ -15,6 +15,7 @@ import { createServerReviewer, SERVER_REVIEW_NODES } from './adapters/review/ser
 import { FileOpeningLibrary, libraryFile } from './adapters/library/openingLibrary'
 import { OpeningGuides } from './adapters/library/openingGuides'
 import { OpeningPractice } from './adapters/openings/practice'
+import { StoredRepertoire } from './adapters/repertoire/storedRepertoire'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
 import { StoredTraining } from './adapters/training/storedTraining'
@@ -99,6 +100,7 @@ const app = createApp({
   practice: new OpeningPractice(book, createServerReviewer(reviewing)),
   openingLibrary: new FileOpeningLibrary(libraryData),
   guides: new OpeningGuides(libraryData, library),
+  repertoire: new StoredRepertoire(library),
   coach,
   walkthroughs: new StoredWalkthroughs(library, book, {
     review: createServerReviewer(reviewing),

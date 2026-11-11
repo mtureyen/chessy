@@ -9,6 +9,7 @@ import { PostgresGameRepository } from './gameRepository'
 import { PostgresReviewRepository } from './reviewRepository'
 import { PostgresTrainingStore, progressKey } from './trainingStore'
 import { PostgresGuideStore } from './guideStore'
+import { PostgresRepertoireStore } from './repertoireStore'
 import { PostgresTryStore } from './tryStore'
 import { PostgresWalkthroughStore } from './walkthroughStore'
 
@@ -18,7 +19,7 @@ const shared = openDatabase('pglite:memory')
 async function fresh() {
   const { db } = await shared
   await db.execute(
-    sql`truncate games, reviews, review_moves, walkthroughs, training_progress, coach_tries, opening_guides`,
+    sql`truncate games, reviews, review_moves, walkthroughs, training_progress, coach_tries, opening_guides, repertoire_lines`,
   )
   return db
 }
@@ -137,6 +138,32 @@ describe('PostgresWalkthroughStore', () => {
 
     await db.execute(sql`truncate reviews cascade`)
     expect(await store.find(stored.line, 'white')).toBeUndefined()
+  })
+})
+
+describe('PostgresRepertoireStore', () => {
+  it('keeps a line once per side and moves, with its review progress', async () => {
+    const store = new PostgresRepertoireStore(await fresh())
+    const line = {
+      id: '0b8f6a52-58f7-4f4b-9a39-4b1a7b1a1c11',
+      side: 'black' as const,
+      title: 'Caro-Kann Defense',
+      moves: ['e4', 'c6'],
+      openingId: 'caro-kann',
+      source: 'library' as const,
+      level: 0,
+      dueAt: '2026-11-11T12:00:00.000Z',
+      addedAt: '2026-11-11T12:00:00.000Z',
+    }
+    expect(await store.add(line)).toEqual(line)
+    expect(await store.add({ ...line, id: '6f4b9d7e-0c1d-4a1e-8f53-2c1d3b5a7e90' })).toEqual(line)
+    await store.saveProgress(line.id, { level: 2, dueAt: '2026-11-14T12:00:00.000Z' })
+    expect(await store.find(line.id)).toMatchObject({ level: 2, dueAt: '2026-11-14T12:00:00.000Z' })
+    // The same moves for the other side are another line.
+    await store.add({ ...line, id: '9c2e1f3a-4b5d-4c6e-8f70-1a2b3c4d5e6f', side: 'white' })
+    expect(await store.list()).toHaveLength(2)
+    expect(await store.remove(line.id)).toBe(true)
+    expect(await store.remove(line.id)).toBe(false)
   })
 })
 
