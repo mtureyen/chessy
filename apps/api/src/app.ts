@@ -10,7 +10,10 @@ import type { McpEndpoint } from './adapters/coach/mcpEndpoint'
 import type { SettingsService } from './adapters/settings/settingsService'
 import { onlyLocalHostNames } from './http/local'
 import type { ReviewQueueService } from './adapters/review/reviewQueueService'
-import type { OpeningLibraryService } from './adapters/library/openingLibraryService'
+import type {
+  OpeningGuideService,
+  OpeningLibraryService,
+} from './adapters/library/openingLibraryService'
 import type { OpeningService } from './adapters/openings/openingService'
 import type { OpeningPractice } from './adapters/openings/practice'
 import type { StatsService } from './adapters/stats/statsService'
@@ -51,6 +54,8 @@ export interface AppDeps {
   practice: Pick<OpeningPractice, 'check'>
   /** The opening library: openings to study. */
   openingLibrary: OpeningLibraryService
+  /** The coach's study guides of the library's openings. */
+  guides: OpeningGuideService
   /** The coach's agents (they follow the settings), the default first; none: the coach is off. */
   coach: CoachDirectory
   /** The coach's walkthroughs of reviewed games. */
@@ -81,6 +86,7 @@ export function createApp({
   openings,
   practice,
   openingLibrary,
+  guides,
   coach,
   walkthroughs,
   mcp,
@@ -100,7 +106,7 @@ export function createApp({
     .route('/', trainingRoutes({ training }))
     .route('/', statsRoutes({ stats }))
     .route('/', openingRoutes({ openings, practice }))
-    .route('/', openingLibraryRoutes({ library: openingLibrary }))
+    .route('/', openingLibraryRoutes({ library: openingLibrary, guides, coach }))
     .route('/', coachRoutes({ coach, walkthroughs }))
     .route('/', settingsRoutes({ settings }))
 

@@ -32,6 +32,7 @@ import {
 import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/service'
 import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review/reviewQueueService'
 import { FileOpeningLibrary, libraryFile } from './adapters/library/openingLibrary'
+import { OpeningGuides } from './adapters/library/openingGuides'
 import { OpeningPractice } from './adapters/openings/practice'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
@@ -178,9 +179,11 @@ const smallBook = createOpeningBook(
 )
 
 /** The checked-in library file. */
-const openingLibrary = new FileOpeningLibrary(
-  libraryFile(fileURLToPath(new URL('../data/opening-library.json', import.meta.url))),
+const libraryData = libraryFile(
+  fileURLToPath(new URL('../data/opening-library.json', import.meta.url)),
 )
+const openingLibrary = new FileOpeningLibrary(libraryData)
+const guides = new OpeningGuides(libraryData, library)
 
 /** Practice against the small book, with a reviewer that calls every move off theory a mistake. */
 const practice = new OpeningPractice(
@@ -237,6 +240,7 @@ const app = createApp({
   openings: new StoredOpenings(library, async () => smallBook),
   practice,
   openingLibrary,
+  guides,
 })
 
 describe('api', () => {
@@ -278,6 +282,7 @@ describe('api', () => {
       '/opening-library',
       '/opening-library/position',
       '/opening-library/{id}',
+      '/opening-library/{id}/guide',
       '/profile',
       '/settings/coach',
       '/sources/{source}/games/{id}',
@@ -586,6 +591,7 @@ describe('library routes', () => {
       openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
       practice,
       openingLibrary,
+      guides,
       coach: { agents: () => [] },
       walkthroughs,
       settings,
@@ -848,6 +854,85 @@ describe('opening library routes', () => {
   })
 })
 
+describe('opening guide routes', () => {
+  /** An app whose only coach answers with these texts, one per request. */
+  const makeGuideApp = (replies: string[]) => {
+    const { client, requests } = scriptedClient(replies.map((text) => ({ text })))
+    const agent = new LoopAgent({
+      id: 'scripted',
+      label: 'Scripted coach',
+      client,
+      tools: [],
+      conversations: new InMemoryConversationStore(),
+    })
+    const target = createApp({
+      engine,
+      humanMoves,
+      library,
+      reviewQueue,
+      training,
+      coach: { agents: () => [agent] },
+      walkthroughs,
+      settings,
+      version: '9.9.9',
+      startedAt: 1_000,
+      sources,
+      stats: new LiveStats({ library, sources }),
+      openings: new StoredOpenings(library, async () => smallBook),
+      practice,
+      openingLibrary,
+      guides,
+    })
+    return { guideApp: target, requests }
+  }
+  const write = (target: ReturnType<typeof createApp>, id: string, body = {}) =>
+    target.request(`/api/v1/opening-library/${id}/guide`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+  it('writes a guide from the library’s facts once, keeps it, and writes again on request', async () => {
+    const facts = await guides.facts('scotch')
+    expect(facts?.line[0]).toEqual({ ply: 1, move: '1.e4' })
+    expect(facts?.line[1]).toEqual({ ply: 2, move: '1...e5' })
+    const guide = (story: string) =>
+      JSON.stringify({
+        story,
+        ideas: 'Open the centre early.',
+        opponents: 'Most take on d4.',
+        moves: facts!.line.map(({ ply }) => ({ ply, note: `Move ${ply}.` })),
+      })
+    const { guideApp, requests } = makeGuideApp([
+      guide('Named after a match by Edinburgh.'),
+      guide('Again.'),
+    ])
+    expect((await guideApp.request('/api/v1/opening-library/scotch/guide')).status).toBe(404)
+
+    const first = await write(guideApp, 'scotch')
+    expect(first.status).toBe(200)
+    const body = (await first.json()) as { story: string; moves: { ply: number; san: string }[] }
+    expect(body.story).toBe('Named after a match by Edinburgh.')
+    expect(body.moves.slice(0, 5).map((m) => m.san)).toEqual(['e4', 'e5', 'Nf3', 'Nc6', 'd4'])
+    // The facts went to the coach, without tools.
+    expect(JSON.stringify(requests[0])).toContain('Scotch Game')
+
+    expect(await (await write(guideApp, 'scotch')).json()).toMatchObject({ story: body.story })
+    expect(requests).toHaveLength(1)
+    const kept = await guideApp.request('/api/v1/opening-library/scotch/guide')
+    expect(await kept.json()).toMatchObject({ agent: 'Scripted coach' })
+    expect(await (await write(guideApp, 'scotch', { regenerate: true })).json()).toMatchObject({
+      story: 'Again.',
+    })
+  })
+
+  it('answers 404 for an unknown opening and 502 for an unusable answer', async () => {
+    const { guideApp } = makeGuideApp(['no json', 'still no json'])
+    expect((await write(guideApp, 'nowhere')).status).toBe(404)
+    expect((await write(guideApp, 'dutch')).status).toBe(502)
+  })
+})
+
 describe('review queue routes', () => {
   const start = (body: unknown) =>
     app.request('/api/v1/library/review-queue', {
@@ -959,6 +1044,7 @@ describe('coach routes', () => {
         openings: new StoredOpenings(library, async () => smallBook),
         practice,
         openingLibrary,
+        guides,
         walkthroughs,
         coach: {
           agents: () => [
@@ -1084,6 +1170,7 @@ describe('local host names only', () => {
       openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
       practice,
       openingLibrary,
+      guides,
       coach: { agents: () => [] },
       walkthroughs,
       settings,

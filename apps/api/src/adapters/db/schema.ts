@@ -1,5 +1,5 @@
 import type { GameReview } from '@pawnia/analysis'
-import type { CoachTryBody, CoachWalkthroughBody } from '@pawnia/contracts'
+import type { CoachTryBody, CoachWalkthroughBody, OpeningGuideBody } from '@pawnia/contracts'
 import type { LibraryGame, Profile } from '@pawnia/library'
 import { sql } from 'drizzle-orm'
 import {
@@ -149,4 +149,11 @@ export const profiles = pgTable('profiles', {
   displayName: text('display_name').notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
   data: json<Profile>('data').notNull(),
+})
+
+/** The coach's study guide of an opening of the library: written once, kept until asked again. */
+export const openingGuides = pgTable('opening_guides', {
+  openingId: text('opening_id').primaryKey(),
+  writtenAt: timestamp('written_at', { withTimezone: true }).notNull(),
+  data: json<OpeningGuideBody>('data').notNull(),
 })
