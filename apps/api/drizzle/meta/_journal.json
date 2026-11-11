@@ -50,6 +50,13 @@
       "when": 1794419981298,
       "tag": "0006_opening_guides",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794425480143,
+      "tag": "0007_repertoire",
+      "breakpoints": true
     }
   ]
 }

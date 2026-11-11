@@ -33,6 +33,7 @@ import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/s
 import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review/reviewQueueService'
 import { FileOpeningLibrary, libraryFile } from './adapters/library/openingLibrary'
 import { OpeningGuides } from './adapters/library/openingGuides'
+import { StoredRepertoire } from './adapters/repertoire/storedRepertoire'
 import { OpeningPractice } from './adapters/openings/practice'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
@@ -184,6 +185,7 @@ const libraryData = libraryFile(
 )
 const openingLibrary = new FileOpeningLibrary(libraryData)
 const guides = new OpeningGuides(libraryData, library)
+const repertoire = new StoredRepertoire(library, () => new Date('2026-11-11T12:00:00.000Z'))
 
 /** Practice against the small book, with a reviewer that calls every move off theory a mistake. */
 const practice = new OpeningPractice(
@@ -241,6 +243,7 @@ const app = createApp({
   practice,
   openingLibrary,
   guides,
+  repertoire,
 })
 
 describe('api', () => {
@@ -284,6 +287,9 @@ describe('api', () => {
       '/opening-library/{id}',
       '/opening-library/{id}/guide',
       '/profile',
+      '/repertoire',
+      '/repertoire/{id}',
+      '/repertoire/{id}/reviews',
       '/settings/coach',
       '/sources/{source}/games/{id}',
       '/sources/{source}/users/{username}',
@@ -592,6 +598,7 @@ describe('library routes', () => {
       practice,
       openingLibrary,
       guides,
+      repertoire,
       coach: { agents: () => [] },
       walkthroughs,
       settings,
@@ -882,6 +889,7 @@ describe('opening guide routes', () => {
       practice,
       openingLibrary,
       guides,
+      repertoire,
     })
     return { guideApp: target, requests }
   }
@@ -930,6 +938,59 @@ describe('opening guide routes', () => {
     const { guideApp } = makeGuideApp(['no json', 'still no json'])
     expect((await write(guideApp, 'nowhere')).status).toBe(404)
     expect((await write(guideApp, 'dutch')).status).toBe(502)
+  })
+})
+
+describe('repertoire routes', () => {
+  const add = (body: object) =>
+    app.request('/api/v1/repertoire', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+  it('keeps lines, once each, and moves them on as they are reviewed', async () => {
+    const res = await add({
+      side: 'black',
+      title: 'Caro-Kann Defense: Advance Variation',
+      moves: ['e4', 'c6', 'd4', 'd5', 'e5'],
+      openingId: 'caro-kann',
+    })
+    expect(res.status).toBe(200)
+    const { line } = (await res.json()) as { line: { id: string; due: boolean; level: number } }
+    expect(line).toMatchObject({ due: true, level: 0, source: 'library' })
+    // The same line in UCI is the same line.
+    const again = await add({
+      side: 'black',
+      title: 'x',
+      moves: ['e2e4', 'c7c6', 'd2d4', 'd7d5', 'e4e5'],
+    })
+    expect(((await again.json()) as { line: { id: string } }).line.id).toBe(line.id)
+
+    const review = (passed: boolean) =>
+      app.request(`/api/v1/repertoire/${line.id}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passed }),
+      })
+    expect(await (await review(true)).json()).toMatchObject({
+      line: { level: 1, due: false, inDays: 1 },
+    })
+    expect(await (await review(false)).json()).toMatchObject({ line: { level: 0, inDays: 1 } })
+
+    const list = (await (await app.request('/api/v1/repertoire')).json()) as {
+      lines: { id: string }[]
+    }
+    expect(list.lines.map((l) => l.id)).toContain(line.id)
+    const removed = await app.request(`/api/v1/repertoire/${line.id}`, { method: 'DELETE' })
+    expect(removed.status).toBe(200)
+    expect((await app.request(`/api/v1/repertoire/${line.id}`, { method: 'DELETE' })).status).toBe(
+      404,
+    )
+  })
+
+  it('refuses an illegal line', async () => {
+    expect((await add({ side: 'white', title: 'x', moves: ['e4', 'e4'] })).status).toBe(400)
   })
 })
 
@@ -1045,6 +1106,7 @@ describe('coach routes', () => {
         practice,
         openingLibrary,
         guides,
+        repertoire,
         walkthroughs,
         coach: {
           agents: () => [
@@ -1171,6 +1233,7 @@ describe('local host names only', () => {
       practice,
       openingLibrary,
       guides,
+      repertoire,
       coach: { agents: () => [] },
       walkthroughs,
       settings,

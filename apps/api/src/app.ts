@@ -16,6 +16,7 @@ import type {
 } from './adapters/library/openingLibraryService'
 import type { OpeningService } from './adapters/openings/openingService'
 import type { OpeningPractice } from './adapters/openings/practice'
+import type { RepertoireService } from './adapters/repertoire/repertoireService'
 import type { StatsService } from './adapters/stats/statsService'
 import type { TrainingService } from './adapters/training/trainingService'
 import type { LibraryService } from './adapters/db/libraryService'
@@ -31,6 +32,7 @@ import { settingsRoutes } from './routes/v1/settings'
 import { sourceRoutes } from './routes/v1/sources'
 import { openingLibraryRoutes } from './routes/v1/openingLibrary'
 import { openingRoutes } from './routes/v1/openings'
+import { repertoireRoutes } from './routes/v1/repertoire'
 import { statsRoutes } from './routes/v1/stats'
 import { trainingRoutes } from './routes/v1/training'
 
@@ -56,6 +58,8 @@ export interface AppDeps {
   openingLibrary: OpeningLibraryService
   /** The coach's study guides of the library's openings. */
   guides: OpeningGuideService
+  /** The user's repertoire: lines to keep, reviewed with growing gaps. */
+  repertoire: RepertoireService
   /** The coach's agents (they follow the settings), the default first; none: the coach is off. */
   coach: CoachDirectory
   /** The coach's walkthroughs of reviewed games. */
@@ -87,6 +91,7 @@ export function createApp({
   practice,
   openingLibrary,
   guides,
+  repertoire,
   coach,
   walkthroughs,
   mcp,
@@ -107,6 +112,7 @@ export function createApp({
     .route('/', statsRoutes({ stats }))
     .route('/', openingRoutes({ openings, practice }))
     .route('/', openingLibraryRoutes({ library: openingLibrary, guides, coach }))
+    .route('/', repertoireRoutes({ repertoire }))
     .route('/', coachRoutes({ coach, walkthroughs }))
     .route('/', settingsRoutes({ settings }))
 

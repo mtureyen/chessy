@@ -157,3 +157,22 @@ export const openingGuides = pgTable('opening_guides', {
   writtenAt: timestamp('written_at', { withTimezone: true }).notNull(),
   data: json<OpeningGuideBody>('data').notNull(),
 })
+
+/** The user's repertoire: lines to keep, each with where it stands in its reviews. */
+export const repertoireLines = pgTable(
+  'repertoire_lines',
+  {
+    id: text('id').primaryKey(),
+    side: text('side').notNull(),
+    title: text('title').notNull(),
+    /** SAN from the start, space-separated. */
+    moves: text('moves').notNull(),
+    openingId: text('opening_id'),
+    /** library or practice. */
+    source: text('source').notNull(),
+    level: integer('level').notNull(),
+    dueAt: timestamp('due_at', { withTimezone: true }).notNull(),
+    addedAt: timestamp('added_at', { withTimezone: true }).notNull(),
+  },
+  (t) => [uniqueIndex('repertoire_lines_side_moves').on(t.side, t.moves)],
+)
