@@ -21,7 +21,7 @@ import { createRouter } from '../../http/router'
 const KEEP_ALIVE_MS = 15_000
 
 /** The wanted agent, or the first available one; what is wrong when there is none. */
-async function readyAgent(
+export async function readyAgent(
   agents: CoachAgent[],
   wanted: string | undefined,
 ): Promise<

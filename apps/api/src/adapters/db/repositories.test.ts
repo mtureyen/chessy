@@ -8,6 +8,7 @@ import { PostgresGameHistory } from './gameHistory'
 import { PostgresGameRepository } from './gameRepository'
 import { PostgresReviewRepository } from './reviewRepository'
 import { PostgresTrainingStore, progressKey } from './trainingStore'
+import { PostgresGuideStore } from './guideStore'
 import { PostgresTryStore } from './tryStore'
 import { PostgresWalkthroughStore } from './walkthroughStore'
 
@@ -17,7 +18,7 @@ const shared = openDatabase('pglite:memory')
 async function fresh() {
   const { db } = await shared
   await db.execute(
-    sql`truncate games, reviews, review_moves, walkthroughs, training_progress, coach_tries`,
+    sql`truncate games, reviews, review_moves, walkthroughs, training_progress, coach_tries, opening_guides`,
   )
   return db
 }
@@ -136,6 +137,25 @@ describe('PostgresWalkthroughStore', () => {
 
     await db.execute(sql`truncate reviews cascade`)
     expect(await store.find(stored.line, 'white')).toBeUndefined()
+  })
+})
+
+describe('PostgresGuideStore', () => {
+  it('keeps one guide per opening, the newest', async () => {
+    const store = new PostgresGuideStore(await fresh())
+    const guide = {
+      story: 'Old story.',
+      ideas: 'Ideas.',
+      opponents: 'Opponents.',
+      moves: [{ ply: 1, san: 'e4', note: 'The centre.' }],
+      agent: 'Scripted coach',
+      writtenAt: '2026-11-11T10:00:00.000Z',
+    }
+    expect(await store.find('caro-kann')).toBeUndefined()
+    await store.save('caro-kann', guide)
+    await store.save('caro-kann', { ...guide, story: 'New story.' })
+    expect(await store.find('caro-kann')).toEqual({ ...guide, story: 'New story.' })
+    expect(await store.find('french')).toBeUndefined()
   })
 })
 

@@ -152,3 +152,77 @@ export const libraryPositionRoute = createRoute({
     404: problem('The position is not in the library'),
   },
 })
+
+export const OpeningGuideSchema = z
+  .object({
+    /** Where the name comes from and the history (Markdown). */
+    story: z.string(),
+    /** The plans, structures and piece placement for the opening's side (Markdown). */
+    ideas: z.string(),
+    /** What the other side tries and how to handle it, with the traps (Markdown). */
+    opponents: z.string(),
+    /** The main line, move by move. */
+    moves: z.array(
+      z.object({
+        ply: z.number().int(),
+        san: z.string(),
+        note: z.string(),
+      }),
+    ),
+    agent: z.string().openapi({ description: 'The coach that wrote it' }),
+    writtenAt: z.string().datetime(),
+  })
+  .openapi('OpeningGuide')
+
+export type OpeningGuideBody = z.infer<typeof OpeningGuideSchema>
+
+const guideParams = z.object({ id: z.string().regex(/^[a-z0-9-]{1,40}$/) })
+
+export const openingGuideRoute = createRoute({
+  method: 'get',
+  path: '/opening-library/{id}/guide',
+  tags: ['openings'],
+  summary: 'The coach’s study guide of an opening, if one was written',
+  request: { params: guideParams },
+  responses: {
+    200: {
+      description: 'The guide',
+      content: { 'application/json': { schema: OpeningGuideSchema } },
+    },
+    404: problem('No such opening, or no guide written yet'),
+    503: problem('No game database on this server'),
+  },
+})
+
+export const writeOpeningGuideRoute = createRoute({
+  method: 'post',
+  path: '/opening-library/{id}/guide',
+  tags: ['openings'],
+  summary: 'Has the coach write an opening’s study guide (kept; written once unless asked again)',
+  description:
+    'The story and name, the ideas, what opponents try, and a note per move of the main line, written from the library’s facts with no tools. Costs one model turn with the Claude API.',
+  request: {
+    params: guideParams,
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            agent: z.string().max(50).optional(),
+            /** Write it again even when one is kept. */
+            regenerate: z.boolean().optional(),
+          }),
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: 'The guide',
+      content: { 'application/json': { schema: OpeningGuideSchema } },
+    },
+    404: problem('No such opening, or no such agent'),
+    502: problem('The coach gave no usable guide'),
+    503: problem('No coach available, or no game database'),
+  },
+})

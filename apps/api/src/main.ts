@@ -13,6 +13,7 @@ import { createBookLoader } from './adapters/review/openingBook'
 import { ReviewQueue, type ReviewJob } from './adapters/review/reviewQueue'
 import { createServerReviewer, SERVER_REVIEW_NODES } from './adapters/review/serverReviewer'
 import { FileOpeningLibrary, libraryFile } from './adapters/library/openingLibrary'
+import { OpeningGuides } from './adapters/library/openingGuides'
 import { OpeningPractice } from './adapters/openings/practice'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
@@ -81,6 +82,9 @@ const reviewQueue = new ReviewQueue({
 // A run the last shutdown interrupted goes on; without a database there is none to go on with.
 reviewQueue.restore().catch((error: unknown) => console.error('Review queue:', error))
 const sources = createSources(config)
+const libraryData = libraryFile(
+  fileURLToPath(new URL('../data/opening-library.json', import.meta.url)),
+)
 const app = createApp({
   version: pkg.version,
   startedAt: Date.now(),
@@ -93,9 +97,8 @@ const app = createApp({
   stats: new LiveStats({ library, sources }),
   openings: new StoredOpenings(library, book),
   practice: new OpeningPractice(book, createServerReviewer(reviewing)),
-  openingLibrary: new FileOpeningLibrary(
-    libraryFile(fileURLToPath(new URL('../data/opening-library.json', import.meta.url))),
-  ),
+  openingLibrary: new FileOpeningLibrary(libraryData),
+  guides: new OpeningGuides(libraryData, library),
   coach,
   walkthroughs: new StoredWalkthroughs(library, book, {
     review: createServerReviewer(reviewing),

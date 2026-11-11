@@ -1,3 +1,4 @@
+import type { OpeningGuideBody } from '@pawnia/contracts'
 import type {
   GameHistory,
   GameLine,
@@ -16,6 +17,7 @@ import { PostgresReviewRepository } from './reviewRepository'
 import { PostgresTrainingStore } from './trainingStore'
 import { PostgresTryStore, type StoredTry } from './tryStore'
 import { PostgresWalkthroughStore, type StoredWalkthrough } from './walkthroughStore'
+import { PostgresGuideStore } from './guideStore'
 
 interface Stores {
   name: string
@@ -24,6 +26,7 @@ interface Stores {
   profiles: PostgresProfileStore
   history: PostgresGameHistory
   walkthroughs: PostgresWalkthroughStore
+  guides: PostgresGuideStore
   training: PostgresTrainingStore
   tries: PostgresTryStore
 }
@@ -88,6 +91,14 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
     return (await this.connected()).reviews.find(line)
   }
 
+  async findGuide(openingId: string): Promise<OpeningGuideBody | undefined> {
+    return (await this.connected()).guides.find(openingId)
+  }
+
+  async saveGuide(openingId: string, guide: OpeningGuideBody): Promise<void> {
+    await (await this.connected()).guides.save(openingId, guide)
+  }
+
   async findWalkthrough(line: GameLine, side: string): Promise<StoredWalkthrough | undefined> {
     return (await this.connected()).walkthroughs.find(line, side)
   }
@@ -143,6 +154,7 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
         profiles: new PostgresProfileStore(db),
         history: new PostgresGameHistory(db),
         walkthroughs: new PostgresWalkthroughStore(db),
+        guides: new PostgresGuideStore(db),
         training: new PostgresTrainingStore(db),
         tries: new PostgresTryStore(db),
       }))

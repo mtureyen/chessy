@@ -43,6 +43,13 @@
       "when": 1794345991262,
       "tag": "0005_coach_tries",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794419981298,
+      "tag": "0006_opening_guides",
+      "breakpoints": true
     }
   ]
 }

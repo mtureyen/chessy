@@ -1,4 +1,10 @@
-import type { LibraryOpeningBody, LibraryPositionBody, OpeningLibraryBody } from '@pawnia/contracts'
+import type { CancelSignal, CoachAgent } from '@pawnia/coach'
+import type {
+  LibraryOpeningBody,
+  LibraryPositionBody,
+  OpeningGuideBody,
+  OpeningLibraryBody,
+} from '@pawnia/contracts'
 
 // Types only: app.ts (and through it the web app's typed client) sees this file, not the code
 // behind it.
@@ -10,4 +16,16 @@ export interface OpeningLibraryService {
   opening(id: string): Promise<LibraryOpeningBody | undefined>
   /** Undefined for a position the library doesn't have (or illegal moves). */
   position(moves: readonly string[]): Promise<LibraryPositionBody | undefined>
+}
+
+/** The coach's study guides of the library's openings, as the routes see them. */
+export interface OpeningGuideService {
+  /** The kept guide. Throws when there is no database. */
+  find(openingId: string): Promise<OpeningGuideBody | undefined>
+  /** Writes and keeps it; undefined for an opening the library doesn't have. */
+  write(
+    openingId: string,
+    agent: CoachAgent,
+    signal?: CancelSignal,
+  ): Promise<OpeningGuideBody | undefined>
 }
