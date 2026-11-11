@@ -13,6 +13,9 @@ export function TrainingTabs() {
       <Link to="/training/library" search={{}} activeProps={{ 'aria-current': 'page' }}>
         Opening library
       </Link>
+      <Link to="/training/repertoire" activeProps={{ 'aria-current': 'page' }}>
+        My repertoire
+      </Link>
     </nav>
   )
 }

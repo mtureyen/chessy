@@ -280,3 +280,51 @@
   font-size: 1.05rem;
   font-weight: 600;
 }
+
+/* The repertoire: a line per row with its state and actions. */
+.repertoire-line {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1.2fr) minmax(8rem, 1.6fr) 6rem auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.repertoire-line .library-chip {
+  margin-left: 0.4rem;
+}
+
+.repertoire-due {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.repertoire-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.repertoire-actions button {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+@media (max-width: 40rem) {
+  .repertoire-line {
+    grid-template-columns: 1fr auto;
+  }
+
+  .repertoire-line .library-card-line {
+    grid-column: 1 / -1;
+  }
+}
+
+.repertoire-start {
+  align-self: flex-start;
+  padding: 0.5rem 1.2rem;
+}

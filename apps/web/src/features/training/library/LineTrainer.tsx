@@ -1,5 +1,5 @@
 import { createGame, type Move } from '@pawnia/chess'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { lineText } from '@/features/stats/format'
 import { Board } from '@/shared/board/Board'
 import { moveLabel } from './format'
@@ -19,6 +19,11 @@ export function LineTrainer({
   title,
   notes,
   onExit,
+  start = 'watch',
+  exitLabel = 'Back to the opening',
+  onDone,
+  onNext,
+  onAdd,
 }: {
   line: string[]
   side: 'white' | 'black'
@@ -26,8 +31,17 @@ export function LineTrainer({
   /** The coach's note per ply, where the guide has one. */
   notes: ReadonlyMap<number, string>
   onExit: () => void
+  /** Begin by playing (a review) instead of watching. */
+  start?: 'watch' | 'play'
+  exitLabel?: string
+  /** Hears how a run through the line went, once it is done. */
+  onDone?: (score: LearnScore) => void
+  /** Offered at the end instead of playing it again (the next line of a review). */
+  onNext?: () => void
+  /** Offered at the end: keeps the line in the repertoire. */
+  onAdd?: () => Promise<unknown>
 }) {
-  const [mode, setMode] = useState<'watch' | 'play'>('watch')
+  const [mode, setMode] = useState<'watch' | 'play'>(start)
   return mode === 'watch' ? (
     <Watch
       line={line}
@@ -36,6 +50,7 @@ export function LineTrainer({
       notes={notes}
       onPlay={() => setMode('play')}
       onExit={onExit}
+      exitLabel={exitLabel}
     />
   ) : (
     <Play
@@ -45,6 +60,10 @@ export function LineTrainer({
       notes={notes}
       onWatch={() => setMode('watch')}
       onExit={onExit}
+      exitLabel={exitLabel}
+      {...(onDone && { onDone })}
+      {...(onNext && { onNext })}
+      {...(onAdd && { onAdd })}
     />
   )
 }
@@ -67,6 +86,7 @@ function Watch({
   notes,
   onPlay,
   onExit,
+  exitLabel,
 }: {
   line: string[]
   side: 'white' | 'black'
@@ -74,6 +94,7 @@ function Watch({
   notes: ReadonlyMap<number, string>
   onPlay: () => void
   onExit: () => void
+  exitLabel: string
 }) {
   const [ply, setPly] = useState(0)
   const { game, lastMove } = useMemo(() => positionAt(line, ply), [line, ply])
@@ -113,7 +134,7 @@ function Watch({
             Play it yourself
           </button>
           <button type="button" onClick={onExit}>
-            Back to the opening
+            {exitLabel}
           </button>
         </div>
       </aside>
@@ -128,6 +149,10 @@ function Play({
   notes,
   onWatch,
   onExit,
+  exitLabel,
+  onDone,
+  onNext,
+  onAdd,
 }: {
   line: string[]
   side: 'white' | 'black'
@@ -135,6 +160,10 @@ function Play({
   notes: ReadonlyMap<number, string>
   onWatch: () => void
   onExit: () => void
+  exitLabel: string
+  onDone?: (score: LearnScore) => void
+  onNext?: () => void
+  onAdd?: () => Promise<unknown>
 }) {
   const yours = useMemo(() => new Set(yourPlies(line, side)), [line, side])
   const [ply, setPly] = useState(0)
@@ -144,6 +173,14 @@ function Play({
   const { game, lastMove } = useMemo(() => positionAt(line, ply), [line, ply])
   const done = ply === line.length
   const yourTurn = !done && yours.has(ply + 1)
+  const [added, setAdded] = useState<'adding' | 'added' | string>()
+  // Told once per run, when the last move is on the board.
+  const told = useRef(false)
+  useEffect(() => {
+    if (!done || told.current) return
+    told.current = true
+    onDone?.(score)
+  }, [done, score, onDone])
   // A new map after each miss, so the board puts the wrongly dropped piece back.
   const dests = useMemo(
     () => (yourTurn ? new Map(game.dests()) : NO_MOVES),
@@ -201,6 +238,7 @@ function Play({
   }
 
   const restart = () => {
+    told.current = false
     setPly(0)
     setMisses(0)
     setScore({ firstTry: 0, moves: 0 })
@@ -236,6 +274,16 @@ function Play({
           {feedback && (
             <p className={`practice-feedback practice-${feedback.tone}`}>{feedback.text}</p>
           )}
+          {added === 'added' && (
+            <p className="stats-note" role="status">
+              In your repertoire: it comes back for review.
+            </p>
+          )}
+          {added && added !== 'added' && added !== 'adding' && (
+            <p className="message message-error" role="alert">
+              {added}
+            </p>
+          )}
         </div>
         <div className="training-actions">
           {yourTurn && misses > 0 && (
@@ -243,16 +291,37 @@ function Play({
               Show the move
             </button>
           )}
-          {done && (
+          {done && onNext && (
+            <button type="button" className="training-next" onClick={onNext}>
+              Next line
+            </button>
+          )}
+          {done && !onNext && (
             <button type="button" className="training-next" onClick={restart}>
               Play it again
+            </button>
+          )}
+          {done && onAdd && added !== 'added' && (
+            <button
+              type="button"
+              disabled={added === 'adding'}
+              onClick={() => {
+                setAdded('adding')
+                onAdd().then(
+                  () => setAdded('added'),
+                  (error: unknown) =>
+                    setAdded(error instanceof Error ? error.message : String(error)),
+                )
+              }}
+            >
+              Add to my repertoire
             </button>
           )}
           <button type="button" onClick={onWatch}>
             Watch it again
           </button>
           <button type="button" onClick={onExit}>
-            Back to the opening
+            {exitLabel}
           </button>
         </div>
       </aside>

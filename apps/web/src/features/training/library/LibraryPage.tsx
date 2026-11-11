@@ -163,7 +163,7 @@ function OneOpening({ id }: { id: string }) {
 }
 
 function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
-  const { openingLibrary } = useServices()
+  const { openingLibrary, repertoire } = useServices()
   const main = opening.main.split(' ')
   const [path, setPath] = useState<string[]>(main)
   const [band, setBand] = useState<BandChoice>('all')
@@ -173,13 +173,19 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
     queryKey: ['opening-library', opening.id, 'guide'],
     queryFn: () => openingLibrary.guide(opening.id),
   })
+  /** A line's name: the named line it is, or the opening and its moves. */
+  const titleOf = (line: string[]) =>
+    opening.tree.find((n) => n.name && n.moves.join(' ') === line.join(' '))?.name ??
+    `${opening.name}, ${lineText(line)}`
+  const keep = (line: string[]) =>
+    repertoire.add({ side: opening.side, title: titleOf(line), moves: line, openingId: opening.id })
   if (learning) {
-    const named = opening.tree.find((n) => n.name && n.moves.join(' ') === learning.join(' '))
     return (
       <LineTrainer
         line={learning}
         side={opening.side}
-        title={named?.name ?? `${opening.name}, ${lineText(learning)}`}
+        title={titleOf(learning)}
+        onAdd={() => keep(learning)}
         notes={guideNotes(learning, guide.data?.moves ?? [])}
         onExit={() => {
           setPath(learning)
@@ -209,6 +215,7 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
             side={opening.side}
             onPath={setPath}
             onLearn={() => setLearning(path)}
+            onKeep={() => keep(path)}
           />
         </section>
         <aside className="panel library-panel" aria-label="What is played here">
@@ -379,12 +386,16 @@ function ExplorerBoard({
   side,
   onPath,
   onLearn,
+  onKeep,
 }: {
   path: string[]
   side: 'white' | 'black'
   onPath: (path: string[]) => void
   onLearn: () => void
+  /** Keeps the line on the board in the repertoire. */
+  onKeep: () => Promise<unknown>
 }) {
+  const [kept, setKept] = useState<{ path: string; text: string }>()
   const game = useMemo(() => {
     const g = createGame()
     for (const san of path) g.play(san)
@@ -429,6 +440,25 @@ function ExplorerBoard({
         >
           Learn this line
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            const at = path.join(' ')
+            onKeep().then(
+              () => setKept({ path: at, text: 'In your repertoire' }),
+              (error: unknown) =>
+                setKept({ path: at, text: error instanceof Error ? error.message : String(error) }),
+            )
+          }}
+          disabled={path.length < 2 || kept?.path === path.join(' ')}
+        >
+          Add to my repertoire
+        </button>
+        {kept?.path === path.join(' ') && (
+          <span className="stats-note" role="status">
+            {kept.text}
+          </span>
+        )}
       </div>
     </>
   )

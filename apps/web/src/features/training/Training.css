@@ -96,6 +96,7 @@
 /* Mistakes or openings. */
 .training-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
   margin-bottom: 0.25rem;
 }

@@ -85,6 +85,15 @@ const libraryRoute = createRoute({
   ),
 })
 
+const repertoireRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/training/repertoire',
+  component: lazyRouteComponent(
+    () => import('@/features/training/repertoire/RepertoirePage'),
+    'RepertoirePage',
+  ),
+})
+
 const statsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/stats',
@@ -111,6 +120,7 @@ const routeTree = rootRoute.addChildren([
   trainingRoute,
   openingsRoute,
   libraryRoute,
+  repertoireRoute,
   statsRoute,
   settingsRoute,
 ])
