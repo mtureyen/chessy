@@ -107,7 +107,10 @@ export interface Services {
   /** The stats page's numbers: the user's own, or anyone's on a platform. */
   stats: Pick<RemoteStats, 'mine' | 'player'>
   /** The opening library: openings to study, their lines, real games and traps. */
-  openingLibrary: Pick<RemoteOpeningLibrary, 'list' | 'opening' | 'position'>
+  openingLibrary: Pick<
+    RemoteOpeningLibrary,
+    'list' | 'opening' | 'position' | 'guide' | 'writeGuide'
+  >
   /** The user's mistakes as puzzles. */
   training: {
     list: RemoteLibrary['training']
@@ -235,6 +238,8 @@ export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {})
         list: () => library.list(),
         opening: (id) => library.opening(id),
         position: (moves) => library.position(moves),
+        guide: (id) => library.guide(id),
+        writeGuide: (id, regenerate) => library.writeGuide(id, regenerate),
       }
     })(),
     stats: (() => {

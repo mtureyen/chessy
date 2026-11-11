@@ -7,6 +7,7 @@ import { useServices } from '@/app/servicesContext'
 import { lineText } from '@/features/stats/format'
 import { Board } from '@/shared/board/Board'
 import { TrainingTabs } from '../TrainingTabs'
+import { Guide } from './Guide'
 import {
   BAND_LABELS,
   BANDS,
@@ -186,6 +187,8 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
           <Explorer path={path} side={opening.side} band={band} onBand={setBand} onPath={setPath} />
         </aside>
       </div>
+
+      <Guide opening={opening} path={path} onPath={setPath} />
 
       {opening.traps.length > 0 && (
         <section className="stats-section" aria-label="Traps">
