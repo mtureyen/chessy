@@ -63,3 +63,45 @@ test('opening library: a trap shows on the board', async ({ page }) => {
     }),
   ).toBeVisible()
 })
+
+test('opening library: the coach writes a guide once, and its moves go on the board', async ({
+  page,
+}) => {
+  const guide = {
+    story: 'Named after **Horatio Caro** and Marcus Kann.',
+    ideas: 'Prepare ...d5 with ...c6.',
+    opponents: 'Most play 2.d4.',
+    moves: [
+      { ply: 1, san: 'e4', note: 'White takes the centre.' },
+      { ply: 2, san: 'c6', note: 'Black prepares ...d5.' },
+      { ply: 3, san: 'd4', note: 'A broad centre.' },
+      { ply: 4, san: 'd5', note: 'The challenge to e4.' },
+    ],
+    agent: 'Scripted coach',
+    writtenAt: '2026-11-11T12:00:00.000Z',
+  }
+  let written = 0
+  await page.route('**/api/v1/opening-library/caro-kann/guide', (route) => {
+    if (route.request().method() === 'POST') {
+      written++
+      return route.fulfill({ json: guide })
+    }
+    return route.fulfill({
+      status: 404,
+      contentType: 'application/problem+json',
+      json: { title: 'No guide', status: 404 },
+    })
+  })
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.goto('/training/library?id=caro-kann')
+  const section = page.getByRole('region', { name: 'Guide' })
+  await expect(section).toContainText('The coach can write a guide to the Caro-Kann Defense')
+  await section.getByRole('button', { name: 'Write the guide' }).click()
+  await expect(section.getByRole('heading', { name: 'The story' })).toBeVisible()
+  await expect(section.locator('strong')).toHaveText('Horatio Caro')
+  await expect(section).toContainText('Written by Scripted coach')
+  expect(written).toBe(1)
+
+  await section.getByRole('button', { name: '2...d5' }).click()
+  await expect(page.locator('.library-nav')).toContainText('1.e4 c6 2.d4 d5')
+})

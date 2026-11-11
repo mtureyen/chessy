@@ -226,3 +226,28 @@
   color: var(--text);
   cursor: pointer;
 }
+
+.library-guide h3 {
+  margin: 0.9rem 0 0.3rem;
+}
+
+.library-guide p {
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
+}
+
+.library-guide-moves {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.library-guide-moves li {
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.45;
+}
+
+.library-move[aria-current='true'] {
+  color: var(--accent);
+}
