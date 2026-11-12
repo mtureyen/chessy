@@ -14,6 +14,7 @@ import {
   markClasses,
   takeSquareMarks,
   type CoachColor,
+  type DrawingColor,
   type MarkBrush,
 } from './markings'
 import './Board.css'
@@ -38,8 +39,20 @@ export interface BoardProps {
 }
 
 export interface BoardDrawing {
-  arrows: { from: string; to: string; color: CoachColor }[]
+  arrows: DrawnArrow[]
   squares: { square: string; color: CoachColor }[]
+}
+
+export interface DrawnArrow {
+  from: string
+  to: string
+  color: DrawingColor
+  /** The line's width; chessground's own is 12. */
+  width?: number
+  /** Drawn fainter: a later step, or one that matters less. */
+  faint?: boolean
+  /** A short text on the arrow, e.g. its place in a sequence. */
+  label?: string
 }
 
 export interface BoardBadge {
@@ -147,7 +160,10 @@ export function Board(props: BoardProps) {
   const shapesKey = [
     ...(props.arrows ?? []).map((a) => `${a.kind}:${a.from}${a.to}`),
     badge ? `badge:${badge.square}${badge.svg}` : '',
-    ...(drawing?.arrows ?? []).map((a) => `coach:${a.from}${a.to}${a.color}`),
+    ...(drawing?.arrows ?? []).map(
+      (a) =>
+        `coach:${a.from}${a.to}${a.color}${a.width ?? ''}${a.faint ? 'f' : ''}${a.label ?? ''}`,
+    ),
     ...(drawing?.squares ?? []).map((s) => `coach:${s.square}${s.color}`),
   ].join(',')
   useEffect(() => {
@@ -192,7 +208,13 @@ function badgeShape({ square, svg }: BoardBadge): DrawShape {
 function coachShapes({ arrows, squares }: BoardDrawing): DrawShape[] {
   return [
     ...squares.map((s) => ({ orig: s.square as Key, brush: coachBrush(s.color) })),
-    ...arrows.map((a) => ({ orig: a.from as Key, dest: a.to as Key, brush: coachBrush(a.color) })),
+    ...arrows.map((a) => ({
+      orig: a.from as Key,
+      dest: a.to as Key,
+      brush: coachBrush(a.color, a.faint),
+      ...(a.width !== undefined && { modifiers: { lineWidth: a.width } }),
+      ...(a.label !== undefined && { label: { text: a.label } }),
+    })),
   ]
 }
 
