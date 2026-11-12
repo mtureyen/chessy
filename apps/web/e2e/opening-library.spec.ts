@@ -260,3 +260,97 @@ test('opening library: learn a line, watching it first, then playing it from mem
   await panel.getByRole('button', { name: 'Back to the opening' }).click()
   await expect(page.locator('.library-nav')).toContainText('3.e5')
 })
+
+test('opening library: drill a trap from the side it is set for, and stay out of it', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.goto('/training/library?id=scotch')
+  // After 1.e4 e5 2.Nf3 Nc6 3.d4 Nf6 4.d5 most play 4...Nd4 and lose a pawn; 4...Nb8 holds.
+  await page
+    .getByRole('region', { name: 'Traps' })
+    .getByRole('listitem')
+    .filter({ hasText: 'play Nd4.' })
+    .getByRole('button', { name: /^Avoid it/ })
+    .click()
+  const panel = page.getByRole('complementary', { name: 'Learn the line' })
+  await expect(panel.getByRole('heading')).toHaveText(
+    'Learn: Scotch Game, trap after 4...Nd4: avoid it',
+  )
+  await panel.getByRole('button', { name: 'Play it yourself' }).click()
+  const board = await boardDriver(page)
+  board.setFlipped(true) // Black at the bottom
+  const move = async (from: string, to: string, expected: RegExp) => {
+    await expect(panel.getByRole('status')).toHaveText(/^Your move/)
+    await expect(async () => {
+      await board.drag(from, to)
+      await expect(panel.locator('.practice-feedback')).toHaveText(expected, { timeout: 500 })
+    }).toPass({ timeout: 5000 })
+  }
+  await move('e7', 'e5', /^1\.\.\.e5, right\./)
+  await move('b8', 'c6', /^2\.\.\.Nc6, right\./)
+  await move('g8', 'f6', /^3\.\.\.Nf6, right\./)
+  // The move most players make gets its own answer, and what follows it.
+  await move(
+    'c6',
+    'd4',
+    /^4\.\.\.Nd4 is the trap: after 5\. Nxe5 .* White scores \d+% under 1600\./,
+  )
+  await move('c6', 'b8', /^4\.\.\.Nb8, right\. This stays out of the trap\./)
+  await expect(panel.getByRole('status')).toHaveText('Line done, with the arrows.')
+  await panel.getByRole('button', { name: 'Back to the opening' }).click()
+  await expect(page.locator('.library-nav')).toContainText('4.d5 Nb8')
+})
+
+test('opening library: practise against what real players reply', async ({ page }) => {
+  // What is played, scripted: 2.a3 (in no named line), then mostly 2...d5, then no more games.
+  const none = [0, 0, 0]
+  const stats = (r: number[]) => ({
+    'under-1200': r,
+    '1200-1599': none,
+    '1600-1999': none,
+    '2000+': none,
+  })
+  const played: Record<string, object[]> = {
+    'e4,c6': [{ san: 'a3', stats: stats([10, 0, 10]) }],
+    'e4,c6,a3': [
+      { san: 'd5', stats: stats([40, 10, 50]) },
+      { san: 'e5', stats: stats([5, 0, 5]) },
+    ],
+  }
+  await page.route('**/api/v1/opening-library/position?*', (route) => {
+    const moves = played[new URL(route.request().url()).searchParams.get('moves') ?? '']
+    return moves
+      ? route.fulfill({ json: { moves } })
+      : route.fulfill({
+          status: 404,
+          contentType: 'application/problem+json',
+          json: { title: 'No games', status: 404 },
+        })
+  })
+  // The check of the user's move (no engine in this test).
+  await page.route('**/api/v1/training/openings/practice', (route) =>
+    route.fulfill({ json: { verdict: 'theory', san: 'd5', fen: 'x', theory: [], replies: [] } }),
+  )
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.goto('/training/library?id=caro-kann')
+  await page.getByRole('button', { name: 'Practise against real replies' }).click()
+
+  const panel = page.getByRole('complementary', { name: 'Practice' })
+  await expect(panel.getByRole('heading')).toHaveText('Practise: Caro-Kann Defense as Black')
+  await expect(panel).toContainText('Starts where the opening does, after 1.e4 c6.')
+  // The reply is not in the Caro-Kann's named lines: the trainer says what players do then.
+  await expect(panel).toContainText(
+    '2.a3 leaves this opening’s named lines. Players of all ratings answer most with 2...d5 (91%), scoring 55%.',
+  )
+  const board = await boardDriver(page)
+  board.setFlipped(true)
+  await expect(panel.getByRole('status')).toHaveText('Your move.')
+  await board.drag('d7', 'd5')
+  await expect(panel.locator('.practice-right')).toHaveText('2…d5 is theory.')
+  await expect(panel.getByRole('status')).toHaveText(
+    'The library’s games end here: 1 of 1 moves right at the first try.',
+  )
+  await panel.getByRole('button', { name: 'Back to the opening' }).click()
+  await expect(page.getByRole('heading', { name: /Caro-Kann Defense/ })).toBeVisible()
+})

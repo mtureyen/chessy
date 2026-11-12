@@ -10,7 +10,10 @@ import { TrainingTabs } from '../TrainingTabs'
 import { arrowsWanted, explorerArrows, openingPaths, rememberArrows } from './arrows'
 import { Guide } from './Guide'
 import { guideDrawings, guideNotes } from './learnLine'
+import { LibraryPractice } from './LibraryPractice'
 import { LineTrainer } from './LineTrainer'
+import { bandPlayers } from './practice'
+import { avoidDrill, springDrill, type TrapDrill } from './traps'
 import {
   BAND_LABELS,
   BANDS,
@@ -170,6 +173,9 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
   const [path, setPath] = useState<string[]>(main)
   const [band, setBand] = useState<BandChoice>('all')
   const [learning, setLearning] = useState<string[]>()
+  /** A trap being drilled, from one side. */
+  const [drill, setDrill] = useState<TrapDrill>()
+  const [practising, setPractising] = useState(false)
   /** The move pointed at in the list of what's played, with the position it belongs to. */
   const [pointed, setPointed] = useState<{ at: string; san: string }>()
   const paths = useMemo(() => openingPaths(opening.tree), [opening.tree])
@@ -191,6 +197,34 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
     `${opening.name}, ${lineText(line)}`
   const keep = (line: string[]) =>
     repertoire.add({ side: opening.side, title: titleOf(line), moves: line, openingId: opening.id })
+  if (practising) {
+    return <LibraryPractice opening={opening} band={band} onExit={() => setPractising(false)} />
+  }
+  if (drill) {
+    const title = `${opening.name}, ${drill.title.charAt(0).toLowerCase()}${drill.title.slice(1)}`
+    return (
+      <LineTrainer
+        line={drill.line}
+        side={drill.side}
+        title={title}
+        // The guide's notes on the way there, the trap's own where it springs.
+        notes={new Map([...guideNotes(drill.line, guide.data?.moves ?? []), ...drill.notes])}
+        pitfalls={drill.pitfalls}
+        onAdd={() =>
+          repertoire.add({
+            side: drill.side,
+            title,
+            moves: drill.line,
+            openingId: opening.id,
+          })
+        }
+        onExit={() => {
+          go(drill.line)
+          setDrill(undefined)
+        }}
+      />
+    )
+  }
   if (learning) {
     return (
       <LineTrainer
@@ -221,6 +255,16 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
           </h1>
           <p className="library-card-line">{lineText(main)}</p>
           <Chips opening={{ ...opening, traps: opening.traps.length }} />
+          <p>
+            <button
+              type="button"
+              className="openings-practise"
+              title={`Your opponent plays what ${bandPlayers(band)} really play`}
+              onClick={() => setPractising(true)}
+            >
+              Practise against real replies
+            </button>
+          </p>
         </div>
         <ScoreTable opening={opening} />
       </section>
@@ -282,9 +326,11 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
                   {trap.best && `Better is ${trap.best}. `}
                   After {trap.bait}: {trap.punish}
                 </p>
-                <button type="button" onClick={() => go(trap.moves ? trap.moves.split(' ') : [])}>
-                  Show on the board
-                </button>
+                <TrapActions
+                  trap={trap}
+                  onShow={() => go(trap.moves ? trap.moves.split(' ') : [])}
+                  onDrill={setDrill}
+                />
               </li>
             ))}
           </ul>
@@ -293,6 +339,46 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
 
       <NamedLines opening={opening} band={band} path={path} onPath={go} />
     </>
+  )
+}
+
+/** A trap's buttons: to the board, and its drills from both sides. */
+function TrapActions({
+  trap,
+  onShow,
+  onDrill,
+}: {
+  trap: LibraryOpeningBody['traps'][number]
+  onShow: () => void
+  onDrill: (drill: TrapDrill) => void
+}) {
+  const spring = useMemo(() => springDrill(trap), [trap])
+  const avoid = useMemo(() => avoidDrill(trap), [trap])
+  const as = (side: 'white' | 'black') => (side === 'white' ? 'White' : 'Black')
+  return (
+    <div className="library-trap-actions">
+      <button type="button" onClick={onShow}>
+        Show on the board
+      </button>
+      {spring && (
+        <button
+          type="button"
+          title={`Learn it as ${as(spring.side)}: the way there, then how to punish ${trap.bait}`}
+          onClick={() => onDrill(spring)}
+        >
+          Spring it <span className="stats-note">as {as(spring.side)}</span>
+        </button>
+      )}
+      {avoid && (
+        <button
+          type="button"
+          title={`Learn it as ${as(avoid.side)}: the way there, then the move that stays out of it`}
+          onClick={() => onDrill(avoid)}
+        >
+          Avoid it <span className="stats-note">as {as(avoid.side)}</span>
+        </button>
+      )}
+    </div>
   )
 }
 
