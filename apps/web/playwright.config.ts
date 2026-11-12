@@ -53,6 +53,8 @@ export default defineConfig({
         PAWNIA_SOURCES: 'recorded',
         DATABASE_URL: 'pglite:memory',
         SETTINGS_PATH,
+        // The checked-in sample (a path from the API's folder): no run fetches puzzles.
+        PUZZLE_SET_PATH: 'data/puzzle-sample.json',
         // No coach request may leave this machine: Claude off, Ollama where nothing listens.
         // Another provider would have to be named in the shell that runs the tests.
         COACH_CLAUDE_API: 'off',
