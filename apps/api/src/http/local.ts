@@ -21,14 +21,36 @@ function isLoopbackAddress(address: string): boolean {
 }
 
 /**
- * Turns away requests addressed to another name than this machine's: a web page that points its
- * own domain at 127.0.0.1 (DNS rebinding) would otherwise talk to the API from the user's
- * browser. For an API that listens on localhost only.
+ * Whether a request comes from a page of another site. Browsers name the page's origin on every
+ * request that could change something (and on cross-origin reads); the app's own pages are
+ * served from this machine. Requests without an origin aren't from a page at all: the app's
+ * proxy, a script, the coach's tools.
+ */
+function fromAnotherSite(c: Context): boolean {
+  const origin = c.req.header('origin')
+  if (origin === undefined) return false
+  try {
+    return !LOOPBACK_HOSTS.has(new URL(origin).hostname)
+  } catch {
+    // "null" (a sandboxed page, a file) or anything else that is no address.
+    return true
+  }
+}
+
+/**
+ * Turns away requests that don't belong to this machine's own pages. One addressed to another
+ * name: a web page that points its own domain at 127.0.0.1 (DNS rebinding) would otherwise talk
+ * to the API from the user's browser. And one sent by a page of another site: it couldn't read
+ * the answer, but it could start work here (an engine run, a pause of the reviews). For an API
+ * that listens on localhost only.
  */
 export function onlyLocalHostNames(): MiddlewareHandler {
   return async (c, next) => {
     if (!LOOPBACK_HOSTS.has(hostName(c))) {
       return problem(c, 403, 'Forbidden', { detail: 'This API only answers on localhost' })
+    }
+    if (fromAnotherSite(c)) {
+      return problem(c, 403, 'Forbidden', { detail: 'This API only answers its own pages' })
     }
     await next()
   }
@@ -41,7 +63,11 @@ export function onlyLocalHostNames(): MiddlewareHandler {
 export function onlyThisMachine(): MiddlewareHandler {
   return async (c, next) => {
     const address = remoteAddress(c)
-    if (!LOOPBACK_HOSTS.has(hostName(c)) || (address && !isLoopbackAddress(address))) {
+    if (
+      !LOOPBACK_HOSTS.has(hostName(c)) ||
+      (address && !isLoopbackAddress(address)) ||
+      fromAnotherSite(c)
+    ) {
       return problem(c, 403, 'Forbidden', { detail: 'Only from this machine' })
     }
     await next()

@@ -17,6 +17,13 @@ export function engineRoutes({ engine }: { engine: EngineService }) {
   return router
     .openapi(engineStatusRoute, async (c) => c.json(await engine.status(), 200))
     .post(evaluationsRoute.path, async (c) => {
+      // Like the typed routes: only a JSON body. A page of another site can post plain text
+      // without the browser asking first, and this route starts hours of engine work.
+      if (!/^application\/json\b/i.test(c.req.header('content-type') ?? '')) {
+        return problem(c, 415, 'Unsupported media type', {
+          detail: 'The body must be application/json',
+        })
+      }
       const parsed = EvaluationRequestSchema.safeParse(await c.req.json().catch(() => undefined))
       if (!parsed.success) {
         return problem(c, 400, 'Validation failed', {
