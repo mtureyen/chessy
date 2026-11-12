@@ -11,6 +11,15 @@ import { helpFor, HINT_AFTER, sameMove, verdictText, yourPlies, type LearnScore 
 const NO_MOVES = new Map()
 /** A breath before the opponent's move, so the user sees theirs land. */
 const REPLY_DELAY_MS = 500
+/** The coach writing a note for every move of a line: started and tracked by who shows the trainer. */
+export interface Explain {
+  run: () => void
+  /** The coach is writing. */
+  busy: boolean
+  /** Why the last writing failed. */
+  error?: string
+}
+
 /** The run from which a line is played from memory. */
 const FROM_MEMORY = 2
 /** How long a move stays on the board when the line plays by itself. */
@@ -27,7 +36,7 @@ export function LineTrainer({
   notes,
   drawings,
   pitfalls,
-  onExplain,
+  explain,
   onExit,
   start = 'watch',
   exitLabel = 'Back to the opening',
@@ -45,7 +54,7 @@ export function LineTrainer({
   /** A move to stay away from, by ply: tried, it gets its own answer (a trap's bait). */
   pitfalls?: ReadonlyMap<number, Pitfall>
   /** Has the coach write a note for every move of the line; offered while some have none. */
-  onExplain?: () => Promise<unknown>
+  explain?: Explain
   onExit: () => void
   /**
    * Begin by playing from memory (a review) instead of watching. Learning a line, the help fades
@@ -78,7 +87,7 @@ export function LineTrainer({
       title={title}
       notes={notes}
       {...(drawings && { drawings })}
-      {...(onExplain && { onExplain })}
+      {...(explain && { explain })}
       onPlay={() => setMode('play')}
       onExit={onExit}
       exitLabel={exitLabel}
@@ -118,7 +127,7 @@ function Watch({
   title,
   notes,
   drawings,
-  onExplain,
+  explain,
   onPlay,
   onExit,
   exitLabel,
@@ -128,15 +137,13 @@ function Watch({
   title: string
   notes: ReadonlyMap<number, string>
   drawings?: ReadonlyMap<number, BoardDrawing>
-  onExplain?: () => Promise<unknown>
+  explain?: Explain
   onPlay: () => void
   onExit: () => void
   exitLabel: string
 }) {
   const [ply, setPly] = useState(0)
   const [autoplay, setAutoplay] = useState(false)
-  /** The coach is writing the line's notes, or why it couldn't. */
-  const [explaining, setExplaining] = useState<'writing' | string>()
   const [arrowsOn, setArrowsOn] = useState(arrowsWanted)
   const { game, lastMove } = useMemo(() => positionAt(line, ply), [line, ply])
   const note = ply > 0 ? notes.get(ply) : undefined
@@ -199,23 +206,10 @@ function Watch({
             {ply === 0 ? 'The start position.' : moveLabel(ply, line[ply - 1]!)}
           </p>
           {note && <p>{note}</p>}
-          {onExplain && notes.size < line.length && (
+          {explain && notes.size < line.length && (
             <p className="line-trainer-explain">
-              <button
-                type="button"
-                disabled={explaining === 'writing'}
-                onClick={() => {
-                  setExplaining('writing')
-                  onExplain().then(
-                    () => setExplaining(undefined),
-                    (error: unknown) =>
-                      setExplaining(error instanceof Error ? error.message : String(error)),
-                  )
-                }}
-              >
-                {explaining === 'writing'
-                  ? 'The coach is writing… (up to a minute)'
-                  : 'Explain every move'}
+              <button type="button" disabled={explain.busy} onClick={explain.run}>
+                {explain.busy ? 'The coach is writing… (up to a minute)' : 'Explain every move'}
               </button>{' '}
               <span className="stats-note">
                 The coach writes a note for each move of this line, once. With the Claude API as
@@ -223,9 +217,9 @@ function Watch({
               </span>
             </p>
           )}
-          {explaining && explaining !== 'writing' && (
+          {explain?.error && !explain.busy && (
             <p className="message message-error" role="alert">
-              {explaining}
+              {explain.error}
             </p>
           )}
           {idea ? (

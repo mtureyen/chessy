@@ -39,6 +39,8 @@ export class OpeningGuides {
   private readonly load: () => Promise<LibraryFile>
   private readonly store: GuideStore
   private readonly now: () => Date
+  /** The writing going on, by what is written: asked again meanwhile, the coach isn't. */
+  private readonly writing = new Map<string, Promise<unknown>>()
 
   constructor(load: () => Promise<LibraryFile>, store: GuideStore, now = () => new Date()) {
     this.load = load
@@ -51,8 +53,20 @@ export class OpeningGuides {
     return this.store.findGuide(openingId)
   }
 
-  /** Writes the guide and keeps it; undefined for an opening the library doesn't have. */
-  async write(
+  /**
+   * Writes the guide and keeps it; undefined for an opening the library doesn't have. Asked for
+   * the same guide while it is being written, this waits for that one: a second request (a
+   * second click, another tab) must not pay the coach twice.
+   */
+  write(
+    openingId: string,
+    agent: CoachAgent,
+    signal?: CancelSignal,
+  ): Promise<OpeningGuideBody | undefined> {
+    return this.once(`guide ${openingId}`, () => this.writeGuide(openingId, agent, signal))
+  }
+
+  private async writeGuide(
     openingId: string,
     agent: CoachAgent,
     signal?: CancelSignal,
@@ -82,8 +96,31 @@ export class OpeningGuides {
     return this.store.findLineNotes(openingId, sanLine(moves).join(' '))
   }
 
-  /** Writes the notes on a line and keeps them; undefined for an opening the library hasn't. */
-  async writeLine(
+  /**
+   * Writes the notes on a line and keeps them; undefined for an opening the library hasn't. Like
+   * a guide, the same line is written once at a time.
+   */
+  writeLine(
+    openingId: string,
+    moves: readonly string[],
+    agent: CoachAgent,
+    signal?: CancelSignal,
+  ): Promise<LineNotesBody | undefined> {
+    // Illegal lines throw here, before anything is remembered as being written.
+    const key = `line ${openingId} ${sanLine(moves).join(' ')}`
+    return this.once(key, () => this.writeLineNotes(openingId, moves, agent, signal))
+  }
+
+  /** Runs `write` unless the same thing is being written: then its result is this one's too. */
+  private once<T>(key: string, write: () => Promise<T>): Promise<T> {
+    const going = this.writing.get(key) as Promise<T> | undefined
+    if (going) return going
+    const started = write().finally(() => this.writing.delete(key))
+    this.writing.set(key, started)
+    return started
+  }
+
+  private async writeLineNotes(
     openingId: string,
     moves: readonly string[],
     agent: CoachAgent,

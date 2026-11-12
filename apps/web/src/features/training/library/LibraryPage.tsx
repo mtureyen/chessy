@@ -1,6 +1,6 @@
 import type { LibraryOpeningBody, OpeningLibraryBody } from '@pawnia/contracts'
 import { createGame, exportPgn } from '@pawnia/chess'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useSearch } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
@@ -227,8 +227,17 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
     enabled: studied !== undefined,
   })
   const noted = lineNotes.data?.moves ?? guide.data?.moves ?? []
-  const explain = async () => {
-    client.setQueryData(lineNotesKey, await openingLibrary.writeLineNotes(opening.id, studied!))
+  // Lives here, not in the trainer's steps: going from watching to playing and back must not
+  // forget that the coach is writing, and offer a second, paid, writing.
+  const explaining = useMutation({
+    mutationFn: (line: string[]) => openingLibrary.writeLineNotes(opening.id, line),
+    onSuccess: (notes, line) =>
+      client.setQueryData(['opening-library', opening.id, 'line-notes', line.join(' ')], notes),
+  })
+  const explain = studied && {
+    run: () => explaining.mutate(studied),
+    busy: explaining.isPending,
+    ...(explaining.error && { error: explaining.error.message }),
   }
   /** A line's name: the named line it is, or the opening and its moves. */
   const titleOf = (line: string[]) =>
@@ -256,7 +265,7 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
         notes={new Map([...guideNotes(drill.line, noted), ...drill.notes])}
         drawings={guideDrawings(drill.line, noted)}
         pitfalls={drill.pitfalls}
-        onExplain={explain}
+        {...(explain && { explain })}
         onAdd={() =>
           add({
             side: drill.side,
@@ -281,7 +290,7 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
         onAdd={() => keep(learning)}
         notes={guideNotes(learning, noted)}
         drawings={guideDrawings(learning, noted)}
-        onExplain={explain}
+        {...(explain && { explain })}
         onExit={() => {
           setPath(learning)
           setLearning(undefined)

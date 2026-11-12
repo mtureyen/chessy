@@ -1,5 +1,5 @@
 import type { LibraryOpeningBody, OpeningGuideBody } from '@pawnia/contracts'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useServices } from '@/app/servicesContext'
 import { Markdown } from '@/features/coach/Markdown'
 import { moveLabel } from './format'
@@ -24,14 +24,18 @@ export function Guide({
   const client = useQueryClient()
   const key = ['opening-library', opening.id, 'guide']
   const kept = useQuery({ queryKey: key, queryFn: () => openingLibrary.guide(opening.id) })
+  // Keyed, so that a writing started before this was shown again (the user went to learn a line
+  // and came back) still counts: the button must not offer a second, paid, writing.
+  const writeKey = ['opening-library', opening.id, 'write-guide']
   const write = useMutation({
+    mutationKey: writeKey,
     mutationFn: (regenerate: boolean) => openingLibrary.writeGuide(opening.id, regenerate),
     onSuccess: (guide) => client.setQueryData(key, guide),
   })
+  const writing = useIsMutating({ mutationKey: writeKey }) > 0
 
   if (kept.isPending) return null
   const guide = kept.data
-  const writing = write.isPending
   const error = write.error ?? kept.error
   if (!guide) {
     return (

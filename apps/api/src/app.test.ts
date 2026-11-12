@@ -945,6 +945,24 @@ describe('opening guide routes', () => {
     })
   })
 
+  it('writes a guide once when it is asked for twice at the same time', async () => {
+    const facts = await guides.facts('danish')
+    const text = JSON.stringify({
+      story: 'A story.',
+      ideas: 'Ideas.',
+      opponents: 'Opponents.',
+      moves: facts!.line.map(({ ply }) => ({ ply, note: `Move ${ply}.` })),
+    })
+    const { guideApp, requests } = makeGuideApp([text, text])
+    const [first, second] = await Promise.all([
+      write(guideApp, 'danish', { regenerate: true }),
+      write(guideApp, 'danish', { regenerate: true }),
+    ])
+    expect([first.status, second.status]).toEqual([200, 200])
+    expect(await first.json()).toEqual(await second.json())
+    expect(requests).toHaveLength(1)
+  })
+
   it('answers 404 for an unknown opening and 502 for an unusable answer', async () => {
     const { guideApp } = makeGuideApp(['no json', 'still no json'])
     expect((await write(guideApp, 'nowhere')).status).toBe(404)
