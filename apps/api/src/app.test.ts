@@ -286,6 +286,7 @@ describe('api', () => {
       '/opening-library/position',
       '/opening-library/{id}',
       '/opening-library/{id}/guide',
+      '/opening-library/{id}/line-notes',
       '/profile',
       '/repertoire',
       '/repertoire/{id}',
@@ -948,6 +949,77 @@ describe('opening guide routes', () => {
     const { guideApp } = makeGuideApp(['no json', 'still no json'])
     expect((await write(guideApp, 'nowhere')).status).toBe(404)
     expect((await write(guideApp, 'dutch')).status).toBe(502)
+  })
+
+  const writeLine = (target: ReturnType<typeof createApp>, id: string, body: object) =>
+    target.request(`/api/v1/opening-library/${id}/line-notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+  it('writes notes on one line from the library’s facts about it, and keeps them per line', async () => {
+    const line = ['e4', 'e5', 'Nf3', 'Nc6', 'd4', 'exd4']
+    const facts = await guides.lineFacts('scotch', line)
+    expect(facts).toMatchObject({ opening: 'Scotch Game', side: 'white' })
+    expect(facts?.variation).toContain('Scotch Game')
+    expect(facts?.line.map((m) => m.move)).toEqual([
+      '1.e4',
+      '1...e5',
+      '2.Nf3',
+      '2...Nc6',
+      '3.d4',
+      '3...exd4',
+    ])
+    // How often each move is played where the library has games, and the score at the end.
+    expect(facts?.line[5]?.share).toBeGreaterThan(50)
+    expect(facts?.score).toBeGreaterThan(30)
+
+    const notes = (first: string) =>
+      JSON.stringify({
+        moves: line.map((_, i) => ({
+          ply: i + 1,
+          note: i === 0 ? first : `Move ${i + 1}.`,
+          ...(i === 4 && { draw: { arrows: [{ from: 'd4', to: 'e5', color: 'green' }] } }),
+        })),
+      })
+    const { guideApp, requests } = makeGuideApp([notes('The centre.'), notes('Again.')])
+    const kept = (moves: string) =>
+      guideApp.request(`/api/v1/opening-library/scotch/line-notes?moves=${moves}`)
+    expect((await kept(line.join(','))).status).toBe(404)
+
+    // Moves may come as the board gives them; they are kept as they are written.
+    const first = await writeLine(guideApp, 'scotch', { moves: ['e2e4', ...line.slice(1)] })
+    expect(first.status).toBe(200)
+    const body = (await first.json()) as {
+      moves: { ply: number; san: string; note: string; draw?: object }[]
+      agent: string
+    }
+    expect(body.agent).toBe('Scripted coach')
+    expect(body.moves.map((m) => m.san)).toEqual(line)
+    expect(body.moves[4]?.draw).toEqual({
+      arrows: [{ from: 'd4', to: 'e5', color: 'green' }],
+      squares: [],
+    })
+    expect(JSON.stringify(requests[0])).toContain('3...exd4')
+
+    // Kept: asked again, the coach isn't; another line has none; on request it writes again.
+    expect(await (await writeLine(guideApp, 'scotch', { moves: line })).json()).toEqual(body)
+    expect(requests).toHaveLength(1)
+    expect(await (await kept(line.join(','))).json()).toEqual(body)
+    expect((await kept('e4,e5,Nf3,Nc6,d4')).status).toBe(404)
+    const again = await writeLine(guideApp, 'scotch', { moves: line, regenerate: true })
+    expect(((await again.json()) as typeof body).moves[0]?.note).toBe('Again.')
+  })
+
+  it('answers 400 for a line that cannot be played, 404 for an unknown opening', async () => {
+    const { guideApp } = makeGuideApp(['no json', 'still no json'])
+    expect((await writeLine(guideApp, 'scotch', { moves: ['e4', 'e4'] })).status).toBe(400)
+    expect(
+      (await guideApp.request('/api/v1/opening-library/scotch/line-notes?moves=e4,Ke2')).status,
+    ).toBe(400)
+    expect((await writeLine(guideApp, 'nowhere', { moves: ['e4', 'e5'] })).status).toBe(404)
+    expect((await writeLine(guideApp, 'scotch', { moves: ['e4', 'e5'] })).status).toBe(502)
   })
 })
 

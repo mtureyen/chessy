@@ -6,18 +6,24 @@ import {
   type LibraryNode,
 } from '@pawnia/analysis'
 import {
+  writeLineNotes,
   writeOpeningGuide,
   type CancelSignal,
   type CoachAgent,
+  type LineNotesFacts,
   type OpeningGuideFacts,
 } from '@pawnia/coach'
 import { createGame } from '@pawnia/chess'
-import type { OpeningGuideBody } from '@pawnia/contracts'
+import type { LineNotesBody, OpeningGuideBody } from '@pawnia/contracts'
+import { IllegalLineError } from '../repertoire/repertoireService'
 
 /** Where guides are kept: the server's database. */
 export interface GuideStore {
   findGuide(openingId: string): Promise<OpeningGuideBody | undefined>
   saveGuide(openingId: string, guide: OpeningGuideBody): Promise<void>
+  /** The notes on one line (its SAN moves, space-separated). */
+  findLineNotes(openingId: string, moves: string): Promise<LineNotesBody | undefined>
+  saveLineNotes(openingId: string, moves: string, notes: LineNotesBody): Promise<void>
 }
 
 /** The guide annotates the main moves and the most played after them, up to this many plies. */
@@ -69,6 +75,70 @@ export class OpeningGuides {
     }
     await this.store.saveGuide(openingId, guide)
     return guide
+  }
+
+  /** The kept notes on a line; throws IllegalLineError for a line that can't be played. */
+  findLine(openingId: string, moves: readonly string[]): Promise<LineNotesBody | undefined> {
+    return this.store.findLineNotes(openingId, sanLine(moves).join(' '))
+  }
+
+  /** Writes the notes on a line and keeps them; undefined for an opening the library hasn't. */
+  async writeLine(
+    openingId: string,
+    moves: readonly string[],
+    agent: CoachAgent,
+    signal?: CancelSignal,
+  ): Promise<LineNotesBody | undefined> {
+    const facts = await this.lineFacts(openingId, moves)
+    if (!facts) return undefined
+    const line = sanLine(moves)
+    const written = await writeLineNotes(agent, facts, signal)
+    const notes: LineNotesBody = {
+      moves: written.map(({ ply, note, draw }) => ({
+        ply,
+        san: line[ply - 1]!,
+        note,
+        ...(draw && { draw }),
+      })),
+      agent: agent.label,
+      writtenAt: this.now().toISOString(),
+    }
+    await this.store.saveLineNotes(openingId, line.join(' '), notes)
+    return notes
+  }
+
+  /** What the coach writes a line's notes from: the library's facts about that line. */
+  async lineFacts(
+    openingId: string,
+    moves: readonly string[],
+  ): Promise<LineNotesFacts | undefined> {
+    const { openings, positions } = await this.load()
+    const opening = openings.find((o) => o.id === openingId)
+    if (!opening) return undefined
+    const line = sanLine(moves)
+    const here = line.join(' ')
+    // The longest named line the moves go through.
+    const variation = libraryTree(opening.lines, positions)
+      .filter((node) => node.name && `${here} `.startsWith(`${node.moves.join(' ')} `))
+      .sort((a, b) => b.moves.length - a.moves.length)[0]?.name
+    let last: Stats | undefined
+    const noted = withPositions(line).map((move, i) => {
+      const options = positionMoves(line.slice(0, i), positions) ?? []
+      const total = options.reduce((sum, m) => sum + all(m.stats), 0)
+      last = options.find((m) => m.san === line[i])?.stats
+      return {
+        ...move,
+        ...(last && total > 0 && { share: Math.round((all(last) / total) * 100) }),
+      }
+    })
+    const score = last && sideScore(sum(last), opening.side)
+    return {
+      opening: opening.name,
+      side: opening.side,
+      ...(variation && { variation }),
+      line: noted,
+      ...(score !== undefined && { score }),
+    }
   }
 
   /** What the coach writes from: the library's own facts about the opening. */
@@ -123,6 +193,16 @@ export class OpeningGuides {
       }),
     }
   }
+}
+
+/** The moves as they are written (SAN); throws IllegalLineError at one that can't be played. */
+export function sanLine(moves: readonly string[]): string[] {
+  const game = createGame()
+  return moves.map((move) => {
+    const san = game.play(move)?.move?.san
+    if (!san) throw new IllegalLineError(move)
+    return san
+  })
 }
 
 /** The line's moves, numbered, each with the position after it: what the coach draws on. */

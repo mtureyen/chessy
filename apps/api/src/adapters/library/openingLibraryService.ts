@@ -1,5 +1,6 @@
 import type { CancelSignal, CoachAgent } from '@pawnia/coach'
 import type {
+  LineNotesBody,
   LibraryOpeningBody,
   LibraryPositionBody,
   OpeningGuideBody,
@@ -28,4 +29,13 @@ export interface OpeningGuideService {
     agent: CoachAgent,
     signal?: CancelSignal,
   ): Promise<OpeningGuideBody | undefined>
+  /** The kept notes on a line. Throws IllegalLineError for a line that can't be played. */
+  findLine(openingId: string, moves: readonly string[]): Promise<LineNotesBody | undefined>
+  /** Writes and keeps them; undefined for an opening the library doesn't have. */
+  writeLine(
+    openingId: string,
+    moves: readonly string[],
+    agent: CoachAgent,
+    signal?: CancelSignal,
+  ): Promise<LineNotesBody | undefined>
 }

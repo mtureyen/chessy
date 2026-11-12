@@ -163,6 +163,15 @@ export const GuideDrawingSchema = z
   })
   .openapi('GuideDrawing')
 
+/** A move with the coach's note on it. */
+const NotedMoveSchema = z.object({
+  ply: z.number().int(),
+  san: z.string(),
+  note: z.string(),
+  /** Where the coach drew the move's idea. */
+  draw: GuideDrawingSchema.optional(),
+})
+
 export const OpeningGuideSchema = z
   .object({
     /** Where the name comes from and the history (Markdown). */
@@ -172,15 +181,7 @@ export const OpeningGuideSchema = z
     /** What the other side tries and how to handle it, with the traps (Markdown). */
     opponents: z.string(),
     /** The main line, move by move. */
-    moves: z.array(
-      z.object({
-        ply: z.number().int(),
-        san: z.string(),
-        note: z.string(),
-        /** Where the coach drew the move's idea. */
-        draw: GuideDrawingSchema.optional(),
-      }),
-    ),
+    moves: z.array(NotedMoveSchema),
     agent: z.string().openapi({ description: 'The coach that wrote it' }),
     writtenAt: z.string().datetime(),
   })
@@ -235,6 +236,79 @@ export const writeOpeningGuideRoute = createRoute({
     },
     404: problem('No such opening, or no such agent'),
     502: problem('The coach gave no usable guide'),
+    503: problem('No coach available, or no game database'),
+  },
+})
+
+/** The coach's notes on one line of an opening, move by move. */
+export const LineNotesSchema = z
+  .object({
+    moves: z.array(NotedMoveSchema),
+    agent: z.string().openapi({ description: 'The coach that wrote them' }),
+    writtenAt: z.string().datetime(),
+  })
+  .openapi('LineNotes')
+
+export type LineNotesBody = z.infer<typeof LineNotesSchema>
+
+export const lineNotesRoute = createRoute({
+  method: 'get',
+  path: '/opening-library/{id}/line-notes',
+  tags: ['openings'],
+  summary: 'The coach’s notes on one line of an opening, if they were written',
+  request: {
+    params: guideParams,
+    query: z.object({
+      moves: z.string().min(1).max(300).openapi({
+        example: 'e4,c6,Bc4',
+        description: 'The line: SAN from the start, comma-separated',
+      }),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'The notes',
+      content: { 'application/json': { schema: LineNotesSchema } },
+    },
+    400: problem('A move of the line is not legal'),
+    404: problem('No notes on this line yet'),
+    503: problem('No game database on this server'),
+  },
+})
+
+export const writeLineNotesRoute = createRoute({
+  method: 'post',
+  path: '/opening-library/{id}/line-notes',
+  tags: ['openings'],
+  summary:
+    'Has the coach write notes on one line of an opening (kept; written once unless asked again)',
+  description:
+    'A note for every move of the line, with a drawing where it helps, written from the library’s facts about the line with no tools. Costs one model turn with the Claude API.',
+  request: {
+    params: guideParams,
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            /** The line: SAN from the start. */
+            moves: z.array(z.string().min(2).max(8)).min(2).max(30),
+            agent: z.string().max(50).optional(),
+            /** Write them again even when they are kept. */
+            regenerate: z.boolean().optional(),
+          }),
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: 'The notes',
+      content: { 'application/json': { schema: LineNotesSchema } },
+    },
+    400: problem('A move of the line is not legal'),
+    404: problem('No such opening, or no such agent'),
+    502: problem('The coach gave no usable notes'),
     503: problem('No coach available, or no game database'),
   },
 })

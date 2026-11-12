@@ -1,4 +1,4 @@
-import type { OpeningGuideBody } from '@pawnia/contracts'
+import type { LineNotesBody, OpeningGuideBody } from '@pawnia/contracts'
 import type {
   GameHistory,
   GameLine,
@@ -120,6 +120,14 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
 
   async saveGuide(openingId: string, guide: OpeningGuideBody): Promise<void> {
     await (await this.connected()).guides.save(openingId, guide)
+  }
+
+  async findLineNotes(openingId: string, moves: string): Promise<LineNotesBody | undefined> {
+    return (await this.connected()).guides.findLine(openingId, moves)
+  }
+
+  async saveLineNotes(openingId: string, moves: string, notes: LineNotesBody): Promise<void> {
+    await (await this.connected()).guides.saveLine(openingId, moves, notes)
   }
 
   async findWalkthrough(line: GameLine, side: string): Promise<StoredWalkthrough | undefined> {
