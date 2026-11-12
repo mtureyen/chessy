@@ -411,7 +411,18 @@ describe('engine routes', () => {
       title: 'Invalid position',
       detail: expect.stringContaining('fens[1]'),
     })
-    const notJson = await app.request('/api/v1/engine/evaluations', { method: 'POST', body: 'x' })
+    // A body that isn't sent as JSON is turned away before it is read: a page of another site
+    // can post plain text without the browser asking first.
+    const plain = await app.request('/api/v1/engine/evaluations', {
+      method: 'POST',
+      body: JSON.stringify({ fens: [START], nodes: 5_000_000 }),
+    })
+    expect(plain.status).toBe(415)
+    const notJson = await app.request('/api/v1/engine/evaluations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: 'x',
+    })
     expect(notJson.status).toBe(400)
   })
 
@@ -1350,5 +1361,49 @@ describe('local host names only', () => {
     expect((await health('127.0.0.1:3000')).status).toBe(200)
     expect((await health('[::1]:3000')).status).toBe(200)
     expect((await health('rebind.attacker.example:3000')).status).toBe(403)
+  })
+
+  it('turns away requests sent by a page of another site', async () => {
+    const guarded = createApp({
+      engine,
+      humanMoves,
+      library: new DatabaseLibraryService(undefined),
+      reviewQueue,
+      training,
+      stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
+      openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
+      practice,
+      openingLibrary,
+      guides,
+      repertoire,
+      coach: { agents: () => [] },
+      walkthroughs,
+      settings,
+      version: '9.9.9',
+      startedAt: 0,
+      sources: {
+        lichess: fakeSource('lichess', () => []),
+        chesscom: fakeSource('chesscom', () => []),
+      },
+      localHostNamesOnly: true,
+    })
+    const pause = (origin?: string) =>
+      guarded.request('/api/v1/library/review-queue/pause', {
+        method: 'POST',
+        headers: { Host: 'localhost:3000', ...(origin !== undefined && { Origin: origin }) },
+      })
+    // The app's own pages, and callers that are no page at all.
+    expect((await pause('http://localhost:5173')).status).not.toBe(403)
+    expect((await pause('http://127.0.0.1:5173')).status).not.toBe(403)
+    expect((await pause()).status).not.toBe(403)
+    // Any other site, also one that hides where it is from.
+    expect((await pause('https://evil.example')).status).toBe(403)
+    expect((await pause('null')).status).toBe(403)
+    const settingsFrom = (origin: string) =>
+      guarded.request('/api/v1/settings/coach', {
+        headers: { Host: 'localhost:3000', Origin: origin },
+      })
+    expect((await settingsFrom('https://evil.example')).status).toBe(403)
+    expect((await settingsFrom('http://localhost:5173')).status).toBe(200)
   })
 })
