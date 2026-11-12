@@ -121,6 +121,15 @@ function WrittenGuide({
                     {moveLabel(move.ply, move.san)}
                   </button>{' '}
                   {move.note}
+                  {move.draw && (
+                    <span
+                      className="library-drawn"
+                      title="The coach drew this move’s idea: pick the move to see it on the board"
+                    >
+                      {' '}
+                      ✎
+                    </span>
+                  )}
                 </li>
               )
             })}

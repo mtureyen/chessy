@@ -2,7 +2,7 @@ import { createGame, type Move } from '@pawnia/chess'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
 import { lineText } from '@/features/stats/format'
-import { Board } from '@/shared/board/Board'
+import { Board, type BoardDrawing } from '@/shared/board/Board'
 import { arrowsWanted, nextStepArrows, rememberArrows } from './arrows'
 import { moveLabel } from './format'
 import { helpFor, HINT_AFTER, sameMove, verdictText, yourPlies, type LearnScore } from './learnLine'
@@ -24,6 +24,7 @@ export function LineTrainer({
   side,
   title,
   notes,
+  drawings,
   onExit,
   start = 'watch',
   exitLabel = 'Back to the opening',
@@ -36,6 +37,8 @@ export function LineTrainer({
   title: string
   /** The coach's note per ply, where the guide has one. */
   notes: ReadonlyMap<number, string>
+  /** The coach's drawing per ply, where the guide has one: shown while watching. */
+  drawings?: ReadonlyMap<number, BoardDrawing>
   onExit: () => void
   /**
    * Begin by playing from memory (a review) instead of watching. Learning a line, the help fades
@@ -57,6 +60,7 @@ export function LineTrainer({
       side={side}
       title={title}
       notes={notes}
+      {...(drawings && { drawings })}
       onPlay={() => setMode('play')}
       onExit={onExit}
       exitLabel={exitLabel}
@@ -94,6 +98,7 @@ function Watch({
   side,
   title,
   notes,
+  drawings,
   onPlay,
   onExit,
   exitLabel,
@@ -102,6 +107,7 @@ function Watch({
   side: 'white' | 'black'
   title: string
   notes: ReadonlyMap<number, string>
+  drawings?: ReadonlyMap<number, BoardDrawing>
   onPlay: () => void
   onExit: () => void
   exitLabel: string
@@ -112,10 +118,13 @@ function Watch({
   const { game, lastMove } = useMemo(() => positionAt(line, ply), [line, ply])
   const note = ply > 0 ? notes.get(ply) : undefined
   const playing = autoplay && ply < line.length
-  const drawing = useMemo(
-    () => (arrowsOn ? nextStepArrows(line, ply, side) : undefined),
-    [arrowsOn, line, ply, side],
-  )
+  /** What the coach drew for the move just made: its idea, in front of the next moves. */
+  const idea = arrowsOn && ply > 0 ? drawings?.get(ply) : undefined
+  const drawing = useMemo(() => {
+    if (!arrowsOn) return undefined
+    const next = nextStepArrows(line, ply, side, { allFaint: idea !== undefined })
+    return idea ? { arrows: [...next.arrows, ...idea.arrows], squares: idea.squares } : next
+  }, [arrowsOn, line, ply, side, idea])
   /** A step by hand; the line stops playing by itself. */
   const step = (by: number) => {
     setAutoplay(false)
@@ -167,10 +176,18 @@ function Watch({
             {ply === 0 ? 'The start position.' : moveLabel(ply, line[ply - 1]!)}
           </p>
           {note && <p>{note}</p>}
-          {arrowsOn && ply < line.length && (
+          {idea ? (
             <p className="stats-note">
-              The arrows show the next moves in order: yours green, the other side’s grey.
+              Strong arrows and circles: the coach’s drawing of this move’s idea. Faint and
+              numbered: the next moves.
             </p>
+          ) : (
+            arrowsOn &&
+            ply < line.length && (
+              <p className="stats-note">
+                The arrows show the next moves in order: yours green, the other side’s grey.
+              </p>
+            )
           )}
         </div>
         <div className="training-actions">

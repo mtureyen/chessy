@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { guideNotes, helpFor, HINT_AFTER, sameMove, verdictText, yourPlies } from './learnLine'
+import {
+  guideDrawings,
+  guideNotes,
+  helpFor,
+  HINT_AFTER,
+  sameMove,
+  verdictText,
+  yourPlies,
+} from './learnLine'
 
 describe('learning a line', () => {
   it('knows which moves are the user’s', () => {
@@ -54,5 +62,19 @@ describe('guideNotes', () => {
       [2, 'Prepares ...d5.'],
     ])
     expect(guideNotes(['d4'], moves).size).toBe(0)
+  })
+})
+
+describe('guideDrawings', () => {
+  const draw = { arrows: [{ from: 'c6', to: 'd5', color: 'green' as const }], squares: [] }
+  const moves = [
+    { ply: 1, san: 'e4', note: 'Centre.' },
+    { ply: 2, san: 'c6', note: 'Prepares ...d5.', draw },
+    { ply: 3, san: 'd4', note: 'A broad centre.', draw },
+  ]
+
+  it('gives the drawings as far as the line follows the guide', () => {
+    expect([...guideDrawings(['e4', 'c6', 'Nc3'], moves)]).toEqual([[2, draw]])
+    expect(guideDrawings(['e4', 'e5'], moves).size).toBe(0)
   })
 })

@@ -3,6 +3,7 @@ import { boardDriver } from './board'
 
 const GREEN = '#5f9e2f'
 const BLUE = '#3f9fd8'
+const RED = '#d64534'
 /** The arrows the app drew on the board, all or of one colour. */
 const arrows = (page: Page, color?: string) =>
   page.locator(color ? `svg.cg-shapes line[stroke="${color}"]` : 'svg.cg-shapes line')
@@ -110,7 +111,15 @@ test('opening library: the coach writes a guide once, and its moves go on the bo
       { ply: 1, san: 'e4', note: 'White takes the centre.' },
       { ply: 2, san: 'c6', note: 'Black prepares ...d5.' },
       { ply: 3, san: 'd4', note: 'A broad centre.' },
-      { ply: 4, san: 'd5', note: 'The challenge to e4.' },
+      {
+        ply: 4,
+        san: 'd5',
+        note: 'The challenge to e4.',
+        draw: {
+          arrows: [{ from: 'd5', to: 'e4', color: 'red' }],
+          squares: [{ square: 'c6', color: 'green' }],
+        },
+      },
     ],
     agent: 'Scripted coach',
     writtenAt: '2026-11-11T12:00:00.000Z',
@@ -137,8 +146,27 @@ test('opening library: the coach writes a guide once, and its moves go on the bo
   await expect(section).toContainText('Written by Scripted coach')
   expect(written).toBe(1)
 
+  // A guide move goes on the board with the coach's drawing of its idea, in place of the
+  // arrows of what's played.
   await section.getByRole('button', { name: '2...d5' }).click()
   await expect(page.locator('.library-nav')).toContainText('1.e4 c6 2.d4 d5')
+  await expect(page.getByText('The coach’s drawing of this move’s idea.')).toBeVisible()
+  await expect(arrows(page)).toHaveCount(1)
+  await expect(arrows(page, RED)).toHaveCount(1)
+  await expect(page.locator(`svg.cg-shapes circle[stroke="${GREEN}"]`)).toHaveCount(1)
+  await page.getByRole('button', { name: 'Show what’s played here' }).click()
+  await expect(arrows(page, RED)).toHaveCount(0)
+  await expect.poll(() => arrows(page).count()).toBeGreaterThan(1)
+
+  // Watching the guide's line, the drawing comes with its move.
+  await section.getByRole('button', { name: 'Learn this line' }).click()
+  const panel = page.getByRole('complementary', { name: 'Learn the line' })
+  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowRight')
+  await expect(panel.getByRole('status')).toHaveText('2...d5')
+  await expect(panel).toContainText('The challenge to e4.')
+  await expect(panel).toContainText('the coach’s drawing of this move’s idea')
+  await expect(arrows(page, RED)).toHaveCount(1)
+  await expect(page.locator(`svg.cg-shapes circle[stroke="${GREEN}"]`)).toHaveCount(1)
 })
 
 test('opening library: learn a line, watching it first, then playing it from memory', async ({

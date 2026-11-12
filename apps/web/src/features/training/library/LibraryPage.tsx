@@ -5,11 +5,11 @@ import { Link, useSearch } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
 import { lineText } from '@/features/stats/format'
-import { Board } from '@/shared/board/Board'
+import { Board, type BoardDrawing } from '@/shared/board/Board'
 import { TrainingTabs } from '../TrainingTabs'
 import { arrowsWanted, explorerArrows, openingPaths, rememberArrows } from './arrows'
 import { Guide } from './Guide'
-import { guideNotes } from './learnLine'
+import { guideDrawings, guideNotes } from './learnLine'
 import { LineTrainer } from './LineTrainer'
 import {
   BAND_LABELS,
@@ -173,6 +173,13 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
   /** The move pointed at in the list of what's played, with the position it belongs to. */
   const [pointed, setPointed] = useState<{ at: string; san: string }>()
   const paths = useMemo(() => openingPaths(opening.tree), [opening.tree])
+  /** The position whose drawing by the coach is on the board: a move picked in the guide. */
+  const [ideaAt, setIdeaAt] = useState<string>()
+  /** To a position by any other way: the board shows what's played there again. */
+  const go = (next: string[]) => {
+    setIdeaAt(undefined)
+    setPath(next)
+  }
   // The same query as the guide's section: its notes go with the moves they are about.
   const guide = useQuery({
     queryKey: ['opening-library', opening.id, 'guide'],
@@ -192,6 +199,7 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
         title={titleOf(learning)}
         onAdd={() => keep(learning)}
         notes={guideNotes(learning, guide.data?.moves ?? [])}
+        drawings={guideDrawings(learning, guide.data?.moves ?? [])}
         onExit={() => {
           setPath(learning)
           setLearning(undefined)
@@ -199,6 +207,10 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
       />
     )
   }
+  const idea =
+    ideaAt === path.join(' ')
+      ? guideDrawings(path, guide.data?.moves ?? []).get(path.length)
+      : undefined
   return (
     <>
       <section className="stats-summary" aria-label="Summary">
@@ -221,7 +233,9 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
             band={band}
             paths={paths}
             {...(pointed?.at === path.join(' ') && { pointedAt: pointed.san })}
-            onPath={setPath}
+            {...(idea && { idea })}
+            onNoIdea={() => setIdeaAt(undefined)}
+            onPath={go}
             onLearn={() => setLearning(path)}
             onKeep={() => keep(path)}
           />
@@ -232,13 +246,21 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
             side={opening.side}
             band={band}
             onBand={setBand}
-            onPath={setPath}
+            onPath={go}
             onPoint={(san) => setPointed(san ? { at: path.join(' '), san } : undefined)}
           />
         </aside>
       </div>
 
-      <Guide opening={opening} path={path} onPath={setPath} onLearn={(line) => setLearning(line)} />
+      <Guide
+        opening={opening}
+        path={path}
+        onPath={(next) => {
+          setPath(next)
+          setIdeaAt(next.join(' '))
+        }}
+        onLearn={(line) => setLearning(line)}
+      />
 
       {opening.traps.length > 0 && (
         <section className="stats-section" aria-label="Traps">
@@ -260,10 +282,7 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
                   {trap.best && `Better is ${trap.best}. `}
                   After {trap.bait}: {trap.punish}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setPath(trap.moves ? trap.moves.split(' ') : [])}
-                >
+                <button type="button" onClick={() => go(trap.moves ? trap.moves.split(' ') : [])}>
                   Show on the board
                 </button>
               </li>
@@ -272,7 +291,7 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
         </section>
       )}
 
-      <NamedLines opening={opening} band={band} path={path} onPath={setPath} />
+      <NamedLines opening={opening} band={band} path={path} onPath={go} />
     </>
   )
 }
@@ -389,6 +408,8 @@ function ExplorerBoard({
   band,
   paths,
   pointedAt,
+  idea,
+  onNoIdea,
   onPath,
   onLearn,
   onKeep,
@@ -400,6 +421,9 @@ function ExplorerBoard({
   paths: ReadonlySet<string>
   /** The move pointed at in the list next to the board. */
   pointedAt?: string
+  /** The coach's drawing for this position, shown in place of what's played. */
+  idea?: BoardDrawing
+  onNoIdea: () => void
   onPath: (path: string[]) => void
   onLearn: () => void
   /** Keeps the line on the board in the repertoire. */
@@ -446,7 +470,7 @@ function ExplorerBoard({
           const node = createGame(game.fen()).play(move)
           if (node?.move) onPath([...path, node.move.san])
         }}
-        {...(drawing && { drawing })}
+        {...((idea ?? drawing) && { drawing: idea ?? drawing })}
       />
       <div className="library-nav">
         <button type="button" onClick={() => onPath([])} disabled={path.length === 0}>
@@ -491,20 +515,29 @@ function ExplorerBoard({
           </span>
         )}
       </div>
-      <p className="stats-note library-arrows">
-        <button
-          type="button"
-          aria-pressed={arrowsOn}
-          onClick={() => {
-            rememberArrows(!arrowsOn)
-            setArrowsOn(!arrowsOn)
-          }}
-        >
-          Arrows
-        </button>
-        {arrowsOn &&
-          'What is played here: the thicker, the more often. Green stays in this opening’s lines, grey leaves them.'}
-      </p>
+      {idea ? (
+        <p className="stats-note library-arrows">
+          The coach’s drawing of this move’s idea.
+          <button type="button" onClick={onNoIdea}>
+            Show what’s played here
+          </button>
+        </p>
+      ) : (
+        <p className="stats-note library-arrows">
+          <button
+            type="button"
+            aria-pressed={arrowsOn}
+            onClick={() => {
+              rememberArrows(!arrowsOn)
+              setArrowsOn(!arrowsOn)
+            }}
+          >
+            Arrows
+          </button>
+          {arrowsOn &&
+            'What is played here: the thicker, the more often. Green stays in this opening’s lines, grey leaves them.'}
+        </p>
+      )}
     </>
   )
 }

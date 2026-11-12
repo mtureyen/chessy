@@ -72,6 +72,25 @@ export function verdictText(
   }
 }
 
+/** What the coach drew for a move: arrows and marked squares on the position after it. */
+export interface MoveDrawing {
+  arrows: { from: string; to: string; color: 'green' | 'red' | 'blue' | 'yellow' }[]
+  squares: { square: string; color: 'green' | 'red' | 'blue' | 'yellow' }[]
+}
+
+/** The guide's drawings for a line, by ply, as far as the line follows the guide's moves. */
+export function guideDrawings(
+  line: readonly string[],
+  moves: readonly { ply: number; san: string; draw?: MoveDrawing | undefined }[],
+): Map<number, MoveDrawing> {
+  const drawings = new Map<number, MoveDrawing>()
+  for (const move of moves) {
+    if (line[move.ply - 1] !== move.san) break
+    if (move.draw) drawings.set(move.ply, move.draw)
+  }
+  return drawings
+}
+
 /** The guide's notes for a line, by ply, as far as the line follows the guide's moves. */
 export function guideNotes(
   line: readonly string[],
