@@ -1,5 +1,15 @@
 /** Shared core: chess rules, move tree and PGN/FEN. Pure, no I/O. */
 export * from './domain/types'
+export {
+  boardView,
+  squareAt,
+  squareCoords,
+  squareDistance,
+  squaresBetween,
+  type BoardView,
+  type Piece,
+  type Role,
+} from './domain/board'
 export { mostExposedPiece, staticExchange } from './domain/exchange'
 export {
   hasInsufficientMaterial,
