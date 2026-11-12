@@ -57,12 +57,20 @@ export async function runToolLoop(
     )
     usage.inputTokens += turn.usage.inputTokens
     usage.outputTokens += turn.usage.outputTokens
-    messages.push({
-      role: 'assistant',
-      text: turn.text,
-      toolCalls: turn.toolCalls,
-      ...(turn.providerState !== undefined && { providerState: turn.providerState }),
-    })
+    // A tool call cut off at the token limit is never run, so it must not stay in the
+    // conversation either: providers reject a call without its result, and every later
+    // question in this conversation would fail.
+    const cut = turn.stop === 'max_tokens' && turn.toolCalls.length > 0
+    messages.push(
+      cut
+        ? { role: 'assistant', text: turn.text || 'The answer was cut off.', toolCalls: [] }
+        : {
+            role: 'assistant',
+            text: turn.text,
+            toolCalls: turn.toolCalls,
+            ...(turn.providerState !== undefined && { providerState: turn.providerState }),
+          },
+    )
     if (turn.stop === 'refusal') {
       onEvent({ type: 'error', message: 'The model declined to answer this.' })
       return { usage }

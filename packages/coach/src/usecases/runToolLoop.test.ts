@@ -109,6 +109,26 @@ describe('runToolLoop', () => {
       drawing: { arrows: [{ from: 'e2', to: 'e4', color: 'green' }], squares: [] },
     })
 
+    // A tool call cut off at the token limit: an error, and nothing of the call is kept.
+    const cutOff: LlmClient = {
+      ...scriptedClient([]).client,
+      turn: async () => ({
+        text: 'Let me look. ',
+        toolCalls: [{ id: 'call-1', name: 'echo', input: {} }],
+        stop: 'max_tokens',
+        providerState: { raw: 'half a call' },
+        usage: { inputTokens: 1, outputTokens: 1 },
+      }),
+    }
+    const cut = collect()
+    const kept = ask('?')
+    await runToolLoop(cutOff, { system: 's', messages: kept, tools: [echoTool] }, cut.onEvent)
+    expect(cut.events.at(-1)).toEqual({
+      type: 'error',
+      message: 'The answer was cut off while calling a tool.',
+    })
+    expect(kept[1]).toEqual({ role: 'assistant', text: 'Let me look. ', toolCalls: [] })
+
     const refusing: LlmClient = {
       ...scriptedClient([]).client,
       turn: async () => ({
