@@ -38,6 +38,9 @@ interface Waiter {
  * The engine runs one search at a time. A new `analyze` call queues its search, stops the
  * running one, and starts once the engine confirms with `bestmove`. Only the newest queued
  * search survives; output arriving after a stop request is discarded.
+ *
+ * An engine that fails (it never loads, its process dies, it stops answering) ends the searches
+ * it had with 'error' and is let go: the next search starts a new one.
  */
 export class UciEngine implements EngineProvider {
   private readonly createTransport: () => UciTransport
@@ -48,7 +51,6 @@ export class UciEngine implements EngineProvider {
   private running: Search | undefined
   private queued: Search | undefined
   private waiters: Waiter[] = []
-  private failure: Error | undefined
   private disposed = false
 
   constructor(createTransport: () => UciTransport, options: UciEngineOptions = {}) {
@@ -115,8 +117,13 @@ export class UciEngine implements EngineProvider {
   private async handshake(): Promise<EngineInfo> {
     const transport = this.createTransport()
     this.transport = transport
-    transport.onLine((line) => this.onLine(line))
-    transport.onError((error) => this.fail(error))
+    // An engine that was let go may still talk (its last lines, a second error): not to us.
+    transport.onLine((line) => {
+      if (this.transport === transport) this.onLine(line)
+    })
+    transport.onError((error) => {
+      if (this.transport === transport) this.fail(error)
+    })
 
     // Listen before sending: an engine may answer synchronously.
     const uciok = this.waitFor((line) => line === 'uciok')
@@ -232,18 +239,23 @@ export class UciEngine implements EngineProvider {
     search.resolve(snapshot)
   }
 
-  /** Marks the engine as broken. Every pending and future search ends with 'error'. */
+  /**
+   * The engine is broken: every search it had ends with 'error', and it is let go, so the next
+   * search loads a new one instead of talking to a dead process.
+   */
   private fail(error: Error): void {
-    this.failure ??= error
-    this.rejectWaiters(this.failure)
+    const broken = this.transport
+    this.transport = undefined
+    this.initPromise = undefined
+    this.rejectWaiters(error)
     for (const search of [this.queued, this.running]) {
-      if (search) this.finish(search, 'error', undefined, this.failure.message)
+      if (search) this.finish(search, 'error', undefined, error.message)
     }
     this.queued = this.running = undefined
+    broken?.terminate()
   }
 
   private waitFor(match: (line: string) => boolean): Promise<void> {
-    if (this.failure) return Promise.reject(this.failure)
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error(`Engine did not respond within ${this.options.initTimeoutMs} ms`))

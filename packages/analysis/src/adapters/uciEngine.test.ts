@@ -196,12 +196,47 @@ describe('UciEngine', () => {
     blocker.stop()
   })
 
-  it('ends searches with an error when the engine fails to load', async () => {
-    const { engine, transport } = setup()
+  it('ends searches with an error when the engine fails to load, and tries again for the next', async () => {
+    const transports = [new FakeTransport(), new FakeTransport()]
+    let made = 0
+    const engine = new UciEngine(() => transports[made++]!, { initTimeoutMs: 50 })
     const handle = engine.analyze({ fen: START })
-    transport.crash('wasm failed to load')
+    transports[0]!.crash('wasm failed to load')
     expect(await handle.result).toMatchObject({ end: 'error', error: 'wasm failed to load' })
-    expect(await engine.analyze({ fen: START }).result).toMatchObject({ end: 'error' })
+    expect(transports[0]!.terminated).toBe(true)
+
+    const next = engine.analyze({ fen: START, depth: 8 })
+    await settle()
+    expect(transports[1]!.searchCommands).toContain('go depth 8')
+    transports[1]!.emit('bestmove e2e4')
+    expect(await next.result).toMatchObject({ end: 'limit', bestMove: 'e2e4' })
+  })
+
+  it('replaces an engine that dies in the middle of a search', async () => {
+    const transports = [new FakeTransport(), new FakeTransport()]
+    let made = 0
+    const engine = new UciEngine(() => transports[made++]!, { initTimeoutMs: 50 })
+    const running = engine.analyze({ fen: START, depth: 8 })
+    await settle()
+    expect(transports[0]!.searchCommands).toContain('go depth 8')
+    transports[0]!.crash('the process exited')
+    expect(await running.result).toMatchObject({ end: 'error', error: 'the process exited' })
+    // What the dead engine still says, or a second error from it, reaches no one.
+    transports[0]!.crash('again')
+    transports[0]!.emit('bestmove a2a3')
+
+    // Neither kind of search talks to the dead engine: both get a new one.
+    const plain = engine.analyze({ fen: AFTER_E4, depth: 6 })
+    await settle()
+    expect(made).toBe(2)
+    expect(transports[1]!.searchCommands).toContain(`position fen ${AFTER_E4}`)
+    transports[1]!.emit('bestmove e7e5')
+    expect(await plain.result).toMatchObject({ end: 'limit', bestMove: 'e7e5' })
+    const fresh = engine.analyze({ fen: AFTER_D4, depth: 6, fresh: true })
+    await settle()
+    transports[1]!.emit('bestmove d7d5')
+    expect(await fresh.result).toMatchObject({ end: 'limit', bestMove: 'd7d5' })
+    expect(made).toBe(2)
   })
 
   it('times out when the engine never answers', async () => {
