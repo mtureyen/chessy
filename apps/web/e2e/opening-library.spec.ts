@@ -172,6 +172,28 @@ test('opening library: the coach writes a guide once, and its moves go on the bo
 test('opening library: learn a line, watching it first, then playing it from memory', async ({
   page,
 }) => {
+  // The coach's notes on the line: none until asked for, then kept.
+  const explained: string[][] = []
+  const notes = {
+    moves: ['e4', 'c6', 'd4', 'd5', 'e5'].map((san, i) => ({
+      ply: i + 1,
+      san,
+      note: `Why ${san}.`,
+    })),
+    agent: 'Scripted coach',
+    writtenAt: '2026-11-12T12:00:00.000Z',
+  }
+  await page.route(/\/api\/v1\/opening-library\/caro-kann\/line-notes/, (route) => {
+    if (route.request().method() === 'POST') {
+      explained.push((route.request().postDataJSON() as { moves: string[] }).moves)
+      return route.fulfill({ json: notes })
+    }
+    return route.fulfill({
+      status: 404,
+      contentType: 'application/problem+json',
+      json: { title: 'No notes', status: 404 },
+    })
+  })
   await page.setViewportSize({ width: 1280, height: 1000 })
   await page.goto('/training/library?id=caro-kann')
   await page
@@ -185,11 +207,16 @@ test('opening library: learn a line, watching it first, then playing it from mem
   const panel = page.getByRole('complementary', { name: 'Learn the line' })
   await expect(panel).toContainText('Step 1 of 2: watch the line.')
   await expect(panel.getByRole('status')).toHaveText('The start position.')
+  // No notes on this line yet: the coach writes one for every move, once.
+  await panel.getByRole('button', { name: 'Explain every move' }).click()
+  await expect(panel.getByRole('button', { name: 'Explain every move' })).toHaveCount(0)
+  expect(explained).toEqual([['e4', 'c6', 'd4', 'd5', 'e5']])
   // The next three moves are on the board as arrows: Black's own (1...c6) in green.
   await expect(arrows(page)).toHaveCount(3)
   await expect(arrows(page, GREEN)).toHaveCount(1)
   await panel.getByRole('button', { name: 'Next ▶' }).click()
   await expect(panel.getByRole('status')).toHaveText('1.e4')
+  await expect(panel).toContainText('Why e4.')
   await page.keyboard.press('ArrowRight')
   await expect(panel.getByRole('status')).toHaveText('1...c6')
   await page.keyboard.press('ArrowLeft')

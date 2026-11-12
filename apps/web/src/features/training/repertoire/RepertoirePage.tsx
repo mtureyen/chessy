@@ -34,9 +34,17 @@ function ReviewLine({
     queryFn: () => openingLibrary.guide(line.openingId!),
     enabled: line.openingId !== undefined,
   })
+  // The coach's notes on this very line come before the guide's.
+  const own = useQuery({
+    queryKey: ['opening-library', line.openingId, 'line-notes', line.moves.join(' ')],
+    queryFn: () => openingLibrary.lineNotes(line.openingId!, line.moves),
+    enabled: line.openingId !== undefined,
+    retry: false,
+  })
+  const noted = own.data?.moves ?? guide.data?.moves
   const notes = useMemo(
-    () => (guide.data ? guideNotes(line.moves, guide.data.moves) : NO_NOTES),
-    [guide.data, line.moves],
+    () => (noted ? guideNotes(line.moves, noted) : NO_NOTES),
+    [noted, line.moves],
   )
   return (
     <LineTrainer

@@ -27,6 +27,7 @@ export function LineTrainer({
   notes,
   drawings,
   pitfalls,
+  onExplain,
   onExit,
   start = 'watch',
   exitLabel = 'Back to the opening',
@@ -43,6 +44,8 @@ export function LineTrainer({
   drawings?: ReadonlyMap<number, BoardDrawing>
   /** A move to stay away from, by ply: tried, it gets its own answer (a trap's bait). */
   pitfalls?: ReadonlyMap<number, Pitfall>
+  /** Has the coach write a note for every move of the line; offered while some have none. */
+  onExplain?: () => Promise<unknown>
   onExit: () => void
   /**
    * Begin by playing from memory (a review) instead of watching. Learning a line, the help fades
@@ -65,6 +68,7 @@ export function LineTrainer({
       title={title}
       notes={notes}
       {...(drawings && { drawings })}
+      {...(onExplain && { onExplain })}
       onPlay={() => setMode('play')}
       onExit={onExit}
       exitLabel={exitLabel}
@@ -104,6 +108,7 @@ function Watch({
   title,
   notes,
   drawings,
+  onExplain,
   onPlay,
   onExit,
   exitLabel,
@@ -113,12 +118,15 @@ function Watch({
   title: string
   notes: ReadonlyMap<number, string>
   drawings?: ReadonlyMap<number, BoardDrawing>
+  onExplain?: () => Promise<unknown>
   onPlay: () => void
   onExit: () => void
   exitLabel: string
 }) {
   const [ply, setPly] = useState(0)
   const [autoplay, setAutoplay] = useState(false)
+  /** The coach is writing the line's notes, or why it couldn't. */
+  const [explaining, setExplaining] = useState<'writing' | string>()
   const [arrowsOn, setArrowsOn] = useState(arrowsWanted)
   const { game, lastMove } = useMemo(() => positionAt(line, ply), [line, ply])
   const note = ply > 0 ? notes.get(ply) : undefined
@@ -181,6 +189,35 @@ function Watch({
             {ply === 0 ? 'The start position.' : moveLabel(ply, line[ply - 1]!)}
           </p>
           {note && <p>{note}</p>}
+          {onExplain && notes.size < line.length && (
+            <p className="line-trainer-explain">
+              <button
+                type="button"
+                disabled={explaining === 'writing'}
+                onClick={() => {
+                  setExplaining('writing')
+                  onExplain().then(
+                    () => setExplaining(undefined),
+                    (error: unknown) =>
+                      setExplaining(error instanceof Error ? error.message : String(error)),
+                  )
+                }}
+              >
+                {explaining === 'writing'
+                  ? 'The coach is writing… (up to a minute)'
+                  : 'Explain every move'}
+              </button>{' '}
+              <span className="stats-note">
+                The coach writes a note for each move of this line, once. With the Claude API as
+                coach this is one paid request.
+              </span>
+            </p>
+          )}
+          {explaining && explaining !== 'writing' && (
+            <p className="message message-error" role="alert">
+              {explaining}
+            </p>
+          )}
           {idea ? (
             <p className="stats-note">
               Strong arrows and circles: the coach’s drawing of this move’s idea. Faint and
