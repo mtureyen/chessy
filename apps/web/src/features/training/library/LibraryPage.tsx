@@ -9,6 +9,7 @@ import { Board } from '@/shared/board/Board'
 import { TrainingTabs } from '../TrainingTabs'
 import { arrowsWanted, explorerArrows, openingPaths, rememberArrows } from './arrows'
 import { Guide } from './Guide'
+import { guideNotes } from './learnLine'
 import { LineTrainer } from './LineTrainer'
 import {
   BAND_LABELS,
@@ -333,19 +334,6 @@ function NamedLines({
       )}
     </section>
   )
-}
-
-/** The guide's notes for a line, by ply, as far as the line follows the guide's moves. */
-function guideNotes(
-  line: readonly string[],
-  moves: readonly { ply: number; san: string; note: string }[],
-): Map<number, string> {
-  const notes = new Map<number, string>()
-  for (const move of moves) {
-    if (line[move.ply - 1] !== move.san) break
-    notes.set(move.ply, move.note)
-  }
-  return notes
 }
 
 /** The variation's name without the family in front ("Caro-Kann Defense: Advance" → "Advance"). */
