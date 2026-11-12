@@ -1,13 +1,13 @@
 import { createGame, type Move } from '@pawnia/chess'
-import type { OpeningBody, PracticeCheckBody } from '@pawnia/contracts'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import type { PracticeCheckBody } from '@pawnia/contracts'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useServices } from '@/app/servicesContext'
 import { Board } from '@/shared/board/Board'
 import { useGame } from '@/shared/game/useGame'
 import { lastMove } from '@/features/stats/format'
-import { openingLabel, theoryText } from './format'
-import { nextMoves, pickReply, PRACTICE_PLIES } from './practice'
+import { theoryText } from './format'
+import { pickReply, PRACTICE_PLIES, type Candidate } from './practice'
 import '@/shared/game/GamePanel.css'
 
 const NO_MOVES = new Map()
@@ -16,16 +16,41 @@ const REPLY_DELAY_MS = 500
 
 type Feedback = { tone: 'right' | 'note' | 'wrong'; text: ReactNode }
 
+/** What a practice is about: whose moves the opponent plays, and how it is told. */
+export interface PracticeSetup {
+  heading: ReactNode
+  intro: string
+  color: 'white' | 'black'
+  /** The moves on the board when the practice starts (SAN): where an opening begins. */
+  start?: readonly string[]
+  /** What the opponent picks its reply from after these moves (SAN), each with its weight. */
+  replies: (sans: readonly string[]) => Promise<readonly Candidate[]>
+  /** Whether theory's replies stand in where `replies` has none. */
+  theoryToo: boolean
+  /** Something to say about the opponent's reply (the last of these moves), once it is played. */
+  about?: (sans: readonly string[]) => Promise<string | undefined>
+  /** What a missed position is kept as in the repertoire. */
+  missed: { title: string; openingId?: string }
+  /** Why the practice is over where the opponent has no reply. */
+  ending: string
+}
+
+/** The game a practice starts from. */
+function startGame(start: readonly string[] = []) {
+  const game = createGame()
+  for (const san of start) game.play(san)
+  return game
+}
+
 /**
- * Practising an opening: the user plays their colour from the start; the opponent plays the
- * replies the user really met (the common ones most often), else theory's. Each move is judged
- * by theory first, then the engine; a wrong one is taken back to try again.
+ * Practising an opening: the user plays their colour; the opponent picks its replies from what
+ * the setup gives (the common ones most often). Each move is judged by theory first, then the
+ * engine; a wrong one is taken back to try again.
  */
-export function OpeningPractice({ opening, onExit }: { opening: OpeningBody; onExit: () => void }) {
+export function PracticeBoard({ setup, onExit }: { setup: PracticeSetup; onExit: () => void }) {
   const { training, repertoire } = useServices()
-  const table = useMemo(() => nextMoves(opening.lines), [opening.lines])
-  const { game, view, update, replace } = useGame()
-  const color = opening.color
+  const { game, view, update, replace } = useGame({ initial: () => startGame(setup.start) })
+  const color = setup.color
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState<Feedback>()
   /** The last accepted move's check: theory's replies to go on with. */
@@ -35,25 +60,45 @@ export function OpeningPractice({ opening, onExit }: { opening: OpeningBody; onE
   const [score, setScore] = useState({ moves: 0, firstTry: 0 })
   /** A missed position went into the repertoire. */
   const [keptMiss, setKeptMiss] = useState(false)
+  /** The opponent has no reply in the position on the board. */
+  const [out, setOut] = useState(false)
+  /** What there is to say about the opponent's last reply. */
+  const [about, setAbout] = useState<string>()
+  /** Counts the positions, so what is said about an earlier reply doesn't show on a later one. */
+  const telling = useRef(0)
 
   const played = () => game.line().flatMap((node) => (node.move ? [node.move] : []))
   const sans = () => played().map((move) => move.san)
   const ply = played().length
   const theirTurn = view.turn !== color
-  const met = table.get(sans().join(' '))
-  const theory = (accepted?.replies ?? []).map((m) => m.san)
+  const theory = setup.theoryToo ? (accepted?.replies ?? []).map((m) => m.san) : []
   /** The line is over: move 10 reached, or the opponent has no reply to play. */
-  const done =
-    ply >= PRACTICE_PLIES || (theirTurn && !busy && (met?.length ?? 0) === 0 && theory.length === 0)
+  const done = ply >= PRACTICE_PLIES || (theirTurn && !busy && out)
 
   // The opponent's turn: a reply after a breath.
   useEffect(() => {
     if (done || busy || !theirTurn) return
-    const reply = pickReply(met, theory)
-    if (!reply) return
-    const timer = setTimeout(() => update((g) => g.play(reply)), ply === 0 ? 0 : REPLY_DELAY_MS)
-    return () => clearTimeout(timer)
-    // The position decides; met and theory follow from it.
+    let stale = false
+    const line = sans()
+    const reply = async () => {
+      const move = pickReply(await setup.replies(line).catch(() => []), theory)
+      if (stale) return
+      if (!move) {
+        setOut(true)
+        return
+      }
+      update((g) => g.play(move))
+      const token = ++telling.current
+      const text = await setup.about?.([...line, move]).catch(() => undefined)
+      if (telling.current === token) setAbout(text)
+    }
+    const first = ply === (setup.start?.length ?? 0)
+    const timer = setTimeout(() => void reply(), first ? 0 : REPLY_DELAY_MS)
+    return () => {
+      stale = true
+      clearTimeout(timer)
+    }
+    // The position decides; the replies and theory follow from it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.fen, done, busy, theirTurn])
 
@@ -66,6 +111,8 @@ export function OpeningPractice({ opening, onExit }: { opening: OpeningBody; onE
       uci = g.play(move)?.move?.uci ?? ''
     })
     if (!uci) return
+    telling.current++
+    setAbout(undefined)
     setBusy(true)
     try {
       const checked = await training.checkPractice({ moves: before, tried: uci })
@@ -87,13 +134,13 @@ export function OpeningPractice({ opening, onExit }: { opening: OpeningBody; onE
       const firstTry = !wrong && !answer
       if (!firstTry) {
         // A position missed here comes back for review: the line up to the right move.
-        const label = openingLabel(opening.family, color)
         repertoire
           .add({
             side: color,
-            title: `${label.charAt(0).toUpperCase()}${label.slice(1)}, missed in practice`,
+            title: setup.missed.title,
             moves: line,
             source: 'practice',
+            ...(setup.missed.openingId && { openingId: setup.missed.openingId }),
           })
           .then(() => setKeptMiss(true))
           .catch(() => undefined)
@@ -138,7 +185,10 @@ export function OpeningPractice({ opening, onExit }: { opening: OpeningBody; onE
   }
 
   const restart = () => {
-    replace(createGame())
+    replace(startGame(setup.start))
+    telling.current++
+    setAbout(undefined)
+    setOut(false)
     setFeedback(undefined)
     setAccepted(undefined)
     setWrong(undefined)
@@ -163,19 +213,16 @@ export function OpeningPractice({ opening, onExit }: { opening: OpeningBody; onE
       <aside className="panel training-panel" aria-label="Practice">
         <div className="training-text">
           <h2>
-            Practise: {openingLabel(opening.family, color)}{' '}
+            Practise: {setup.heading}{' '}
             <span className="stats-note">as {color === 'white' ? 'White' : 'Black'}</span>
           </h2>
           <p className="stats-note">
-            Your opponent plays the replies you met in your games, the common ones most often. Up to
-            move {PRACTICE_PLIES / 2}.
+            {setup.intro} Up to move {PRACTICE_PLIES / 2}.
           </p>
           {done ? (
             <p className="practice-done" role="status">
-              {ply >= PRACTICE_PLIES
-                ? `Move ${PRACTICE_PLIES / 2} reached`
-                : 'Theory and your games stop here'}
-              : {score.firstTry} of {score.moves} moves right at the first try.
+              {ply >= PRACTICE_PLIES ? `Move ${PRACTICE_PLIES / 2} reached` : setup.ending}:{' '}
+              {score.firstTry} of {score.moves} moves right at the first try.
             </p>
           ) : (
             <p className="practice-turn" role="status">
@@ -185,6 +232,7 @@ export function OpeningPractice({ opening, onExit }: { opening: OpeningBody; onE
           {feedback && (
             <p className={`practice-feedback practice-${feedback.tone}`}>{feedback.text}</p>
           )}
+          {about && !done && <p className="practice-feedback practice-note">{about}</p>}
           {keptMiss && (
             <p className="stats-note">
               Missed positions go into <Link to="/training/repertoire">your repertoire</Link> to
