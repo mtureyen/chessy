@@ -4,6 +4,7 @@ import { useServices } from '@/app/servicesContext'
 import { lineText } from '@/features/stats/format'
 import { Board, type BoardDrawing } from '@/shared/board/Board'
 import { arrowsWanted, nextStepArrows, rememberArrows } from './arrows'
+import type { Pitfall } from './traps'
 import { moveLabel } from './format'
 import { helpFor, HINT_AFTER, sameMove, verdictText, yourPlies, type LearnScore } from './learnLine'
 
@@ -25,6 +26,7 @@ export function LineTrainer({
   title,
   notes,
   drawings,
+  pitfalls,
   onExit,
   start = 'watch',
   exitLabel = 'Back to the opening',
@@ -39,6 +41,8 @@ export function LineTrainer({
   notes: ReadonlyMap<number, string>
   /** The coach's drawing per ply, where the guide has one: shown while watching. */
   drawings?: ReadonlyMap<number, BoardDrawing>
+  /** A move to stay away from, by ply: tried, it gets its own answer (a trap's bait). */
+  pitfalls?: ReadonlyMap<number, Pitfall>
   onExit: () => void
   /**
    * Begin by playing from memory (a review) instead of watching. Learning a line, the help fades
@@ -75,6 +79,7 @@ export function LineTrainer({
       onExit={onExit}
       exitLabel={exitLabel}
       review={start === 'play'}
+      {...(pitfalls && { pitfalls })}
       {...(onDone && { onDone })}
       {...(onNext && { onNext })}
       {...(onAdd && { onAdd })}
@@ -238,6 +243,7 @@ function Play({
   onExit,
   exitLabel,
   review,
+  pitfalls,
   onDone,
   onNext,
   onAdd,
@@ -251,6 +257,7 @@ function Play({
   exitLabel: string
   /** A review: from memory, the coach's notes only where a move was missed. */
   review: boolean
+  pitfalls?: ReadonlyMap<number, Pitfall>
   onDone?: (score: LearnScore) => void
   onNext?: () => void
   onAdd?: () => Promise<unknown>
@@ -329,6 +336,12 @@ function Play({
     }
     setMisses((m) => m + 1)
     const next = misses + 1 >= help.arrowAfter ? 'The arrow shows it.' : 'Try again.'
+    const pitfall = pitfalls?.get(ply + 1)
+    if (tried && pitfall && sameMove(tried.san, pitfall.san)) {
+      judging.current++
+      setFeedback({ tone: 'wrong', text: `${pitfall.text} ${next}` })
+      return
+    }
     setFeedback({ tone: 'wrong', text: `Not the line’s move. ${next}` })
     if (!tried) return
     // What the move is worth otherwise: theory of another line, playable, or a mistake.
