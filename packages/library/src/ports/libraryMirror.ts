@@ -15,4 +15,6 @@ export interface LibraryMirror {
    * (imported in another browser) isn't stored twice: it comes back in `renamed` with that id.
    */
   upload(games: LibraryGame[]): Promise<{ renamed: GameRename[] }>
+  /** Removes a game from the copy; fine when the copy doesn't have it. */
+  remove(id: string): Promise<void>
 }

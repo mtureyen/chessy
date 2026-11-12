@@ -186,6 +186,23 @@ export const missingLibraryGamesRoute = createRoute({
   },
 })
 
+export const deleteLibraryGameRoute = createRoute({
+  method: 'delete',
+  path: '/library/games/{id}',
+  tags: ['library'],
+  summary: 'Removes a game the user deleted from their library',
+  description:
+    'The app sends what it deletes, so the game stops counting in stats, training and the coach’s search. Removing a game the server doesn’t have is fine. Reviews are kept: they belong to a line of moves, which another game may share.',
+  request: { params: z.object({ id: z.string().min(1).max(100) }) },
+  responses: {
+    200: {
+      description: 'Gone, whether it was there or not',
+      content: { 'application/json': { schema: z.object({ deleted: z.literal(true) }) } },
+    },
+    503: unavailable,
+  },
+})
+
 export const saveLibraryReviewRoute = createRoute({
   method: 'post',
   path: '/library/reviews',

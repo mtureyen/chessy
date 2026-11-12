@@ -35,6 +35,11 @@ export class RemoteLibrary implements LibraryMirror {
     return { renamed }
   }
 
+  async remove(id: string): Promise<void> {
+    const res = await this.api.api.v1.library.games[':id'].$delete({ param: { id } })
+    if (res.status !== 200) throw new Error(`Library sync failed: HTTP ${res.status}`)
+  }
+
   async saveReview(line: GameLine, review: GameReview): Promise<void> {
     const res = await this.api.api.v1.library.reviews.$post({
       json: { startFen: line.startFen, moves: [...line.moves], review },

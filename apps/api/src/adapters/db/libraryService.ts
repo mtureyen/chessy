@@ -23,6 +23,8 @@ export interface LibraryService {
    */
   saveGames(games: LibraryGame[]): Promise<SavedGames>
   missingGames(ids: readonly string[]): Promise<string[]>
+  /** Removes a game; fine when it isn't there. */
+  deleteGame(id: string): Promise<void>
   saveReview(review: StoredReview): Promise<void>
   findReview(line: GameLine): Promise<StoredReview | undefined>
   profile(): Promise<Profile | undefined>
