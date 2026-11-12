@@ -61,6 +61,16 @@ export function LineTrainer({
   onAdd?: () => Promise<unknown>
 }) {
   const [mode, setMode] = useState<'watch' | 'play'>(start)
+  const review = start === 'play'
+  // A review counts once: playing the line again after watching it changes nothing.
+  const reported = useRef(false)
+  const report =
+    onDone &&
+    ((score: LearnScore) => {
+      if (review && reported.current) return
+      reported.current = true
+      onDone(score)
+    })
   return mode === 'watch' ? (
     <Watch
       line={line}
@@ -82,9 +92,9 @@ export function LineTrainer({
       onWatch={() => setMode('watch')}
       onExit={onExit}
       exitLabel={exitLabel}
-      review={start === 'play'}
+      review={review}
       {...(pitfalls && { pitfalls })}
-      {...(onDone && { onDone })}
+      {...(report && { onDone: report })}
       {...(onNext && { onNext })}
       {...(onAdd && { onAdd })}
     />
@@ -488,9 +498,12 @@ function Play({
               Add to my repertoire
             </button>
           )}
-          <button type="button" onClick={onWatch}>
-            Watch it again
-          </button>
+          {/* Not in the middle of a review: seeing the line first would make it no test. */}
+          {(!review || done) && (
+            <button type="button" onClick={onWatch}>
+              Watch it again
+            </button>
+          )}
           <button type="button" onClick={onExit}>
             {exitLabel}
           </button>

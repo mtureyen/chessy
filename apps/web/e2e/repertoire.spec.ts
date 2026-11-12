@@ -114,6 +114,8 @@ test('repertoire: a review tells the coach’s note where a move was missed', as
 
   const panel = page.getByRole('complementary', { name: 'Learn the line' })
   await expect(panel).toContainText('Play your moves from memory.')
+  // In the middle of a review the line can't be looked at.
+  await expect(panel.getByRole('button', { name: 'Watch it again' })).toHaveCount(0)
   const board = await boardDriver(page)
   board.setFlipped(true)
   const move = async (from: string, to: string, expected: RegExp) => {
@@ -129,6 +131,14 @@ test('repertoire: a review tells the coach’s note where a move was missed', as
   await move('d7', 'd5', /^2\.\.\.d5, right\. The challenge to e4\.$/)
   await expect(panel.getByRole('status')).toHaveText(
     'Line done: 1 of 2 moves right at the first try.',
+  )
+  // Watching it now and playing it again without a mistake doesn't change the result.
+  await panel.getByRole('button', { name: 'Watch it again' }).click()
+  await panel.getByRole('button', { name: 'Play it yourself' }).click()
+  await move('c7', 'c6', /^1\.\.\.c6, right\.$/)
+  await move('d7', 'd5', /^2\.\.\.d5, right\.$/)
+  await expect(panel.getByRole('status')).toHaveText(
+    'Line done: 2 of 2 moves right at the first try.',
   )
   await panel.getByRole('button', { name: 'Next line' }).click()
   await expect(page.getByRole('region', { name: 'Review done' })).toContainText(
