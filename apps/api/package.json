@@ -20,6 +20,7 @@
     "review:bench": "bun scripts/review-bench.ts",
     "bench:references": "bun scripts/collect-references.ts",
     "library:build": "bun scripts/build-library.ts",
+    "puzzles:fetch": "bun scripts/fetch-puzzles.ts",
     "db:generate": "drizzle-kit generate",
     "db:check": "bun scripts/check-postgres.ts",
     "coach:check": "bun scripts/check-coach.ts"
