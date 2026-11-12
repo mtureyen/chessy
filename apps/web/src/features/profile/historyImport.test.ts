@@ -17,7 +17,6 @@ function fakeLibrary(pages: number, failAt?: number) {
   const calls: { since?: string; cursor?: string }[] = []
   let failed = false
   const library = {
-    newestGame: async () => '2026-11-02T10:00:00.000Z',
     importHistory: async (
       _source: string,
       _username: string,
@@ -51,12 +50,16 @@ describe('runImport', () => {
 
   it('imports the whole history first, then only what is new', async () => {
     const { library, calls } = fakeLibrary(3)
-    await runImport(library, account)
+    const now = () => new Date('2026-11-02T10:00:00.000Z')
+    await runImport(library, account, { now })
     expect(calls).toEqual([{ since: undefined, cursor: undefined }])
-    expect(importRecord(account).completedAt).toBeDefined()
+    expect(importRecord(account).completedAt).toBe('2026-11-02T10:00:00.000Z')
 
-    await runImport(library, account)
-    expect(calls[1]).toEqual({ since: '2026-11-02T10:00:00.000Z', cursor: undefined })
+    // From shortly before this account's last import, whatever else the library holds by now
+    // (a newer game of someone else's must not move the starting point).
+    await runImport(library, account, { now: () => new Date('2026-11-09T08:00:00.000Z') })
+    expect(calls[1]).toEqual({ since: '2026-10-31T10:00:00.000Z', cursor: undefined })
+    expect(importRecord(account).completedAt).toBe('2026-11-09T08:00:00.000Z')
   })
 
   it('resumes an interrupted full import where it stopped', async () => {

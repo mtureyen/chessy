@@ -46,6 +46,16 @@ export function ImportStatus({ account }: { account: LinkedAccount }) {
               : `Import all ${sourceName(account.source)} games`}
         </button>
       )}
+      {state.status !== 'running' && record.completedAt && !record.cursor && (
+        <button
+          type="button"
+          className="import-again"
+          title="Goes through the whole history again and adds what is missing"
+          onClick={() => start(true)}
+        >
+          Check the whole history again
+        </button>
+      )}
     </div>
   )
 }
