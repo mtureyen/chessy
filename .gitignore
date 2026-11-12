@@ -44,6 +44,8 @@ apps/web/public/openings/
 apps/api/.engine/
 apps/api/.maia/
 apps/api/.bench/
+# The puzzle set, fetched with `bun run --cwd apps/api puzzles:fetch`
+apps/api/.puzzles/
 # The settings page's file (API keys)
 apps/api/.pawnia/
 # Bot calibration results (bun run bots:calibrate)
