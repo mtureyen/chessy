@@ -29,6 +29,7 @@ import {
   GROUP_LABELS,
   percents,
   results,
+  sameOpening,
   scoreOf,
   STYLE_LABELS,
   trapText,
@@ -193,7 +194,7 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
     retry: false,
   })
   const yours = mine.data?.openings.find(
-    (o) => o.color === opening.side && o.family === opening.name,
+    (o) => o.color === opening.side && sameOpening(o.family, opening.name),
   )
   const main = opening.main.split(' ')
   const [path, setPath] = useState<string[]>(main)
@@ -327,22 +328,15 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
               {progress}. <Link to="/training/repertoire">Review them</Link>
             </p>
           )}
-          {mine.data && (
+          {/* Only when found: an opening filed under another family in the user's games (the
+              Stafford Gambit under the Petrov) can't be told from one they never played. */}
+          {mine.data && yours && (
             <p className="stats-note">
-              {yours ? (
-                <>
-                  You played it {yours.tally.games} {yours.tally.games === 1 ? 'time' : 'times'} in
-                  your last {mine.data.window.found} games, scoring {scoreText(yours.tally)}.{' '}
-                  <Link
-                    to="/training/openings"
-                    search={{ color: yours.color, family: yours.family }}
-                  >
-                    Your games with it
-                  </Link>
-                </>
-              ) : (
-                `Not in your last ${mine.data.window.found} games.`
-              )}
+              You played it {yours.tally.games} {yours.tally.games === 1 ? 'time' : 'times'} in your
+              last {mine.data.window.found} games, scoring {scoreText(yours.tally)}.{' '}
+              <Link to="/training/openings" search={{ color: yours.color, family: yours.family }}>
+                Your games with it
+              </Link>
             </p>
           )}
         </div>
