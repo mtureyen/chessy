@@ -1534,6 +1534,7 @@ describe('local host names only', () => {
       practice,
       openingLibrary,
       guides,
+      puzzles,
       repertoire,
       coach: { agents: () => [] },
       walkthroughs,
