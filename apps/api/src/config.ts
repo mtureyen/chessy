@@ -20,6 +20,11 @@ const EnvSchema = z.object({
   /** Opening book for reviews on the server; default: the web app's public/openings/book.json. */
   OPENING_BOOK_PATH: z.string().min(1).optional(),
   /**
+   * The puzzle set (lichess puzzles); default: apps/api/.puzzles/ from `bun run puzzles:fetch`.
+   * data/puzzle-sample.json is a small one for tests.
+   */
+  PUZZLE_SET_PATH: z.string().min(1).optional(),
+  /**
    * The game history's database: a PostgreSQL URL (see docker-compose.yml), or `pglite:memory` /
    * `pglite:<folder>` for an embedded one. Unset: the server keeps no history.
    */

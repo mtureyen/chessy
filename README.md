@@ -136,6 +136,17 @@ browsers (pinned, checksum-verified); `bun run --cwd apps/api maia:spike latency
 <games.json> | strength` measures its speed, how often it predicts real moves, and its strength
 against the bot levels.
 
+### Puzzle library (lichess puzzles)
+
+`bun run --cwd apps/api puzzles:fetch` fetches the puzzles the API hands out by theme and
+difficulty (`/api/v1/puzzles`): about 82,000 from lichess'
+[puzzle database](https://database.lichess.org/#puzzles) (CC0), the well-liked and often-played
+ones rated below 2200, spread evenly over themes and ratings. It reads only the first 40 MB of
+the database, which is in random order, and writes 12 MB to `apps/api/.puzzles/` (not in Git);
+see the script for options. Without it the puzzle routes answer 503 and say so.
+`PUZZLE_SET_PATH` points the API at another file: tests and E2E use the small sample in
+`apps/api/data/puzzle-sample.json`.
+
 ### Browser extension ("Open in pawnia")
 
 On lichess, chess.com and Chessigma game pages the extension shows an "Open in pawnia" button.
