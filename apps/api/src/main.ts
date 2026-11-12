@@ -14,6 +14,7 @@ import { ReviewQueue, type ReviewJob } from './adapters/review/reviewQueue'
 import { createServerReviewer, SERVER_REVIEW_NODES } from './adapters/review/serverReviewer'
 import { FileOpeningLibrary, libraryFile } from './adapters/library/openingLibrary'
 import { OpeningGuides } from './adapters/library/openingGuides'
+import { FilePuzzleLibrary } from './adapters/puzzles/filePuzzleLibrary'
 import { OpeningPractice } from './adapters/openings/practice'
 import { StoredRepertoire } from './adapters/repertoire/storedRepertoire'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
@@ -103,6 +104,8 @@ const app = createApp({
   practice: new OpeningPractice(book, createServerReviewer(reviewing)),
   openingLibrary: new FileOpeningLibrary(libraryData),
   guides: new OpeningGuides(libraryData, library),
+  // Read at the first request: without the file the API starts, and those routes say so.
+  puzzles: new FilePuzzleLibrary(config.PUZZLE_SET_PATH),
   repertoire: new StoredRepertoire(library),
   coach,
   walkthroughs: new StoredWalkthroughs(library, book, {

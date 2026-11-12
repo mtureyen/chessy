@@ -14,6 +14,7 @@ import type {
   OpeningGuideService,
   OpeningLibraryService,
 } from './adapters/library/openingLibraryService'
+import type { PuzzleLibraryService } from './adapters/puzzles/puzzleLibraryService'
 import type { OpeningService } from './adapters/openings/openingService'
 import type { OpeningPractice } from './adapters/openings/practice'
 import type { RepertoireService } from './adapters/repertoire/repertoireService'
@@ -31,6 +32,7 @@ import { reviewQueueRoutes } from './routes/v1/reviewQueue'
 import { settingsRoutes } from './routes/v1/settings'
 import { sourceRoutes } from './routes/v1/sources'
 import { openingLibraryRoutes } from './routes/v1/openingLibrary'
+import { puzzleRoutes } from './routes/v1/puzzles'
 import { openingRoutes } from './routes/v1/openings'
 import { repertoireRoutes } from './routes/v1/repertoire'
 import { statsRoutes } from './routes/v1/stats'
@@ -58,6 +60,8 @@ export interface AppDeps {
   openingLibrary: OpeningLibraryService
   /** The coach's study guides of the library's openings. */
   guides: OpeningGuideService
+  /** The puzzle library: lichess puzzles by theme and difficulty. */
+  puzzles: PuzzleLibraryService
   /** The user's repertoire: lines to keep, reviewed with growing gaps. */
   repertoire: RepertoireService
   /** The coach's agents (they follow the settings), the default first; none: the coach is off. */
@@ -91,6 +95,7 @@ export function createApp({
   practice,
   openingLibrary,
   guides,
+  puzzles,
   repertoire,
   coach,
   walkthroughs,
@@ -112,6 +117,7 @@ export function createApp({
     .route('/', statsRoutes({ stats }))
     .route('/', openingRoutes({ openings, practice }))
     .route('/', openingLibraryRoutes({ library: openingLibrary, guides, coach }))
+    .route('/', puzzleRoutes({ puzzles }))
     .route('/', repertoireRoutes({ repertoire }))
     .route('/', coachRoutes({ coach, walkthroughs }))
     .route('/', settingsRoutes({ settings }))

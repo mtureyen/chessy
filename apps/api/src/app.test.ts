@@ -12,7 +12,7 @@ import { scriptedClient } from '@pawnia/coach/testing'
 import { sampleReview } from '@pawnia/history/testing'
 import { sampleGame, sampleSourceGame } from '@pawnia/library/testing'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { mkdtempSync, readFileSync } from 'node:fs'
+import { copyFileSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -33,6 +33,7 @@ import type { HumanMoveService, HumanMovesStatus } from './adapters/humanMoves/s
 import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review/reviewQueueService'
 import { FileOpeningLibrary, libraryFile } from './adapters/library/openingLibrary'
 import { OpeningGuides } from './adapters/library/openingGuides'
+import { FilePuzzleLibrary } from './adapters/puzzles/filePuzzleLibrary'
 import { StoredRepertoire } from './adapters/repertoire/storedRepertoire'
 import { OpeningPractice } from './adapters/openings/practice'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
@@ -185,6 +186,11 @@ const libraryData = libraryFile(
 )
 const openingLibrary = new FileOpeningLibrary(libraryData)
 const guides = new OpeningGuides(libraryData, library)
+/** The checked-in sample of the puzzle set; of the puzzles that fit, always the first. */
+const puzzles = new FilePuzzleLibrary(
+  fileURLToPath(new URL('../data/puzzle-sample.json', import.meta.url)),
+  () => 0,
+)
 const repertoire = new StoredRepertoire(library, () => new Date('2026-11-11T12:00:00.000Z'))
 
 /** Practice against the small book, with a reviewer that calls every move off theory a mistake. */
@@ -243,6 +249,7 @@ const app = createApp({
   practice,
   openingLibrary,
   guides,
+  puzzles,
   repertoire,
 })
 
@@ -289,6 +296,9 @@ describe('api', () => {
       '/opening-library/{id}/guide',
       '/opening-library/{id}/line-notes',
       '/profile',
+      '/puzzles',
+      '/puzzles/next',
+      '/puzzles/{id}',
       '/repertoire',
       '/repertoire/{id}',
       '/repertoire/{id}/reviews',
@@ -621,6 +631,7 @@ describe('library routes', () => {
       practice,
       openingLibrary,
       guides,
+      puzzles,
       repertoire,
       coach: { agents: () => [] },
       walkthroughs,
@@ -884,6 +895,140 @@ describe('opening library routes', () => {
   })
 })
 
+describe('puzzle routes', () => {
+  const next = (body: unknown, target = app) =>
+    target.request('/api/v1/puzzles/next', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+  it('tells where the puzzles come from and lists the themes with their sizes', async () => {
+    const res = await app.request('/api/v1/puzzles')
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      source: Record<string, unknown>
+      puzzles: number
+      themes: { theme: string; kind: string; puzzles: number }[]
+    }
+    expect(body.source).toMatchObject({
+      url: 'https://database.lichess.org/lichess_db_puzzle.csv.zst',
+      license: 'CC0-1.0',
+      filter: { minPopularity: 85, minPlays: 500, maxRatingDeviation: 90, ratingBelow: 2200 },
+    })
+    expect(body.puzzles).toBe(56)
+    expect(body.themes[0]).toEqual({ theme: 'endgame', kind: 'phase', puzzles: 31 })
+    expect(body.themes.find((t) => t.theme === 'fork')).toEqual({
+      theme: 'fork',
+      kind: 'motif',
+      puzzles: 8,
+    })
+    expect(body.themes.find((t) => t.theme === 'mateIn2')?.kind).toBe('mate')
+  })
+
+  it('hands out a puzzle of a wanted theme near the rating, ready to solve', async () => {
+    const res = await next({ themes: ['fork'], rating: 1500 })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      id: '000Pw',
+      url: 'https://lichess.org/training/000Pw',
+      // After the opponent's Nd2: lichess' row has the position before it.
+      fen: '6k1/5p1p/4p3/4q3/3n4/2Q3P1/PP1N1P1P/6K1 b - - 3 37',
+      opponentMove: 'e4d2',
+      color: 'black',
+      solution: ['d4e2', 'g1f1', 'e2c3'],
+      rating: 1514,
+      themes: ['crushing', 'endgame', 'fork', 'short'],
+      theme: 'fork',
+    })
+  })
+
+  it('leaves out the given ids, and says when nothing is left', async () => {
+    const second = (await (
+      await next({ themes: ['fork'], rating: 1500, exclude: ['000Pw'] })
+    ).json()) as { id: string; rating: number }
+    expect(second).toMatchObject({ id: '00761', rating: 1379 })
+    const underPromotion = await next({ themes: ['underPromotion'], rating: 900 })
+    expect(await underPromotion.json()).toMatchObject({ id: '09fof', rating: 2130 })
+    const none = await next({ themes: ['underPromotion'], exclude: ['09fof'] })
+    expect(none.status).toBe(404)
+    expect(await none.json()).toMatchObject({
+      title: 'No puzzle left',
+      detail: 'The library has no puzzle of underPromotion besides the 1 excluded',
+    })
+    const unknown = await next({ themes: ['noSuchTheme', 'norThis'] })
+    expect(unknown.status).toBe(404)
+    expect(await unknown.json()).toMatchObject({
+      detail: 'The library has no puzzle of noSuchTheme, norThis',
+    })
+  })
+
+  it('hands out any puzzle near 1500 when nothing is asked for', async () => {
+    const res = await next({})
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { rating: number; theme?: string }
+    expect(Math.abs(body.rating - 1500)).toBeLessThanOrEqual(50)
+    expect(body.theme).toBeUndefined()
+  })
+
+  it('finds a puzzle by its id', async () => {
+    const res = await app.request('/api/v1/puzzles/09fof')
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      id: '09fof',
+      color: 'black',
+      solution: ['d3d2', 'd4c3', 'd2d1n'],
+    })
+    expect((await app.request('/api/v1/puzzles/zzzzz')).status).toBe(404)
+    expect((await app.request('/api/v1/puzzles/no%20way')).status).toBe(400)
+  })
+
+  it('rejects a request that makes no sense', async () => {
+    expect((await next({ themes: ['fork!'] })).status).toBe(400)
+    expect((await next({ rating: 'high' })).status).toBe(400)
+    expect((await next({ exclude: ['../etc'] })).status).toBe(400)
+  })
+
+  it('answers 503 until the puzzles are fetched, and the rest of the API works', async () => {
+    const folder = mkdtempSync(join(tmpdir(), 'pawnia-puzzles-'))
+    const path = join(folder, 'puzzles.json')
+    const unfetched = createApp({
+      engine,
+      humanMoves,
+      library,
+      reviewQueue,
+      training,
+      coach: { agents: () => [] },
+      walkthroughs,
+      settings,
+      version: '9.9.9',
+      startedAt: 0,
+      sources,
+      stats: new LiveStats({ library, sources }),
+      openings: new StoredOpenings(library, async () => smallBook),
+      practice,
+      openingLibrary,
+      guides,
+      puzzles: new FilePuzzleLibrary(path),
+      repertoire,
+    })
+    expect((await unfetched.request('/api/v1/health')).status).toBe(200)
+    const list = await unfetched.request('/api/v1/puzzles')
+    expect(list.status).toBe(503)
+    expect(list.headers.get('content-type')).toContain('application/problem+json')
+    expect(await list.json()).toMatchObject({
+      title: 'No puzzles',
+      detail: `No puzzle set at ${path} (no such file). Fetch it with: bun run --cwd apps/api puzzles:fetch`,
+    })
+    expect((await next({}, unfetched)).status).toBe(503)
+    expect((await unfetched.request('/api/v1/puzzles/000Pw')).status).toBe(503)
+
+    // Once the file is there the routes answer, without a restart.
+    copyFileSync(fileURLToPath(new URL('../data/puzzle-sample.json', import.meta.url)), path)
+    expect((await unfetched.request('/api/v1/puzzles/000Pw')).status).toBe(200)
+  })
+})
+
 describe('opening guide routes', () => {
   /** An app whose only coach answers with these texts, one per request. */
   const makeGuideApp = (replies: string[]) => {
@@ -912,6 +1057,7 @@ describe('opening guide routes', () => {
       practice,
       openingLibrary,
       guides,
+      puzzles,
       repertoire,
     })
     return { guideApp: target, requests }
@@ -1228,6 +1374,7 @@ describe('coach routes', () => {
         practice,
         openingLibrary,
         guides,
+        puzzles,
         repertoire,
         walkthroughs,
         coach: {
@@ -1355,6 +1502,7 @@ describe('local host names only', () => {
       practice,
       openingLibrary,
       guides,
+      puzzles,
       repertoire,
       coach: { agents: () => [] },
       walkthroughs,
