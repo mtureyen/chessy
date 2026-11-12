@@ -1,14 +1,17 @@
 import { createGame, type Move } from '@pawnia/chess'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useServices } from '@/app/servicesContext'
 import { lineText } from '@/features/stats/format'
 import { Board } from '@/shared/board/Board'
 import { arrowsWanted, nextStepArrows, rememberArrows } from './arrows'
 import { moveLabel } from './format'
-import { HINT_AFTER, sameMove, yourPlies, type LearnScore } from './learnLine'
+import { helpFor, HINT_AFTER, sameMove, verdictText, yourPlies, type LearnScore } from './learnLine'
 
 const NO_MOVES = new Map()
 /** A breath before the opponent's move, so the user sees theirs land. */
 const REPLY_DELAY_MS = 500
+/** The run from which a line is played from memory. */
+const FROM_MEMORY = 2
 /** How long a move stays on the board when the line plays by itself. */
 const AUTOPLAY_MS = 1600
 
@@ -34,7 +37,10 @@ export function LineTrainer({
   /** The coach's note per ply, where the guide has one. */
   notes: ReadonlyMap<number, string>
   onExit: () => void
-  /** Begin by playing (a review) instead of watching. */
+  /**
+   * Begin by playing from memory (a review) instead of watching. Learning a line, the help fades
+   * run by run; a review has none, and tells the coach's note only where a move was missed.
+   */
   start?: 'watch' | 'play'
   exitLabel?: string
   /** Hears how a run through the line went, once it is done. */
@@ -64,6 +70,7 @@ export function LineTrainer({
       onWatch={() => setMode('watch')}
       onExit={onExit}
       exitLabel={exitLabel}
+      review={start === 'play'}
       {...(onDone && { onDone })}
       {...(onNext && { onNext })}
       {...(onAdd && { onAdd })}
@@ -213,6 +220,7 @@ function Play({
   onWatch,
   onExit,
   exitLabel,
+  review,
   onDone,
   onNext,
   onAdd,
@@ -224,11 +232,18 @@ function Play({
   onWatch: () => void
   onExit: () => void
   exitLabel: string
+  /** A review: from memory, the coach's notes only where a move was missed. */
+  review: boolean
   onDone?: (score: LearnScore) => void
   onNext?: () => void
   onAdd?: () => Promise<unknown>
 }) {
+  const { training } = useServices()
   const yours = useMemo(() => new Set(yourPlies(line, side)), [line, side])
+  /** How many times the line was played through: the help fades with each run. */
+  const [run, setRun] = useState(0)
+  const [arrowsOn] = useState(arrowsWanted)
+  const help = helpFor(review || !arrowsOn ? undefined : run)
   const [ply, setPly] = useState(0)
   const [misses, setMisses] = useState(0)
   const [score, setScore] = useState<LearnScore>({ firstTry: 0, moves: 0 })
@@ -260,12 +275,12 @@ function Play({
 
   const expected = line[ply]
   const hint = useMemo(() => {
-    if (!yourTurn || misses < HINT_AFTER || !expected) return undefined
+    if (!yourTurn || misses < help.arrowAfter || !expected) return undefined
     const move = createGame(game.fen()).play(expected)?.move
     return (
       move && { arrows: [{ from: move.from, to: move.to, color: 'green' as const }], squares: [] }
     )
-  }, [yourTurn, misses, expected, game])
+  }, [yourTurn, misses, expected, game, help.arrowAfter])
 
   const advance = (shown: boolean) => {
     const at = ply + 1
@@ -274,7 +289,9 @@ function Play({
       firstTry: s.firstTry + (!shown && misses === 0 ? 1 : 0),
     }))
     setMisses(0)
-    const note = notes.get(at)
+    judging.current++
+    // A review tells the note only where the move didn't come by itself.
+    const note = !review || shown || misses > 0 ? notes.get(at) : undefined
     setFeedback(
       shown
         ? { tone: 'note', text: `It was ${moveLabel(at, expected!)}.${note ? ` ${note}` : ''}` }
@@ -283,25 +300,40 @@ function Play({
     setPly(at)
   }
 
+  /** Counts the wrong tries, so a verdict that arrives late isn't shown on a newer one. */
+  const judging = useRef(0)
+
   const onMove = (move: Move) => {
     if (!yourTurn || !expected) return
-    const san = createGame(game.fen()).play(move)?.move?.san
-    if (san && sameMove(san, expected)) {
+    const tried = createGame(game.fen()).play(move)?.move
+    if (tried && sameMove(tried.san, expected)) {
       advance(false)
       return
     }
     setMisses((m) => m + 1)
-    setFeedback({
-      tone: 'wrong',
-      text:
-        misses + 1 >= HINT_AFTER
-          ? 'Not the line’s move. The arrow shows it.'
-          : 'Not the line’s move. Try again.',
-    })
+    const next = misses + 1 >= help.arrowAfter ? 'The arrow shows it.' : 'Try again.'
+    setFeedback({ tone: 'wrong', text: `Not the line’s move. ${next}` })
+    if (!tried) return
+    // What the move is worth otherwise: theory of another line, playable, or a mistake.
+    const token = ++judging.current
+    const before = game.line().flatMap((node) => (node.move ? [node.move.uci] : []))
+    training.checkPractice({ moves: before, tried: tried.uci }).then(
+      ({ verdict }) => {
+        if (judging.current !== token) return
+        setFeedback({
+          tone: verdict === 'wrong' ? 'wrong' : 'note',
+          text: `${verdictText(moveLabel(ply + 1, tried.san), verdict)} ${next}`,
+        })
+      },
+      // No book or engine on this server: the plain answer stays.
+      () => undefined,
+    )
   }
 
-  const restart = () => {
+  const restart = (nextRun = run + 1) => {
     told.current = false
+    judging.current++
+    setRun(nextRun)
     setPly(0)
     setMisses(0)
     setScore({ firstTry: 0, moves: 0 })
@@ -326,10 +358,14 @@ function Play({
       <aside className="panel training-panel" aria-label="Learn the line">
         <div className="training-text">
           <h2>Learn: {title}</h2>
-          <p className="stats-note">Step 2 of 2: play your moves from memory.</p>
+          <p className="stats-note">
+            {review ? 'Play your moves from memory.' : `Step 2 of 2: ${help.step}`}
+          </p>
           <p className="line-trainer-move" role="status">
             {done
-              ? `Line done: ${score.firstTry} of ${score.moves} moves right at the first try.`
+              ? help.arrowAfter === 0
+                ? 'Line done, with the arrows.'
+                : `Line done: ${score.firstTry} of ${score.moves} moves right at the first try.`
               : yourTurn
                 ? `Your move (move ${Math.ceil((ply + 1) / 2)})`
                 : 'The other side moves…'}
@@ -360,8 +396,13 @@ function Play({
             </button>
           )}
           {done && !onNext && (
-            <button type="button" className="training-next" onClick={restart}>
-              Play it again
+            <button type="button" className="training-next" onClick={() => restart()}>
+              {helpFor(review || !arrowsOn ? undefined : run + 1).again}
+            </button>
+          )}
+          {!done && help.arrowAfter < HINT_AFTER && (
+            <button type="button" onClick={() => restart(FROM_MEMORY)}>
+              Without help
             </button>
           )}
           {done && onAdd && added !== 'added' && (

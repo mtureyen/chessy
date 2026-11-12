@@ -178,8 +178,14 @@ test('opening library: learn a line, watching it first, then playing it from mem
   await panel.getByRole('button', { name: 'Arrows' }).click()
   await expect(arrows(page)).toHaveCount(2)
 
+  // What a move off the line is worth comes from the server (no engine in this test).
+  await page.route('**/api/v1/training/openings/practice', (route) =>
+    route.fulfill({
+      json: { verdict: 'playable', san: 'g6', fen: 'x', theory: [], replies: [] },
+    }),
+  )
   await panel.getByRole('button', { name: 'Play it yourself' }).click()
-  await expect(panel).toContainText('Step 2 of 2')
+  await expect(panel).toContainText('Step 2 of 2: play your moves. This time the arrows show them.')
   const board = await boardDriver(page)
   board.setFlipped(true) // Black at the bottom
   /** A move once it's the user's turn (the board may still be moving the other side's piece). */
@@ -190,12 +196,39 @@ test('opening library: learn a line, watching it first, then playing it from mem
       await expect(panel.locator('.practice-feedback')).toHaveText(expected, { timeout: 500 })
     }).toPass({ timeout: 5000 })
   }
+  // The first run shows every move of Black's as an arrow.
+  await expect(panel.getByRole('status')).toHaveText(/^Your move/)
+  await expect(arrows(page, GREEN)).toHaveCount(1)
   await move('c7', 'c6', /^1\.\.\.c6, right\./)
-  await move('g7', 'g6', /Not the line’s move\. Try again\./)
+  await move(
+    'g7',
+    'g6',
+    /^2\.\.\.g6 is playable, but this line’s move is better\. The arrow shows it\.$/,
+  )
+  await move('d7', 'd5', /^2\.\.\.d5, right\./)
+  await expect(panel.getByRole('status')).toHaveText('Line done, with the arrows.')
+
+  // The second run shows a move only after a miss.
+  await panel.getByRole('button', { name: 'Again, with less help' }).click()
+  await expect(panel).toContainText('An arrow comes only after a miss.')
+  await expect(panel.getByRole('status')).toHaveText(/^Your move/)
+  await expect(arrows(page)).toHaveCount(0)
+  await move(
+    'g7',
+    'g6',
+    /^1\.\.\.g6 is playable, but this line’s move is better\. The arrow shows it\.$/,
+  )
+  await expect(arrows(page, GREEN)).toHaveCount(1)
+  await move('c7', 'c6', /^1\.\.\.c6, right\./)
   await move('d7', 'd5', /^2\.\.\.d5, right\./)
   await expect(panel.getByRole('status')).toHaveText(
     'Line done: 1 of 2 moves right at the first try.',
   )
+
+  // The third is from memory; "Without help" would have gone there straight away.
+  await panel.getByRole('button', { name: 'Again, from memory' }).click()
+  await expect(panel).toContainText('Step 2 of 2: play your moves from memory.')
+  await expect(panel.getByRole('button', { name: 'Without help' })).toHaveCount(0)
   await panel.getByRole('button', { name: 'Back to the opening' }).click()
   await expect(page.locator('.library-nav')).toContainText('3.e5')
 })
