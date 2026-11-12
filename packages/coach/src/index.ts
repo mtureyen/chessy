@@ -47,4 +47,12 @@ export {
   type OpeningGuideFacts,
 } from './domain/openingGuide'
 export { writeOpeningGuide } from './usecases/writeOpeningGuide'
+export {
+  LINE_NOTES_PROMPT,
+  lineNotesText,
+  parseLineNotes,
+  type LineNotes,
+  type LineNotesFacts,
+} from './domain/lineNotes'
+export { writeLineNotes } from './usecases/writeLineNotes'
 export { CoachCancelledError, MAX_TOOL_ROUNDS, runToolLoop } from './usecases/runToolLoop'

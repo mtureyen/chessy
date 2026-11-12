@@ -41,6 +41,12 @@ export interface OpeningGuide {
 /** The most arrows, and the most squares, in one drawing: more is a tangle. */
 const MAX_DRAWN = 3
 
+/** How a note's drawing is asked for, in every prompt that has notes per move. */
+export const DRAWING_RULES = `"draw" is optional: the idea of the move as a picture on the board right after it (the line gives that position as "fen"). Add it where it helps to see what the note says, and leave it out where there is nothing to show.
+- An arrow starts on a square that holds a piece in that position, and points to where the piece aims, what it supports or attacks, or where it will go next. A square marks a key point.
+- Colours: green for your side's plans and support, red for what the other side threatens or attacks, yellow for a key square or a weakness, blue for an option kept open.
+- At most three arrows and three squares. Draw only what the note says.`
+
 /** The same for every opening, so providers can cache it; the facts go with each request. */
 export const OPENING_GUIDE_PROMPT = `You are pawnia's chess coach. You write a study guide for one chess opening, for a club player who wants to learn it.
 
@@ -60,24 +66,23 @@ Answer with one JSON object and nothing else:
 
 One "moves" entry for every ply of the line, same plies, in order.
 
-"draw" is optional: the idea of the move as a picture on the board right after it (the line gives that position as "fen"). Add it where it helps to see what the note says, and leave it out where there is nothing to show.
-- An arrow starts on a square that holds a piece in that position, and points to where the piece aims, what it supports or attacks, or where it will go next. A square marks a key point.
-- Colours: green for your side's plans and support, red for what the other side threatens or attacks, yellow for a key square or a weakness, blue for an option kept open.
-- At most three arrows and three squares. Draw only what the note says.`
+${DRAWING_RULES}`
 
 /** The facts as the model reads them. */
 export function openingGuideText(facts: OpeningGuideFacts): string {
   return JSON.stringify(facts)
 }
 
+/** Notes per move as a model writes them. A drawing is checked apart: a bad one is left out. */
+export const WrittenNotes = z.array(
+  z.object({ ply: z.number().int(), note: z.string().min(1), draw: z.unknown().optional() }),
+)
+
 const Reply = z.object({
   story: z.string().min(1),
   ideas: z.string().min(1),
   opponents: z.string().min(1),
-  // A drawing is checked apart: a bad one is left out, the guide is still good.
-  moves: z.array(
-    z.object({ ply: z.number().int(), note: z.string().min(1), draw: z.unknown().optional() }),
-  ),
+  moves: WrittenNotes,
 })
 
 const Square = z.string().regex(/^[a-h][1-8]$/)
@@ -94,26 +99,40 @@ export function parseOpeningGuide(
   text: string,
   facts: OpeningGuideFacts,
 ): OpeningGuide | undefined {
+  const parsed = Reply.safeParse(jsonIn(text))
+  if (!parsed.success) return undefined
+  const { story, ideas, opponents } = parsed.data
+  const moves = notesOf(parsed.data.moves, facts.line)
+  return moves && { story, ideas, opponents, moves }
+}
+
+/** The JSON object in a model's reply, also with text around it; undefined when there is none. */
+export function jsonIn(text: string): unknown {
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   if (start < 0 || end < start) return undefined
-  let json: unknown
   try {
-    json = JSON.parse(text.slice(start, end + 1))
+    return JSON.parse(text.slice(start, end + 1))
   } catch {
     return undefined
   }
-  const parsed = Reply.safeParse(json)
-  if (!parsed.success) return undefined
-  const { story, ideas, opponents, moves } = parsed.data
-  const notes = facts.line.map(({ ply, move, fen }) => {
-    const found = moves.find((m) => m.ply === ply)
+}
+
+/**
+ * The notes of a line, one per ply and in its order, each without its move in front and with what
+ * can be drawn of its drawing. Undefined unless every ply has a note.
+ */
+export function notesOf(
+  written: z.infer<typeof WrittenNotes>,
+  line: OpeningGuideFacts['line'],
+): OpeningGuide['moves'] | undefined {
+  const notes = line.map(({ ply, move, fen }) => {
+    const found = written.find((m) => m.ply === ply)
     if (!found) return undefined
     const draw = drawing(found.draw, fen)
     return { ply, note: withoutMove(found.note, move), ...(draw && { draw }) }
   })
-  if (notes.some((note) => !note?.note)) return undefined
-  return { story, ideas, opponents, moves: notes as OpeningGuide['moves'] }
+  return notes.some((note) => !note?.note) ? undefined : (notes as OpeningGuide['moves'])
 }
 
 /**
