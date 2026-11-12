@@ -50,6 +50,22 @@ gameRepositoryContract(
 )
 
 describe('MirroredGameRepository', () => {
+  it('uploads many games in batches the mirror takes', async () => {
+    const sizes: number[] = []
+    const mirror: LibraryMirror = {
+      missing: async () => [],
+      async upload(games) {
+        sizes.push(games.length)
+        return { renamed: [] }
+      },
+      remove: async () => undefined,
+    }
+    const repo = new MirroredGameRepository(new InMemoryGameRepository(), mirror)
+    await repo.saveAll(Array.from({ length: 1201 }, () => sampleGame()))
+    await settle()
+    expect(sizes).toEqual([500, 500, 201])
+  })
+
   it('deletes in the mirror too, also a game the mirror keeps under another id', async () => {
     const { mirror, stored } = fakeMirror()
     const repo = new MirroredGameRepository(new InMemoryGameRepository(), mirror)

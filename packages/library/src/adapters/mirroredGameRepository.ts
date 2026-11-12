@@ -3,6 +3,9 @@ import type { GameRepository, ListGamesOptions } from '../ports/gameRepository'
 import type { GameRename, LibraryMirror } from '../ports/libraryMirror'
 import { adoptMirrorIds } from '../usecases/mirrorLibrary'
 
+/** The most games one upload carries: what the server's route accepts at once. */
+export const UPLOAD_BATCH = 500
+
 /**
  * The local library, with every save also sent to a mirror. The local save decides success; a
  * failed upload (server down, no database) is reported to `onMirrorError` and caught up later
@@ -36,8 +39,11 @@ export class MirroredGameRepository implements GameRepository {
     if (games.length === 0) return
     this.uploads = this.uploads
       .then(async () => {
-        const { renamed } = await this.mirror.upload(games)
-        await this.adoptIds(renamed)
+        // In batches the mirror takes: a month of many games would be turned away whole.
+        for (let at = 0; at < games.length; at += UPLOAD_BATCH) {
+          const { renamed } = await this.mirror.upload(games.slice(at, at + UPLOAD_BATCH))
+          await this.adoptIds(renamed)
+        }
       })
       .catch(this.onMirrorError)
   }

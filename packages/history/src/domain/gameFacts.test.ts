@@ -77,5 +77,11 @@ describe('endReason (from the tag, else the board)', () => {
     expect(endReason('Time forfeit', { kind: 'checkmate', winner: 'white' }, '1-0')).toBe(
       'checkmate',
     )
+    // The winner's name is not what tells.
+    expect(endReason('checkmate_bro won on time', { kind: 'ongoing' }, '1-0')).toBe('time')
+    expect(endReason('resigner99 won by checkmate', { kind: 'ongoing' }, '0-1')).toBe('checkmate')
+    expect(endReason('time_lord won by resignation', { kind: 'ongoing' }, '1-0')).toBe(
+      'resignation',
+    )
   })
 })
