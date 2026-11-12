@@ -72,12 +72,12 @@ export function LineTrainer({
   const [mode, setMode] = useState<'watch' | 'play'>(start)
   const review = start === 'play'
   // A review counts once: playing the line again after watching it changes nothing.
-  const reported = useRef(false)
+  const [reported, setReported] = useState(false)
   const report =
     onDone &&
     ((score: LearnScore) => {
-      if (review && reported.current) return
-      reported.current = true
+      if (review && reported) return
+      setReported(true)
       onDone(score)
     })
   return mode === 'watch' ? (
