@@ -82,6 +82,10 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
     return (await this.connected()).games.missing(ids)
   }
 
+  async deleteGame(id: string): Promise<void> {
+    await (await this.connected()).games.delete(id)
+  }
+
   async saveReview(review: StoredReview): Promise<void> {
     await (await this.connected()).reviews.save(review)
   }

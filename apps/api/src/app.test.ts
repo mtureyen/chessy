@@ -277,6 +277,7 @@ describe('api', () => {
       '/library',
       '/library/games',
       '/library/games/missing',
+      '/library/games/{id}',
       '/library/review-queue',
       '/library/review-queue/pause',
       '/library/review-queue/resume',
@@ -551,6 +552,16 @@ describe('library routes', () => {
     expect(await missing.json()).toEqual({ missing: ['lib-2'] })
     const status = await app.request('/api/v1/library')
     expect(await status.json()).toMatchObject({ available: true, games: 1 })
+  })
+
+  it('removes a game the user deleted, and doesn’t mind one it never had', async () => {
+    const gone = sampleGame({ id: 'lib-gone', externalId: 'lib-ext-gone' })
+    expect((await post('/games', { games: [gone] })).status).toBe(200)
+    const remove = (id: string) => app.request(`/api/v1/library/games/${id}`, { method: 'DELETE' })
+    expect(await (await remove('lib-gone')).json()).toEqual({ deleted: true })
+    const missing = await post('/games/missing', { ids: ['lib-gone'] })
+    expect(await missing.json()).toEqual({ missing: ['lib-gone'] })
+    expect((await remove('lib-never')).status).toBe(200)
   })
 
   it('rejects unreadable PGNs', async () => {

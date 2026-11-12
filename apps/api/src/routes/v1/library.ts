@@ -1,6 +1,7 @@
 import type { GameReview } from '@pawnia/analysis'
 import { createGame, InvalidPositionError, PgnImportError } from '@pawnia/chess'
 import {
+  deleteLibraryGameRoute,
   findLibraryReviewRoute,
   getProfileRoute,
   libraryStatusRoute,
@@ -51,6 +52,14 @@ export function libraryRoutes({
         return problem(c, 503, 'Library unavailable', { detail: status.reason })
       }
       return c.json({ missing: await library.missingGames(c.req.valid('json').ids) }, 200)
+    })
+    .openapi(deleteLibraryGameRoute, async (c) => {
+      const status = await library.status()
+      if (!status.available) {
+        return problem(c, 503, 'Library unavailable', { detail: status.reason })
+      }
+      await library.deleteGame(c.req.valid('param').id)
+      return c.json({ deleted: true as const }, 200)
     })
     .openapi(saveLibraryReviewRoute, async (c) => {
       const { startFen, moves, review } = c.req.valid('json')

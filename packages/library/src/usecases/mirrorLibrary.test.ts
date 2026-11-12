@@ -31,6 +31,10 @@ function fakeMirror() {
       }
       return { renamed }
     },
+    async remove(id) {
+      if (state.down) throw new Error('down')
+      stored.delete(id)
+    },
   }
   return { mirror, stored, state }
 }
@@ -46,6 +50,46 @@ gameRepositoryContract(
 )
 
 describe('MirroredGameRepository', () => {
+  it('deletes in the mirror too, also a game the mirror keeps under another id', async () => {
+    const { mirror, stored } = fakeMirror()
+    const repo = new MirroredGameRepository(new InMemoryGameRepository(), mirror)
+    const game = sampleGame()
+    await repo.saveAll([game])
+    await settle()
+    expect(stored.has(game.id)).toBe(true)
+    await repo.delete(game.id)
+    await settle()
+    expect(stored.has(game.id)).toBe(false)
+    expect(await repo.get(game.id)).toBeUndefined()
+
+    // Imported in another browser first: here it gets that browser's id, and goes by both.
+    const theirs = sampleGame()
+    stored.set(theirs.id, theirs)
+    const mine = { ...theirs, id: 'local-copy' }
+    await repo.saveAll([mine])
+    await settle()
+    await repo.delete('local-copy')
+    await settle()
+    expect(stored.has(theirs.id)).toBe(false)
+    expect(await repo.get(theirs.id)).toBeUndefined()
+  })
+
+  it('deletes locally even when the mirror is down, and reports the failure', async () => {
+    const { mirror, state } = fakeMirror()
+    const errors: unknown[] = []
+    const repo = new MirroredGameRepository(new InMemoryGameRepository(), mirror, (e) =>
+      errors.push(e),
+    )
+    const game = sampleGame()
+    await repo.saveAll([game])
+    await settle()
+    state.down = true
+    await repo.delete(game.id)
+    await settle()
+    expect(await repo.get(game.id)).toBeUndefined()
+    expect(errors).toHaveLength(1)
+  })
+
   it('saves locally even when the mirror is down, and reports the failure', async () => {
     const { mirror, stored, state } = fakeMirror()
     const errors: unknown[] = []
@@ -78,6 +122,7 @@ describe('MirroredGameRepository uploads', () => {
         order.push(games[0]!.result)
         return { renamed: [] }
       },
+      remove: async () => undefined,
     }
     const repo = new MirroredGameRepository(new InMemoryGameRepository(), mirror)
     const game = sampleGame({ result: '*' })

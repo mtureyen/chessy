@@ -65,7 +65,18 @@ export class MirroredGameRepository implements GameRepository {
     return this.local.list(options)
   }
 
-  delete(id: string) {
-    return this.local.delete(id)
+  /**
+   * Deletes here and, after the uploads on their way, in the mirror: a game that stayed in the
+   * copy would go on counting in everything the copy is asked about. A game the mirror keeps
+   * under another id is deleted under that one too.
+   */
+  async delete(id: string): Promise<void> {
+    const ids = [id, this.renamedTo.get(id)].filter((known) => known !== undefined)
+    for (const known of ids) await this.local.delete(known)
+    this.uploads = this.uploads
+      .then(async () => {
+        for (const known of ids) await this.mirror.remove(known)
+      })
+      .catch(this.onMirrorError)
   }
 }
