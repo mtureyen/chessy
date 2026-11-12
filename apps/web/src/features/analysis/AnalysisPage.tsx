@@ -8,7 +8,7 @@ import {
   type MoveNode,
   type PgnHeaders,
 } from '@pawnia/chess'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { CoachPanel } from '@/features/coach/CoachPanel'
 import {
   findPosition,
@@ -64,7 +64,8 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   const [boot] = useState(() => openInitial(initial))
   const { game, view, update, replace } = useGame({ initial: () => boot.game })
   const [headers, setHeaders] = useState<PgnHeaders>(boot.headers)
-  const [orientation, setOrientation] = useState<Color>('white')
+  /** The side the user turned the board to; until they do, the game decides (below). */
+  const [turned, setTurned] = useState<Color>()
   const [engineEnabled, setEngineEnabled] = useState(true)
   const [multiPv, setMultiPv] = useState(3)
   const [tab, setTab] = useState<'moves' | 'review' | 'coach'>(
@@ -72,6 +73,9 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   )
   const profile = useProfile()
   const userSide = userColor(headers, profile.data)
+  // The user's own game opens from their side. The profile can arrive after the board: it then
+  // turns once, unless the user has turned it by hand in the meantime.
+  const orientation = turned ?? userSide ?? 'white'
   // During the coach's walkthrough the engine rests: it would give the better moves away. The
   // eval graph, the key moments and the badges in the move list rest too: they show where.
   const [touring, setTouring] = useState(false)
@@ -127,10 +131,13 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   const material = useMaterial(view.current, tried?.fen)
   const players = playerBars(headers, view, material)
 
-  const flip = () => setOrientation((o) => (o === 'white' ? 'black' : 'white'))
+  const flip = useCallback(
+    () => setTurned(orientation === 'white' ? 'black' : 'white'),
+    [orientation],
+  )
   useGameKeyboard(
     update,
-    useMemo(() => ({ f: flip, l: () => setEngineEnabled((on) => !on) }), []),
+    useMemo(() => ({ f: flip, l: () => setEngineEnabled((on) => !on) }), [flip]),
   )
 
   return (
@@ -265,7 +272,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
                 onAsk: () => setTab('coach'),
                 onOpen: () => {
                   setTouring(true)
-                  if (userSide) setOrientation(userSide)
+                  if (userSide) setTurned(userSide)
                 },
                 onClose: () => setTouring(false),
                 onTry: setAttempt,
@@ -316,6 +323,8 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
             onLoad={(loaded, loadedHeaders) => {
               replace(loaded)
               setHeaders(loadedHeaders)
+              // Another game: it opens from the user's side like the first one.
+              setTurned(undefined)
             }}
           />
         </details>
