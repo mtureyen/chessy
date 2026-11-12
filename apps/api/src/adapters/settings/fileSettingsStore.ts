@@ -7,7 +7,8 @@ export interface StoredSettings {
 
 /**
  * The settings page's values in a local JSON file, readable by this user only (it holds API
- * keys). A missing or unreadable file counts as no settings.
+ * keys). A missing file counts as no settings; one that can't be read stops the API from
+ * starting, so the keys in it aren't written over.
  */
 export class FileSettingsStore {
   private readonly path: string

@@ -66,7 +66,8 @@ const settingsPath =
   config.SETTINGS_PATH ?? fileURLToPath(new URL('../.pawnia/settings.json', import.meta.url))
 const settings = new FileSettingsService(config, new FileSettingsStore(settingsPath), coach)
 await settings.load()
-const reviewJobPath = settingsPath.replace(/\.json$/, '.review-queue.json')
+// Next to the settings, and never the settings file itself, whatever that one is called.
+const reviewJobPath = `${settingsPath.replace(/\.json$/, '')}.review-queue.json`
 const reviewQueue = new ReviewQueue({
   library,
   reviews: {
@@ -76,7 +77,9 @@ const reviewQueue = new ReviewQueue({
   // Small batches, so the engine's other users get their turn between them.
   review: createServerReviewer({ ...reviewing, batchSize: 16 }),
   store: {
-    load: async () => (await readJson<ReviewJob | null>(reviewJobPath)) ?? undefined,
+    // A job file that can't be read only loses the job: the run is started again by hand.
+    load: async () =>
+      (await readJson<ReviewJob | null>(reviewJobPath).catch(() => undefined)) ?? undefined,
     save: (job) => writeJson(reviewJobPath, job ?? null),
   },
 })
