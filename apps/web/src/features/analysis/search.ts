@@ -5,6 +5,8 @@ export interface AnalysisSearch {
   pgn?: string
   /** Start a review of the opened game right away (e.g. straight after a bot game). */
   review?: boolean
+  /** Open with the coach's tab in front, to ask about the position. */
+  coach?: boolean
 }
 
 export function parseAnalysisSearch(search: Record<string, unknown>): AnalysisSearch {
@@ -15,5 +17,6 @@ export function parseAnalysisSearch(search: Record<string, unknown>): AnalysisSe
   }
   if (search.review === true || search.review === 'true' || search.review === '1')
     result.review = true
+  if (search.coach === true || search.coach === 'true' || search.coach === '1') result.coach = true
   return result
 }

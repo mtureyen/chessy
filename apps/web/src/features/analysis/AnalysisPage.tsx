@@ -55,6 +55,8 @@ export interface AnalysisInitial {
   error?: string
   /** Start a review of the game right away. */
   review?: boolean
+  /** Open with the coach's tab in front. */
+  coach?: boolean
 }
 
 /** Free analysis board: engine with eval bar and best lines, game review, any variation. */
@@ -65,7 +67,9 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   const [orientation, setOrientation] = useState<Color>('white')
   const [engineEnabled, setEngineEnabled] = useState(true)
   const [multiPv, setMultiPv] = useState(3)
-  const [tab, setTab] = useState<'moves' | 'review' | 'coach'>(initial.review ? 'review' : 'moves')
+  const [tab, setTab] = useState<'moves' | 'review' | 'coach'>(
+    initial.review ? 'review' : initial.coach ? 'coach' : 'moves',
+  )
   const profile = useProfile()
   const userSide = userColor(headers, profile.data)
   // During the coach's walkthrough the engine rests: it would give the better moves away. The
