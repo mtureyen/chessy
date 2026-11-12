@@ -10,8 +10,12 @@ const facts: OpeningGuideFacts = {
   side: 'black',
   main: '1.e4 c6',
   line: [
-    { ply: 1, move: '1.e4' },
-    { ply: 2, move: '1...c6' },
+    { ply: 1, move: '1.e4', fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1' },
+    {
+      ply: 2,
+      move: '1...c6',
+      fen: 'rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',
+    },
   ],
   variations: [
     { name: 'Advance Variation', moves: '1.e4 c6 2.d4 d5 3.e5', games: 23000, score: 50 },
@@ -59,6 +63,59 @@ describe('parseOpeningGuide', () => {
     ])
     expect(parseOpeningGuide('no json here', facts)).toBeUndefined()
     expect(parseOpeningGuide(JSON.stringify({ ...good, story: '' }), facts)).toBeUndefined()
+  })
+})
+
+describe('the drawings of a guide', () => {
+  const drawn = (draw: unknown) =>
+    parseOpeningGuide(
+      JSON.stringify({ ...good, moves: [good.moves[0], { ...good.moves[1], draw }] }),
+      facts,
+    )?.moves[1]?.draw
+
+  it('keeps arrows that start on a piece, and marked squares', () => {
+    const draw = {
+      arrows: [{ from: 'c6', to: 'd5', color: 'green' }],
+      squares: [{ square: 'd5', color: 'yellow' }],
+    }
+    expect(drawn(draw)).toEqual(draw)
+    expect(drawn({ squares: [{ square: 'e4', color: 'red' }] })).toEqual({
+      arrows: [],
+      squares: [{ square: 'e4', color: 'red' }],
+    })
+  })
+
+  it('leaves out what cannot be drawn, and the guide stays good', () => {
+    // From an empty square, off the board, an unknown colour, to itself.
+    const bad = [
+      { from: 'c5', to: 'd4', color: 'green' },
+      { from: 'c6', to: 'd9', color: 'green' },
+      { from: 'c6', to: 'd5', color: 'pink' },
+      { from: 'c6', to: 'c6', color: 'green' },
+    ]
+    expect(drawn({ arrows: bad })).toBeUndefined()
+    expect(drawn('an arrow from c6 to d5')).toBeUndefined()
+    expect(drawn({ arrows: [...bad, { from: 'd7', to: 'd5', color: 'green' }] })).toEqual({
+      arrows: [{ from: 'd7', to: 'd5', color: 'green' }],
+      squares: [],
+    })
+    const guide = parseOpeningGuide(
+      JSON.stringify({ ...good, moves: [{ ...good.moves[0], draw: 7 }, good.moves[1]] }),
+      facts,
+    )
+    expect(guide).toEqual(good)
+  })
+
+  it('draws at most three arrows and three squares', () => {
+    const arrows = ['a7', 'b7', 'd7', 'e7'].map((from) => ({
+      from,
+      to: `${from[0]}5`,
+      color: 'green',
+    }))
+    const squares = ['a5', 'b5', 'd5', 'e5'].map((square) => ({ square, color: 'blue' }))
+    const kept = drawn({ arrows, squares })
+    expect(kept?.arrows).toHaveLength(3)
+    expect(kept?.squares).toHaveLength(3)
   })
 })
 

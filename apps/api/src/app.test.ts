@@ -902,14 +902,20 @@ describe('opening guide routes', () => {
 
   it('writes a guide from the library’s facts once, keeps it, and writes again on request', async () => {
     const facts = await guides.facts('scotch')
-    expect(facts?.line[0]).toEqual({ ply: 1, move: '1.e4' })
-    expect(facts?.line[1]).toEqual({ ply: 2, move: '1...e5' })
+    expect(facts?.line[0]).toMatchObject({ ply: 1, move: '1.e4' })
+    expect(facts?.line[1]).toMatchObject({ ply: 2, move: '1...e5' })
+    // The coach draws on the position after each move; what can't be drawn there is left out.
+    expect(facts?.line[0]?.fen).toBe('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1')
+    const draws: Record<number, object> = {
+      1: { arrows: [{ from: 'e4', to: 'd5', color: 'green' }], squares: [] },
+      2: { arrows: [{ from: 'e6', to: 'e5', color: 'red' }] },
+    }
     const guide = (story: string) =>
       JSON.stringify({
         story,
         ideas: 'Open the centre early.',
         opponents: 'Most take on d4.',
-        moves: facts!.line.map(({ ply }) => ({ ply, note: `Move ${ply}.` })),
+        moves: facts!.line.map(({ ply }) => ({ ply, note: `Move ${ply}.`, draw: draws[ply] })),
       })
     const { guideApp, requests } = makeGuideApp([
       guide('Named after a match by Edinburgh.'),
@@ -919,8 +925,12 @@ describe('opening guide routes', () => {
 
     const first = await write(guideApp, 'scotch')
     expect(first.status).toBe(200)
-    const body = (await first.json()) as { story: string; moves: { ply: number; san: string }[] }
+    const body = (await first.json()) as {
+      story: string
+      moves: { ply: number; san: string; draw?: object }[]
+    }
     expect(body.story).toBe('Named after a match by Edinburgh.')
+    expect(body.moves.slice(0, 3).map((m) => m.draw)).toEqual([draws[1], undefined, undefined])
     expect(body.moves.slice(0, 5).map((m) => m.san)).toEqual(['e4', 'e5', 'Nf3', 'Nc6', 'd4'])
     // The facts went to the coach, without tools.
     expect(JSON.stringify(requests[0])).toContain('Scotch Game')
