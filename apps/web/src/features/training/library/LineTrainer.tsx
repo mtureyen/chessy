@@ -2,12 +2,15 @@ import { createGame, type Move } from '@pawnia/chess'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { lineText } from '@/features/stats/format'
 import { Board } from '@/shared/board/Board'
+import { arrowsWanted, nextStepArrows, rememberArrows } from './arrows'
 import { moveLabel } from './format'
 import { HINT_AFTER, sameMove, yourPlies, type LearnScore } from './learnLine'
 
 const NO_MOVES = new Map()
 /** A breath before the opponent's move, so the user sees theirs land. */
 const REPLY_DELAY_MS = 500
+/** How long a move stays on the board when the line plays by itself. */
+const AUTOPLAY_MS = 1600
 
 /**
  * Learning a line: first watch it move by move (with the coach's notes where the guide has them),
@@ -97,8 +100,42 @@ function Watch({
   exitLabel: string
 }) {
   const [ply, setPly] = useState(0)
+  const [autoplay, setAutoplay] = useState(false)
+  const [arrowsOn, setArrowsOn] = useState(arrowsWanted)
   const { game, lastMove } = useMemo(() => positionAt(line, ply), [line, ply])
   const note = ply > 0 ? notes.get(ply) : undefined
+  const playing = autoplay && ply < line.length
+  const drawing = useMemo(
+    () => (arrowsOn ? nextStepArrows(line, ply, side) : undefined),
+    [arrowsOn, line, ply, side],
+  )
+  /** A step by hand; the line stops playing by itself. */
+  const step = (by: number) => {
+    setAutoplay(false)
+    setPly((p) => Math.min(line.length, Math.max(0, p + by)))
+  }
+
+  useEffect(() => {
+    if (!playing) return
+    const timer = setTimeout(() => setPly((p) => p + 1), AUTOPLAY_MS)
+    return () => clearTimeout(timer)
+  }, [playing, ply])
+
+  // ← and → step through the line, as on the analysis board.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select')) return
+      const by = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+      if (by === 0) return
+      e.preventDefault()
+      setAutoplay(false)
+      setPly((p) => Math.min(line.length, Math.max(0, p + by)))
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [line.length])
+
   return (
     <div className="layout line-trainer">
       <section className="board-column">
@@ -111,6 +148,7 @@ function Watch({
           check={game.isCheck()}
           isPromotion={() => false}
           onMove={() => undefined}
+          {...(drawing && { drawing })}
         />
       </section>
       <aside className="panel training-panel" aria-label="Learn the line">
@@ -122,13 +160,38 @@ function Watch({
             {ply === 0 ? 'The start position.' : moveLabel(ply, line[ply - 1]!)}
           </p>
           {note && <p>{note}</p>}
+          {arrowsOn && ply < line.length && (
+            <p className="stats-note">
+              The arrows show the next moves in order: yours green, the other side’s grey.
+            </p>
+          )}
         </div>
         <div className="training-actions">
-          <button type="button" onClick={() => setPly((p) => p - 1)} disabled={ply === 0}>
+          <button type="button" onClick={() => step(-1)} disabled={ply === 0}>
             ◀ Back
           </button>
-          <button type="button" onClick={() => setPly((p) => p + 1)} disabled={ply === line.length}>
+          <button type="button" onClick={() => step(1)} disabled={ply === line.length}>
             Next ▶
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              // From the end it starts over.
+              if (!playing && ply === line.length) setPly(0)
+              setAutoplay(!playing)
+            }}
+          >
+            {playing ? 'Pause' : 'Play through'}
+          </button>
+          <button
+            type="button"
+            aria-pressed={arrowsOn}
+            onClick={() => {
+              rememberArrows(!arrowsOn)
+              setArrowsOn(!arrowsOn)
+            }}
+          >
+            Arrows
           </button>
           <button type="button" className="training-next" onClick={onPlay}>
             Play it yourself

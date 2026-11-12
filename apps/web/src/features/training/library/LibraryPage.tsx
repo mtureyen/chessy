@@ -7,6 +7,7 @@ import { useServices } from '@/app/servicesContext'
 import { lineText } from '@/features/stats/format'
 import { Board } from '@/shared/board/Board'
 import { TrainingTabs } from '../TrainingTabs'
+import { arrowsWanted, explorerArrows, openingPaths, rememberArrows } from './arrows'
 import { Guide } from './Guide'
 import { LineTrainer } from './LineTrainer'
 import {
@@ -168,6 +169,9 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
   const [path, setPath] = useState<string[]>(main)
   const [band, setBand] = useState<BandChoice>('all')
   const [learning, setLearning] = useState<string[]>()
+  /** The move pointed at in the list of what's played, with the position it belongs to. */
+  const [pointed, setPointed] = useState<{ at: string; san: string }>()
+  const paths = useMemo(() => openingPaths(opening.tree), [opening.tree])
   // The same query as the guide's section: its notes go with the moves they are about.
   const guide = useQuery({
     queryKey: ['opening-library', opening.id, 'guide'],
@@ -213,13 +217,23 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
           <ExplorerBoard
             path={path}
             side={opening.side}
+            band={band}
+            paths={paths}
+            {...(pointed?.at === path.join(' ') && { pointedAt: pointed.san })}
             onPath={setPath}
             onLearn={() => setLearning(path)}
             onKeep={() => keep(path)}
           />
         </section>
         <aside className="panel library-panel" aria-label="What is played here">
-          <Explorer path={path} side={opening.side} band={band} onBand={setBand} onPath={setPath} />
+          <Explorer
+            path={path}
+            side={opening.side}
+            band={band}
+            onBand={setBand}
+            onPath={setPath}
+            onPoint={(san) => setPointed(san ? { at: path.join(' '), san } : undefined)}
+          />
         </aside>
       </div>
 
@@ -384,12 +398,20 @@ function perMille(share: number | undefined): string {
 function ExplorerBoard({
   path,
   side,
+  band,
+  paths,
+  pointedAt,
   onPath,
   onLearn,
   onKeep,
 }: {
   path: string[]
   side: 'white' | 'black'
+  band: BandChoice
+  /** Every way into the opening's named lines: arrows that stay in them are green. */
+  paths: ReadonlySet<string>
+  /** The move pointed at in the list next to the board. */
+  pointedAt?: string
   onPath: (path: string[]) => void
   onLearn: () => void
   /** Keeps the line on the board in the repertoire. */
@@ -402,6 +424,26 @@ function ExplorerBoard({
     return g
   }, [path])
   const last = game.current.move
+  const { openingLibrary } = useServices()
+  const [arrowsOn, setArrowsOn] = useState(arrowsWanted)
+  // The same query as the list next to the board.
+  const position = useQuery({
+    queryKey: ['opening-library', 'position', path.join(',')],
+    queryFn: () => openingLibrary.position(path),
+  })
+  const drawing = useMemo(() => {
+    if (!arrowsOn || !position.data) return undefined
+    const played = position.data.moves.map((m) => ({
+      san: m.san,
+      games: games(results(m.stats as BandStats, band)),
+    }))
+    return explorerArrows(
+      game.fen(),
+      played,
+      (san) => paths.has([...path, san].join(' ')),
+      pointedAt,
+    )
+  }, [arrowsOn, position.data, band, game, paths, path, pointedAt])
   return (
     <>
       <Board
@@ -416,6 +458,7 @@ function ExplorerBoard({
           const node = createGame(game.fen()).play(move)
           if (node?.move) onPath([...path, node.move.san])
         }}
+        {...(drawing && { drawing })}
       />
       <div className="library-nav">
         <button type="button" onClick={() => onPath([])} disabled={path.length === 0}>
@@ -460,6 +503,20 @@ function ExplorerBoard({
           </span>
         )}
       </div>
+      <p className="stats-note library-arrows">
+        <button
+          type="button"
+          aria-pressed={arrowsOn}
+          onClick={() => {
+            rememberArrows(!arrowsOn)
+            setArrowsOn(!arrowsOn)
+          }}
+        >
+          Arrows
+        </button>
+        {arrowsOn &&
+          'What is played here: the thicker, the more often. Green stays in this opening’s lines, grey leaves them.'}
+      </p>
     </>
   )
 }
@@ -471,12 +528,15 @@ function Explorer({
   band,
   onBand,
   onPath,
+  onPoint,
 }: {
   path: string[]
   side: 'white' | 'black'
   band: BandChoice
   onBand: (band: BandChoice) => void
   onPath: (path: string[]) => void
+  /** Tells which move the pointer or the focus is on, so the board can show it. */
+  onPoint: (san: string | undefined) => void
 }) {
   const { openingLibrary } = useServices()
   const position = useQuery({
@@ -522,11 +582,17 @@ function Explorer({
             {moves
               .filter((m) => games(m.r) > 0)
               .map((m) => (
-                <tr key={m.san}>
+                <tr
+                  key={m.san}
+                  onMouseEnter={() => onPoint(m.san)}
+                  onMouseLeave={() => onPoint(undefined)}
+                >
                   <th scope="row">
                     <button
                       type="button"
                       className="library-move"
+                      onFocus={() => onPoint(m.san)}
+                      onBlur={() => onPoint(undefined)}
                       onClick={() => onPath([...path, m.san])}
                     >
                       {m.san}

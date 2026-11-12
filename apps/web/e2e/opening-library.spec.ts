@@ -1,5 +1,11 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { boardDriver } from './board'
+
+const GREEN = '#5f9e2f'
+const BLUE = '#3f9fd8'
+/** The arrows the app drew on the board, all or of one colour. */
+const arrows = (page: Page, color?: string) =>
+  page.locator(color ? `svg.cg-shapes line[stroke="${color}"]` : 'svg.cg-shapes line')
 
 // The E2E API serves the checked-in library (apps/api/data/opening-library.json).
 
@@ -44,6 +50,35 @@ test('opening library: pick Black, open the Caro-Kann and explore what is played
     .click()
   await expect(page.locator('.library-nav')).toContainText('3.e5')
   await expect(lines.getByRole('button', { name: /Show all \d+ lines/ })).toBeVisible()
+})
+
+test('opening library: arrows show what is played, and the move pointed at', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.goto('/training/library?id=caro-kann')
+  // After 1.e4 c6: 2.d4 and the other moves of the Caro-Kann in green, none pointed at.
+  await expect.poll(() => arrows(page, GREEN).count()).toBeGreaterThan(1)
+  await expect(arrows(page, BLUE)).toHaveCount(0)
+  const all = await arrows(page).count()
+
+  const explorer = page.getByRole('complementary', { name: 'What is played here' })
+  await explorer.getByRole('button').filter({ hasText: /^Nc3$/ }).hover()
+  await expect(arrows(page, BLUE)).toHaveCount(1)
+  await expect(arrows(page)).toHaveCount(all)
+  await page.getByRole('heading', { name: /Caro-Kann Defense/ }).hover()
+  await expect(arrows(page, BLUE)).toHaveCount(0)
+
+  // Switched off, they stay off in this browser.
+  await page.getByRole('button', { name: 'Arrows' }).click()
+  await expect(arrows(page)).toHaveCount(0)
+  await page.reload()
+  await expect(explorer.getByRole('button').filter({ hasText: /^d4$/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Arrows' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  )
+  await expect(arrows(page)).toHaveCount(0)
+  await page.getByRole('button', { name: 'Arrows' }).click()
+  await expect(arrows(page)).toHaveCount(all)
 })
 
 test('opening library: a trap shows on the board', async ({ page }) => {
@@ -122,10 +157,26 @@ test('opening library: learn a line, watching it first, then playing it from mem
   const panel = page.getByRole('complementary', { name: 'Learn the line' })
   await expect(panel).toContainText('Step 1 of 2: watch the line.')
   await expect(panel.getByRole('status')).toHaveText('The start position.')
+  // The next three moves are on the board as arrows: Black's own (1...c6) in green.
+  await expect(arrows(page)).toHaveCount(3)
+  await expect(arrows(page, GREEN)).toHaveCount(1)
   await panel.getByRole('button', { name: 'Next ▶' }).click()
   await expect(panel.getByRole('status')).toHaveText('1.e4')
-  await panel.getByRole('button', { name: 'Next ▶' }).click()
+  await page.keyboard.press('ArrowRight')
   await expect(panel.getByRole('status')).toHaveText('1...c6')
+  await page.keyboard.press('ArrowLeft')
+  await expect(panel.getByRole('status')).toHaveText('1.e4')
+
+  // The line plays by itself until paused; the arrows can be switched off.
+  await panel.getByRole('button', { name: 'Play through' }).click()
+  await expect(panel.getByRole('status')).toHaveText('2.d4', { timeout: 8000 })
+  await panel.getByRole('button', { name: 'Pause' }).click()
+  await expect(panel.getByRole('button', { name: 'Play through' })).toBeVisible()
+  await expect(arrows(page)).toHaveCount(2)
+  await panel.getByRole('button', { name: 'Arrows' }).click()
+  await expect(arrows(page)).toHaveCount(0)
+  await panel.getByRole('button', { name: 'Arrows' }).click()
+  await expect(arrows(page)).toHaveCount(2)
 
   await panel.getByRole('button', { name: 'Play it yourself' }).click()
   await expect(panel).toContainText('Step 2 of 2')
