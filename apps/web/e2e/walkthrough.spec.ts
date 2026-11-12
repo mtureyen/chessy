@@ -213,6 +213,27 @@ test('nothing shows where the game went wrong while the coach walks through it',
   await expect(badges).toHaveCount(1)
 })
 
+test('the engine’s view comes back however the walkthrough goes away', async ({ page }) => {
+  // The first writing works, writing it again fails: the walkthrough is gone without "Close".
+  let asked = 0
+  await scriptedServer(page, () =>
+    asked++ === 0
+      ? { status: 200, json: WRITTEN }
+      : { status: 502, json: { title: 'No walkthrough', detail: 'The coach gave no usable text' } },
+  )
+  const graph = page.getByRole('img', { name: 'Evaluation graph' })
+  await page.getByRole('button', { name: 'Walk me through it' }).click()
+  const tour = page.getByRole('region', { name: 'Coach walkthrough' })
+  await expect(tour).toContainText('1 of 4')
+  await expect(graph).toHaveCount(0)
+
+  await tour.getByRole('button', { name: 'Write it again' }).click()
+  await expect(page.getByRole('alert')).toHaveText('The coach gave no usable text')
+  await expect(tour).toHaveCount(0)
+  await expect(graph).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Key moments' })).toBeVisible()
+})
+
 test('the board turns to the side the user played', async ({ page }) => {
   const asBlack = GAME.replace('White "8sly"', 'White "rival"').replace(
     'Black "rival"',

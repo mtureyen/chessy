@@ -3,7 +3,7 @@ import type { Color } from '@pawnia/chess'
 import type { CoachWalkthroughBody } from '@pawnia/contracts'
 import { phaseAccuracy } from '@pawnia/history'
 import { useMutation } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
 import { Markdown } from '@/features/coach/Markdown'
 import type { PlacedDrawing } from '@/features/coach/useCoachChat'
@@ -37,7 +37,7 @@ export interface CoachWalkthroughProps {
 
 /** The coach going through a reviewed game, one stop at a time, written once and kept. */
 export function CoachWalkthrough(props: CoachWalkthroughProps) {
-  const { review, side, onOpen, onClose, onTry } = props
+  const { review, side } = props
   const { coach } = useServices()
   const [open, setOpen] = useState(false)
   const load = useMutation({
@@ -48,10 +48,7 @@ export function CoachWalkthrough(props: CoachWalkthroughProps) {
         ...(side && { side }),
         ...(regenerate && { regenerate }),
       }),
-    onSuccess: () => {
-      setOpen(true)
-      onOpen()
-    },
+    onSuccess: () => setOpen(true),
   })
 
   if (open && load.data) {
@@ -61,11 +58,7 @@ export function CoachWalkthrough(props: CoachWalkthroughProps) {
         walkthrough={load.data}
         rewriting={load.isPending}
         onRewrite={() => load.mutate(true)}
-        onDone={() => {
-          setOpen(false)
-          onTry(undefined)
-          onClose()
-        }}
+        onDone={() => setOpen(false)}
       />
     )
   }
@@ -94,6 +87,8 @@ function Stepper({
   onSelectPly,
   onShow,
   onAsk,
+  onOpen,
+  onClose,
   onTry,
   walkthrough,
   rewriting,
@@ -105,6 +100,21 @@ function Stepper({
   onRewrite: () => void
   onDone: () => void
 }) {
+  // The walkthrough is open exactly while this is on the page. However it goes away (closed, the
+  // review started again, another game loaded, a rewriting that failed), the page gets its
+  // engine and its board back.
+  const page = useRef({ onOpen, onClose, onTry })
+  useEffect(() => {
+    page.current = { onOpen, onClose, onTry }
+  })
+  useEffect(() => {
+    page.current.onOpen()
+    return () => {
+      page.current.onTry(undefined)
+      page.current.onClose()
+    }
+  }, [])
+
   const steps = walkthroughSteps(walkthrough, review)
   const [index, setIndex] = useState(0)
   const [revealed, setRevealed] = useState(false)
