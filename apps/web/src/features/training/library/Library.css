@@ -363,3 +363,14 @@
   flex-wrap: wrap;
   gap: 0.4rem;
 }
+
+/* How far the user is with an opening. */
+.library-progress {
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.library-ask {
+  font-size: 0.9rem;
+}

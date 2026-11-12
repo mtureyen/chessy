@@ -1,11 +1,18 @@
 import type { LibraryOpeningBody, OpeningLibraryBody } from '@pawnia/contracts'
-import { createGame } from '@pawnia/chess'
-import { useQuery } from '@tanstack/react-query'
+import { createGame, exportPgn } from '@pawnia/chess'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useSearch } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
-import { lineText } from '@/features/stats/format'
+import { lineText, scoreText } from '@/features/stats/format'
 import { Board, type BoardDrawing } from '@/shared/board/Board'
+import {
+  lineKey,
+  openingProgress,
+  progressText,
+  useRepertoire,
+  type Progress,
+} from '../repertoire/progress'
 import { TrainingTabs } from '../TrainingTabs'
 import { arrowsWanted, explorerArrows, openingPaths, rememberArrows } from './arrows'
 import { Guide } from './Guide'
@@ -50,6 +57,7 @@ function Overview() {
   const { openingLibrary } = useServices()
   const [side, setSide] = useState<'white' | 'black'>('white')
   const list = useQuery({ queryKey: ['opening-library'], queryFn: () => openingLibrary.list() })
+  const kept = useRepertoire().data ?? []
   if (list.isPending) return <p className="stats-note">Opening the library…</p>
   if (list.isError)
     return (
@@ -86,7 +94,7 @@ function Overview() {
               .filter((o) => o.group === group)
               .map((opening) => (
                 <li key={opening.id}>
-                  <OpeningCard opening={opening} />
+                  <OpeningCard opening={opening} progress={openingProgress(kept, opening.id)} />
                 </li>
               ))}
           </ul>
@@ -119,7 +127,8 @@ function Chips({ opening }: { opening: Pick<Summary, 'style' | 'tags'> & { traps
   )
 }
 
-function OpeningCard({ opening }: { opening: Summary }) {
+function OpeningCard({ opening, progress }: { opening: Summary; progress: Progress }) {
+  const yours = progressText(progress)
   const { score } = opening.numbers
   const low = score['1200-1599']
   const high = score['2000+']
@@ -133,6 +142,7 @@ function OpeningCard({ opening }: { opening: Summary }) {
         {low !== undefined && ` ${low}% at 1200–1599`}
         {high !== undefined && ` · ${high}% at 2000+`} · {opening.lines} named lines
       </span>
+      {yours && <span className="library-progress">{yours}</span>}
     </Link>
   )
 }
@@ -168,7 +178,23 @@ function OneOpening({ id }: { id: string }) {
 }
 
 function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
-  const { openingLibrary, repertoire } = useServices()
+  const { openingLibrary, repertoire, training } = useServices()
+  const client = useQueryClient()
+  const kept = useRepertoire().data
+  const progress = progressText(openingProgress(kept ?? [], opening.id))
+  const keptLines = useMemo(
+    () => new Set((kept ?? []).map((l) => lineKey(l.side, l.moves))),
+    [kept],
+  )
+  // The user's own games with it: the same query as "My openings" starts with.
+  const mine = useQuery({
+    queryKey: ['openings', YOUR_GAMES, 'all'],
+    queryFn: () => training.openings({ last: YOUR_GAMES }),
+    retry: false,
+  })
+  const yours = mine.data?.openings.find(
+    (o) => o.color === opening.side && o.family === opening.name,
+  )
   const main = opening.main.split(' ')
   const [path, setPath] = useState<string[]>(main)
   const [band, setBand] = useState<BandChoice>('all')
@@ -195,8 +221,14 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
   const titleOf = (line: string[]) =>
     opening.tree.find((n) => n.name && n.moves.join(' ') === line.join(' '))?.name ??
     `${opening.name}, ${lineText(line)}`
+  /** Keeps a line in the repertoire; what shows the repertoire hears of it. */
+  const add = async (line: Parameters<typeof repertoire.add>[0]) => {
+    const added = await repertoire.add(line)
+    void client.invalidateQueries({ queryKey: ['repertoire'] })
+    return added
+  }
   const keep = (line: string[]) =>
-    repertoire.add({ side: opening.side, title: titleOf(line), moves: line, openingId: opening.id })
+    add({ side: opening.side, title: titleOf(line), moves: line, openingId: opening.id })
   if (practising) {
     return <LibraryPractice opening={opening} band={band} onExit={() => setPractising(false)} />
   }
@@ -211,7 +243,7 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
         notes={new Map([...guideNotes(drill.line, guide.data?.moves ?? []), ...drill.notes])}
         pitfalls={drill.pitfalls}
         onAdd={() =>
-          repertoire.add({
+          add({
             side: drill.side,
             title,
             moves: drill.line,
@@ -265,6 +297,29 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
               Practise against real replies
             </button>
           </p>
+          {progress && (
+            <p className="library-progress">
+              {progress}. <Link to="/training/repertoire">Review them</Link>
+            </p>
+          )}
+          {mine.data && (
+            <p className="stats-note">
+              {yours ? (
+                <>
+                  You played it {yours.tally.games} {yours.tally.games === 1 ? 'time' : 'times'} in
+                  your last {mine.data.window.found} games, scoring {scoreText(yours.tally)}.{' '}
+                  <Link
+                    to="/training/openings"
+                    search={{ color: yours.color, family: yours.family }}
+                  >
+                    Your games with it
+                  </Link>
+                </>
+              ) : (
+                `Not in your last ${mine.data.window.found} games.`
+              )}
+            </p>
+          )}
         </div>
         <ScoreTable opening={opening} />
       </section>
@@ -337,7 +392,7 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
         </section>
       )}
 
-      <NamedLines opening={opening} band={band} path={path} onPath={go} />
+      <NamedLines opening={opening} band={band} path={path} kept={keptLines} onPath={go} />
     </>
   )
 }
@@ -382,6 +437,9 @@ function TrapActions({
   )
 }
 
+/** The window of the user's games the opening is looked up in: what "My openings" starts with. */
+const YOUR_GAMES = 300
+
 /** The named lines shown before "Show all". */
 const SHOWN_LINES = 15
 
@@ -390,11 +448,14 @@ function NamedLines({
   opening,
   band,
   path,
+  kept,
   onPath,
 }: {
   opening: LibraryOpeningBody
   band: BandChoice
   path: string[]
+  /** The lines in the user's repertoire, by side and moves. */
+  kept: ReadonlySet<string>
   onPath: (path: string[]) => void
 }) {
   const [all, setAll] = useState(false)
@@ -423,7 +484,12 @@ function NamedLines({
                 aria-current={here === node.moves.join(' ') ? 'true' : undefined}
                 onClick={() => onPath(node.moves)}
               >
-                <span className="library-line-name">{shortName(node.name!, opening.name)}</span>
+                <span className="library-line-name">
+                  {shortName(node.name!, opening.name)}
+                  {kept.has(lineKey(opening.side, node.moves)) && (
+                    <span className="library-chip library-chip-low">In your repertoire</span>
+                  )}
+                </span>
                 <span className="library-card-line">{lineText(node.moves)}</span>
                 <span className="stats-number">{gamesText(games(r))}</span>
                 <span className="stats-number">{score === undefined ? '–' : `${score}%`}</span>
@@ -600,6 +666,14 @@ function ExplorerBoard({
             {kept.text}
           </span>
         )}
+        <Link
+          to="/analysis"
+          search={path.length > 0 ? { pgn: exportPgn(game), coach: true } : { coach: true }}
+          className="library-ask"
+          title="Opens this position on the analysis board, with the coach to ask"
+        >
+          Ask the coach
+        </Link>
       </div>
       {idea ? (
         <p className="stats-note library-arrows">
