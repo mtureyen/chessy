@@ -7,6 +7,11 @@
   font-size: 0.9rem;
 }
 
+/* Only the name gives way when a bar gets full. */
+.player-bar > * {
+  flex-shrink: 0;
+}
+
 .player-title {
   padding: 0 0.25rem;
   border-radius: 3px;
@@ -17,6 +22,8 @@
 }
 
 .player-name {
+  flex-shrink: 1;
+  min-width: 0;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -41,4 +48,27 @@
 .player-clock-active {
   background: var(--accent);
   color: var(--on-accent);
+}
+
+/*
+ * On a narrow screen a name, the taken pieces and a clock don't fit on one line: the pieces get
+ * their own, on the side away from the board, so both names stay next to it.
+ */
+@media (max-width: 860px) {
+  .player-bar {
+    flex-wrap: wrap;
+    align-content: flex-start;
+    row-gap: 0.1rem;
+  }
+
+  .player-bar:first-child {
+    flex-wrap: wrap-reverse;
+  }
+
+  /* Under (or over) the name, past the dot. */
+  .player-bar .taken {
+    order: 1;
+    flex-basis: calc(100% - 1rem);
+    margin-left: 1rem;
+  }
 }

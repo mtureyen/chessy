@@ -26,9 +26,11 @@ import { useCoachDrawing } from '@/features/coach/useCoachDrawing'
 import { usePlayer, useProfile } from '@/features/profile/useProfile'
 import { ClassBadge } from '@/features/review/ClassBadge'
 import { Board } from '@/shared/board/Board'
+import { TakenPieces } from '@/shared/board/TakenPieces'
 import { GameStatusBar } from '@/shared/game/GameStatusBar'
 import { MoveTree } from '@/shared/game/MoveTree'
 import { NavigationControls } from '@/shared/game/NavigationControls'
+import { useMaterial } from '@/shared/game/players'
 import { useGameKeyboard } from '@/shared/game/useGameKeyboard'
 import { ClockFace } from './ClockFace'
 import { coachCommentsOn, rememberCoachComments } from './coachComments'
@@ -327,6 +329,7 @@ function BotGame({
   )
 
   const myTurn = !bot.over && view.atEnd && view.turn === setup.color
+  const material = useMaterial(view.current)
   const savedId = bot.save.status === 'saved' ? bot.save.game.id : undefined
 
   return (
@@ -347,23 +350,26 @@ function BotGame({
 
       <aside className="panel">
         <div className="bot-opponent">
-          <span className={`player-dot player-dot-${opposite(setup.color)}`} aria-hidden />
-          <span className="bot-opponent-name">{botName(setup.level)}</span>
-          <span className="bot-opponent-level">
-            {[
-              setup.level.name,
-              approximateRating(setup.level),
-              setup.level.human && humanModel && 'human-like',
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </span>
-          {bot.botThinking && (
-            <span className="bot-thinking" role="status">
-              thinking…
+          <div className="bot-player">
+            <span className={`player-dot player-dot-${opposite(setup.color)}`} aria-hidden />
+            <span className="bot-opponent-name">{botName(setup.level)}</span>
+            <span className="bot-opponent-level">
+              {[
+                setup.level.name,
+                approximateRating(setup.level),
+                setup.level.human && humanModel && 'human-like',
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </span>
-          )}
-          {bot.clock && <ClockFace clock={bot.clock} color={opposite(setup.color)} />}
+            {bot.botThinking && (
+              <span className="bot-thinking" role="status">
+                thinking…
+              </span>
+            )}
+            {bot.clock && <ClockFace clock={bot.clock} color={opposite(setup.color)} />}
+          </div>
+          <TakenPieces material={material} color={opposite(setup.color)} />
         </div>
         {bot.termination ? (
           <div className="status status-checkmate">{describeEnd(bot.termination)}</div>
@@ -463,9 +469,12 @@ function BotGame({
         {bot.drawDeclined && <p className="bot-note">{botName(setup.level)} declines the draw.</p>}
 
         <div className="bot-you">
-          <span className={`player-dot player-dot-${setup.color}`} aria-hidden />
-          <span className="bot-opponent-name">You</span>
-          {bot.clock && <ClockFace clock={bot.clock} color={setup.color} />}
+          <div className="bot-player">
+            <span className={`player-dot player-dot-${setup.color}`} aria-hidden />
+            <span className="bot-opponent-name">You</span>
+            {bot.clock && <ClockFace clock={bot.clock} color={setup.color} />}
+          </div>
+          <TakenPieces material={material} color={setup.color} />
         </div>
 
         <div className="controls">

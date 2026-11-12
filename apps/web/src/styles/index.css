@@ -51,6 +51,7 @@ button {
 
 /* Which side a player has; used in player bars, game lists and bot games. */
 .player-dot {
+  flex-shrink: 0;
   width: 0.7rem;
   height: 0.7rem;
   border-radius: 50%;

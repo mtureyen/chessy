@@ -7,6 +7,8 @@ import { GameStatusBar } from '@/shared/game/GameStatusBar'
 import { MoveTree } from '@/shared/game/MoveTree'
 import { NavigationControls } from '@/shared/game/NavigationControls'
 import { PgnPanel } from '@/shared/game/PgnPanel'
+import { PlayerBar } from '@/shared/game/PlayerBar'
+import { playerBars, useMaterial } from '@/shared/game/players'
 import { useGame } from '@/shared/game/useGame'
 import { useGameKeyboard } from '@/shared/game/useGameKeyboard'
 import '@/shared/game/GamePanel.css'
@@ -57,10 +59,13 @@ export function PlayPage() {
     update,
     useMemo(() => ({ f: flip }), []),
   )
+  const material = useMaterial(view.current)
+  const players = playerBars(headers, view, material)
 
   return (
-    <div className="layout">
+    <div className="layout has-players">
       <section className="board-column">
+        <PlayerBar {...players[orientation === 'white' ? 'black' : 'white']} />
         <Board
           fen={view.fen}
           orientation={orientation}
@@ -71,6 +76,7 @@ export function PlayPage() {
           isPromotion={(from, to) => game.isPromotion(from, to)}
           onMove={(move) => update((g) => g.play(move))}
         />
+        <PlayerBar {...players[orientation]} />
       </section>
 
       <aside className="panel">

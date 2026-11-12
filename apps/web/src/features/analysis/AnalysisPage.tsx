@@ -35,12 +35,12 @@ import { GameStatusBar } from '@/shared/game/GameStatusBar'
 import { MoveTree } from '@/shared/game/MoveTree'
 import { NavigationControls } from '@/shared/game/NavigationControls'
 import { PgnPanel } from '@/shared/game/PgnPanel'
-import { useGame, type GameView } from '@/shared/game/useGame'
-import { clockAt } from '@/shared/game/clock'
+import { PlayerBar } from '@/shared/game/PlayerBar'
+import { playerBars, useMaterial } from '@/shared/game/players'
+import { useGame } from '@/shared/game/useGame'
 import { useGameKeyboard } from '@/shared/game/useGameKeyboard'
 import { EnginePanel } from './EnginePanel'
 import { EvalBar } from './EvalBar'
-import { PlayerBar, type PlayerBarProps } from './PlayerBar'
 import { useEngineAnalysis } from './useEngineAnalysis'
 import '@/shared/game/GamePanel.css'
 import './AnalysisPage.css'
@@ -121,10 +121,11 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
         })
       : []
 
-  const players = playersFromHeaders(headers, view)
   // A try at a better move has the board while it stands on that position.
   const trying = attempt && samePosition(attempt.fen, view.fen) ? attempt : undefined
   const tried = trying?.shown
+  const material = useMaterial(view.current, tried?.fen)
+  const players = playerBars(headers, view, material)
 
   const flip = () => setOrientation((o) => (o === 'white' ? 'black' : 'white'))
   useGameKeyboard(
@@ -133,7 +134,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   )
 
   return (
-    <div className={`layout layout-analysis${players ? ' has-players' : ''}`}>
+    <div className="layout layout-analysis has-players">
       <div className="eval-column">
         <EvalBar
           score={engineEnabled && !touring ? lines[0]?.score : undefined}
@@ -143,7 +144,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
       </div>
 
       <section className="board-column">
-        {players && <PlayerBar {...players[orientation === 'white' ? 'black' : 'white']} />}
+        <PlayerBar {...players[orientation === 'white' ? 'black' : 'white']} />
         <Board
           fen={tried?.fen ?? view.fen}
           orientation={orientation}
@@ -165,7 +166,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
           isPromotion={(from, to) => game.isPromotion(from, to)}
           onMove={(move) => (trying ? trying.onMove(move) : update((g) => g.play(move)))}
         />
-        {players && <PlayerBar {...players[orientation]} />}
+        <PlayerBar {...players[orientation]} />
       </section>
 
       <aside className="panel">
@@ -323,7 +324,6 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
   )
 }
 
-/** Opens the game or position from the URL; falls back to the start position with an error. */
 /** The ply of the current node, or of its nearest reviewed ancestor when inside a variation. */
 function currentPlyOnMainline(
   current: MoveNode,
@@ -347,24 +347,7 @@ function ratingsFromHeaders(headers: PgnHeaders): { white?: number; black?: numb
   return { ...(white && { white }), ...(black && { black }) }
 }
 
-/** Player bars from the PGN headers (names, ratings, titles) and the clocks in the tree. */
-function playersFromHeaders(
-  headers: PgnHeaders,
-  view: GameView,
-): Record<Color, PlayerBarProps> | undefined {
-  const known = (tag: string | undefined) => (tag && tag !== '?' ? tag : undefined) // PGN uses "?" for unknown
-  if (!known(headers.White) && !known(headers.Black)) return undefined
-  const player = (color: Color, tag: 'White' | 'Black'): PlayerBarProps => ({
-    color,
-    name: known(headers[tag]) ?? '?',
-    rating: known(headers[`${tag}Elo`]),
-    title: known(headers[`${tag}Title`]),
-    clock: clockAt(view.current, color),
-    active: view.turn === color && view.status.kind === 'ongoing',
-  })
-  return { white: player('white', 'White'), black: player('black', 'Black') }
-}
-
+/** Opens the game or position from the URL; falls back to the start position with an error. */
 function openInitial(initial: AnalysisInitial): {
   game: GameState
   headers: PgnHeaders
