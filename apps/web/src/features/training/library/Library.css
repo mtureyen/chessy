@@ -328,3 +328,26 @@
   align-self: flex-start;
   padding: 0.5rem 1.2rem;
 }
+
+/* The switch for the board's arrows, with what they mean next to it. */
+.library-arrows {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.library-arrows button {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.library-arrows button[aria-pressed='true'],
+.line-trainer button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
