@@ -25,18 +25,34 @@ export const MARK_BRUSHES: Record<MarkBrush, DrawBrush> = {
   yellow: { key: 'y', color: MARK_COLORS.yellow.arrow, opacity: 0.85, lineWidth: 12 },
 }
 
-/** The coach's colours as they look (its "green" is green), apart from the user's brushes. */
-export const COACH_BRUSHES = {
-  coachGreen: { key: 'cg', color: '#5f9e2f', opacity: 0.85, lineWidth: 12 },
-  coachRed: { key: 'cr', color: '#d64534', opacity: 0.85, lineWidth: 12 },
-  coachBlue: { key: 'cb', color: '#3f9fd8', opacity: 0.85, lineWidth: 12 },
-  coachYellow: { key: 'cy', color: '#e0b520', opacity: 0.9, lineWidth: 12 },
-} satisfies Record<string, DrawBrush>
+const DRAWING_COLORS = {
+  green: '#5f9e2f',
+  red: '#d64534',
+  blue: '#3f9fd8',
+  yellow: '#e0b520',
+  grey: '#8b919c',
+} as const
 
-export type CoachColor = 'green' | 'red' | 'blue' | 'yellow'
+/** The colours the app draws in: the coach's four, and grey for what matters less. */
+export type DrawingColor = keyof typeof DRAWING_COLORS
+export type CoachColor = Exclude<DrawingColor, 'grey'>
 
-export function coachBrush(color: CoachColor): keyof typeof COACH_BRUSHES {
-  return `coach${color[0]!.toUpperCase()}${color.slice(1)}` as keyof typeof COACH_BRUSHES
+/**
+ * The app's own brushes, apart from the user's: each colour as it looks (the coach's "green" is
+ * green), and a faint one of each for what comes later or matters less.
+ */
+export const COACH_BRUSHES: Record<string, DrawBrush> = Object.fromEntries(
+  (Object.entries(DRAWING_COLORS) as [DrawingColor, string][]).flatMap(([name, color]) => [
+    [
+      coachBrush(name),
+      { key: `c-${name}`, color, opacity: name === 'yellow' ? 0.9 : 0.85, lineWidth: 12 },
+    ],
+    [coachBrush(name, true), { key: `c-${name}-faint`, color, opacity: 0.45, lineWidth: 12 }],
+  ]),
+)
+
+export function coachBrush(color: DrawingColor, faint = false): string {
+  return `coach${color[0]!.toUpperCase()}${color.slice(1)}${faint ? 'Faint' : ''}`
 }
 
 /**
