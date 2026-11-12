@@ -19,7 +19,7 @@ const shared = openDatabase('pglite:memory')
 async function fresh() {
   const { db } = await shared
   await db.execute(
-    sql`truncate games, reviews, review_moves, walkthroughs, training_progress, coach_tries, opening_guides, repertoire_lines`,
+    sql`truncate games, reviews, review_moves, walkthroughs, training_progress, coach_tries, opening_guides, opening_line_notes, repertoire_lines`,
   )
   return db
 }
@@ -183,6 +183,22 @@ describe('PostgresGuideStore', () => {
     await store.save('caro-kann', { ...guide, story: 'New story.' })
     expect(await store.find('caro-kann')).toEqual({ ...guide, story: 'New story.' })
     expect(await store.find('french')).toBeUndefined()
+  })
+
+  it('keeps the notes on a line per opening and line, the newest', async () => {
+    const store = new PostgresGuideStore(await fresh())
+    const notes = {
+      moves: [{ ply: 1, san: 'e4', note: 'Old.' }],
+      agent: 'Scripted coach',
+      writtenAt: '2026-11-12T10:00:00.000Z',
+    }
+    expect(await store.findLine('caro-kann', 'e4 c6')).toBeUndefined()
+    await store.saveLine('caro-kann', 'e4 c6', notes)
+    const newer = { ...notes, moves: [{ ply: 1, san: 'e4', note: 'New.' }] }
+    await store.saveLine('caro-kann', 'e4 c6', newer)
+    expect(await store.findLine('caro-kann', 'e4 c6')).toEqual(newer)
+    expect(await store.findLine('caro-kann', 'e4 c6 d4')).toBeUndefined()
+    expect(await store.findLine('french', 'e4 c6')).toBeUndefined()
   })
 })
 

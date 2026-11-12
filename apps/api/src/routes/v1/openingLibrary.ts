@@ -1,8 +1,10 @@
 import {
   libraryOpeningRoute,
   libraryPositionRoute,
+  lineNotesRoute,
   openingGuideRoute,
   openingLibraryRoute,
+  writeLineNotesRoute,
   writeOpeningGuideRoute,
 } from '@pawnia/contracts'
 import type { CoachDirectory } from '../../adapters/coach/coachDirectory'
@@ -10,6 +12,7 @@ import type {
   OpeningGuideService,
   OpeningLibraryService,
 } from '../../adapters/library/openingLibraryService'
+import { IllegalLineError } from '../../adapters/repertoire/repertoireService'
 import { problem } from '../../http/problem'
 import { createRouter } from '../../http/router'
 import { readyAgent } from './coach'
@@ -75,6 +78,43 @@ export function openingLibraryRoutes({
           return c.json(guide, 200)
         } catch (error) {
           return problem(c, 502, 'No guide', unavailable(error))
+        }
+      })
+      .openapi(lineNotesRoute, async (c) => {
+        const { id } = c.req.valid('param')
+        const { moves } = c.req.valid('query')
+        try {
+          const notes = await guides.findLine(id, moves.split(','))
+          if (!notes) return problem(c, 404, 'No notes', { detail: 'No notes on this line yet' })
+          return c.json(notes, 200)
+        } catch (error) {
+          if (error instanceof IllegalLineError)
+            return problem(c, 400, 'Illegal move', { detail: error.message })
+          return problem(c, 503, 'Library unavailable', unavailable(error))
+        }
+      })
+      .openapi(writeLineNotesRoute, async (c) => {
+        const { id } = c.req.valid('param')
+        const { moves, agent: wanted, regenerate } = c.req.valid('json')
+        let kept
+        try {
+          kept = regenerate ? undefined : await guides.findLine(id, moves)
+        } catch (error) {
+          if (error instanceof IllegalLineError)
+            return problem(c, 400, 'Illegal move', { detail: error.message })
+          return problem(c, 503, 'Library unavailable', unavailable(error))
+        }
+        if (kept) return c.json(kept, 200)
+        const found = await readyAgent(coach.agents(), wanted)
+        if (!found.agent) return problem(c, found.status, found.title, { detail: found.detail })
+        try {
+          const notes = await guides.writeLine(id, moves, found.agent, c.req.raw.signal)
+          if (!notes) return problem(c, 404, 'No such opening', { detail: `No opening "${id}"` })
+          return c.json(notes, 200)
+        } catch (error) {
+          if (error instanceof IllegalLineError)
+            return problem(c, 400, 'Illegal move', { detail: error.message })
+          return problem(c, 502, 'No notes', unavailable(error))
         }
       })
   )

@@ -1,5 +1,10 @@
 import type { GameReview } from '@pawnia/analysis'
-import type { CoachTryBody, CoachWalkthroughBody, OpeningGuideBody } from '@pawnia/contracts'
+import type {
+  CoachTryBody,
+  CoachWalkthroughBody,
+  LineNotesBody,
+  OpeningGuideBody,
+} from '@pawnia/contracts'
 import type { LibraryGame, Profile } from '@pawnia/library'
 import { sql } from 'drizzle-orm'
 import {
@@ -157,6 +162,19 @@ export const openingGuides = pgTable('opening_guides', {
   writtenAt: timestamp('written_at', { withTimezone: true }).notNull(),
   data: json<OpeningGuideBody>('data').notNull(),
 })
+
+/** The coach's notes on one line of an opening: written once, kept until asked again. */
+export const openingLineNotes = pgTable(
+  'opening_line_notes',
+  {
+    openingId: text('opening_id').notNull(),
+    /** SAN from the start, space-separated. */
+    moves: text('moves').notNull(),
+    writtenAt: timestamp('written_at', { withTimezone: true }).notNull(),
+    data: json<LineNotesBody>('data').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.openingId, t.moves] })],
+)
 
 /** The user's repertoire: lines to keep, each with where it stands in its reviews. */
 export const repertoireLines = pgTable(

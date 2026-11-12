@@ -57,6 +57,13 @@
       "when": 1794425480143,
       "tag": "0007_repertoire",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794514198595,
+      "tag": "0008_line_notes",
+      "breakpoints": true
     }
   ]
 }
