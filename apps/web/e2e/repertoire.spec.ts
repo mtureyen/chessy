@@ -15,6 +15,26 @@ test('repertoire: keep a line from the library, review it, and it comes back lat
   await page.getByRole('button', { name: 'Add to my repertoire' }).click()
   await expect(page.locator('.library-nav').getByRole('status')).toHaveText('In your repertoire')
 
+  // The opening shows how far the user is with it, the line that it's kept, the tab what is due.
+  await expect(page.getByRole('region', { name: 'Summary' })).toContainText(
+    /\d lines? in your repertoire, \d due\. Review them/,
+  )
+  await expect(
+    page
+      .getByRole('region', { name: 'Named lines' })
+      .getByRole('button', { name: /^Advance Variation/ })
+      .first(),
+  ).toContainText('In your repertoire')
+  const tab = page
+    .getByRole('navigation', { name: 'Training' })
+    .getByRole('link', { name: 'My repertoire' })
+  await expect(tab.locator('.training-due')).toHaveText(/^\d+$/)
+  await page.goto('/training/library')
+  await page.getByRole('button', { name: 'Black', exact: true }).click()
+  await expect(page.getByRole('link', { name: /Caro-Kann Defense/ })).toContainText(
+    /\d lines? in your repertoire/,
+  )
+
   await page
     .getByRole('navigation', { name: 'Training' })
     .getByRole('link', { name: 'My repertoire' })

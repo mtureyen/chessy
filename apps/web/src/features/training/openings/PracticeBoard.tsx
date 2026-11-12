@@ -1,5 +1,6 @@
 import { createGame, type Move } from '@pawnia/chess'
 import type { PracticeCheckBody } from '@pawnia/contracts'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useServices } from '@/app/servicesContext'
@@ -49,6 +50,7 @@ function startGame(start: readonly string[] = []) {
  */
 export function PracticeBoard({ setup, onExit }: { setup: PracticeSetup; onExit: () => void }) {
   const { training, repertoire } = useServices()
+  const client = useQueryClient()
   const { game, view, update, replace } = useGame({ initial: () => startGame(setup.start) })
   const color = setup.color
   const [busy, setBusy] = useState(false)
@@ -142,7 +144,10 @@ export function PracticeBoard({ setup, onExit }: { setup: PracticeSetup; onExit:
             source: 'practice',
             ...(setup.missed.openingId && { openingId: setup.missed.openingId }),
           })
-          .then(() => setKeptMiss(true))
+          .then(() => {
+            setKeptMiss(true)
+            void client.invalidateQueries({ queryKey: ['repertoire'] })
+          })
           .catch(() => undefined)
       }
       setScore((s) => ({ moves: s.moves + 1, firstTry: s.firstTry + (firstTry ? 1 : 0) }))

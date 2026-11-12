@@ -341,7 +341,7 @@ test('opening library: practise against what real players reply', async ({ page 
   await expect(panel).toContainText('Starts where the opening does, after 1.e4 c6.')
   // The reply is not in the Caro-Kann's named lines: the trainer says what players do then.
   await expect(panel).toContainText(
-    '2.a3 leaves this opening’s named lines. Players of all ratings answer most with 2...d5 (91%), scoring 55%.',
+    '2.a3 leaves this opening’s named lines. Players of all ratings answer most with 2…d5 (91%), scoring 55%.',
   )
   const board = await boardDriver(page)
   board.setFlipped(true)
@@ -353,4 +353,39 @@ test('opening library: practise against what real players reply', async ({ page 
   )
   await panel.getByRole('button', { name: 'Back to the opening' }).click()
   await expect(page.getByRole('heading', { name: /Caro-Kann Defense/ })).toBeVisible()
+})
+
+test('opening library: the user’s own games with an opening, and the coach for a position', async ({
+  page,
+}) => {
+  // The user's openings, as "My openings" counts them.
+  await page.route(/\/api\/v1\/training\/openings\?/, (route) =>
+    route.fulfill({
+      json: {
+        window: { last: 300, found: 120 },
+        openings: [
+          {
+            color: 'black',
+            family: 'Caro-Kann Defense',
+            tally: { games: 14, wins: 5, draws: 0, losses: 9, unfinished: 0, score: 36 },
+            departures: { you: 6, them: 8, none: 0 },
+          },
+        ],
+      },
+    }),
+  )
+  await page.goto('/training/library?id=caro-kann')
+  const summary = page.getByRole('region', { name: 'Summary' })
+  await expect(summary).toContainText('You played it 14 times in your last 120 games, scoring 36%.')
+  await expect(summary.getByRole('link', { name: 'Your games with it' })).toHaveAttribute(
+    'href',
+    /\/training\/openings\?color=black&family=Caro-Kann(\+|%20)Defense/,
+  )
+
+  // The position on the board goes to the analysis board, with the coach's tab in front.
+  await page.getByRole('link', { name: 'Ask the coach' }).click()
+  await expect(page).toHaveURL(/\/analysis\?pgn=.*coach=true/)
+  await expect(page.getByRole('tab', { name: 'Coach' })).toHaveAttribute('aria-selected', 'true')
+  await page.getByRole('tab', { name: 'Moves' }).click()
+  await expect(page.locator('.moves')).toContainText('c6')
 })

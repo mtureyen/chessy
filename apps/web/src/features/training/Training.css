@@ -115,3 +115,22 @@
   background: var(--accent);
   color: var(--on-accent);
 }
+
+/* How many repertoire lines are due, on the tab. */
+.training-due {
+  display: inline-block;
+  min-width: 1.3rem;
+  margin-left: 0.4rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.8rem;
+  line-height: 1.3rem;
+  text-align: center;
+}
+
+.training-tabs a[aria-current='page'] .training-due {
+  background: var(--on-accent);
+  color: var(--accent);
+}

@@ -2,10 +2,10 @@ import type { LibraryOpeningBody } from '@pawnia/contracts'
 import { useQueryClient } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useServices } from '@/app/servicesContext'
-import { lineText } from '@/features/stats/format'
+import { lastMove, lineText } from '@/features/stats/format'
 import { PracticeBoard, type PracticeSetup } from '../openings/PracticeBoard'
 import { openingPaths } from './arrows'
-import { games, moveLabel, results, type BandChoice, type BandStats } from './format'
+import { games, results, type BandChoice, type BandStats } from './format'
 import { answersText, bandPlayers } from './practice'
 import '../openings/Openings.css'
 
@@ -53,9 +53,10 @@ export function LibraryPractice({
       theoryToo: false,
       about: async (sans) => {
         if (paths.has(sans.join(' '))) return undefined
-        const reply = moveLabel(sans.length, sans.at(-1)!)
+        // Moves as the practice writes them ("2…d5").
+        const reply = lastMove([...sans])
         const answers = answersText(await played(sans), opening.side, band, (san) =>
-          moveLabel(sans.length + 1, san),
+          lastMove([...sans, san]),
         )
         return `${reply} leaves this opening’s named lines. ${answers ?? 'The library has no games from here.'}`
       },
