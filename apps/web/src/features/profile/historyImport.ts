@@ -69,20 +69,35 @@ export function useRunningImport(): Extract<ImportState, { status: 'running' }> 
 }
 
 /**
+ * How far before the last completed import a catch-up starts: games that were still being played
+ * then. A game met again is kept once, so looking back too far only costs a request.
+ */
+const CATCH_UP_OVERLAP_MS = 2 * 24 * 60 * 60 * 1000
+
+/**
  * Imports an account's games in the background. Without a completed full import (or with
  * `full`), it brings in the whole history, resuming where an earlier run stopped; after one,
- * only the games played since the newest stored one. `onGames` runs after every stored page.
+ * only the games since that import. It goes by when this account was last imported, not by the
+ * newest game in the library: that one may be someone else's (an opponent's game opened by its
+ * address), and the account's own games before it would never be fetched. `onGames` runs after
+ * every stored page.
  */
 export async function runImport(
   library: Services['library'],
   account: LinkedAccount,
-  { full = false, onGames }: { full?: boolean; onGames?: () => void } = {},
+  {
+    full = false,
+    onGames,
+    now = () => new Date(),
+  }: { full?: boolean; onGames?: () => void; now?: () => Date } = {},
 ): Promise<void> {
   if (states.get(keyOf(account))?.status === 'running') return
   const record = importRecord(account)
   const catchUp = !full && record.completedAt !== undefined && record.cursor === undefined
   const mode = catchUp ? 'new' : 'full'
-  const since = catchUp ? await library.newestGame(account.source) : undefined
+  const since = catchUp
+    ? new Date(Date.parse(record.completedAt!) - CATCH_UP_OVERLAP_MS).toISOString()
+    : undefined
   setState(account, { status: 'running', mode, fetched: 0, added: 0, progress: { done: 0 } })
   try {
     const result = await library.importHistory(account.source, account.username, {
@@ -95,7 +110,7 @@ export async function runImport(
       },
     })
     if (result.complete) {
-      saveRecord(account, { completedAt: new Date().toISOString() })
+      saveRecord(account, { completedAt: now().toISOString() })
       setState(account, { status: 'done', mode, fetched: result.fetched, added: result.added })
     }
   } catch (error) {

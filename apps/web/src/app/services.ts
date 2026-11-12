@@ -79,8 +79,6 @@ export interface Services {
         cancelled?: () => boolean
       },
     ) => Promise<HistoryImportProgress & { complete: boolean }>
-    /** When the newest stored game from a platform was played, to catch up from there. */
-    newestGame: (source: SourceId) => Promise<string | undefined>
   }
   play: {
     /** The server's human-move model (e.g. "Maia-3") that human-like levels play with, if any. */
@@ -348,7 +346,6 @@ export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {})
           { source: sources[source], repository: games, newId, now },
           { username, ...options },
         ),
-      newestGame: async (source) => (await games.list({ source, limit: 1 }))[0]?.playedAt,
     },
   }
 }
