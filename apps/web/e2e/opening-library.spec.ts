@@ -385,7 +385,7 @@ test('opening library: practise against what real players reply', async ({ page 
 test('opening library: the user’s own games with an opening, and the coach for a position', async ({
   page,
 }) => {
-  // The user's openings, as "My openings" counts them.
+  // The user's openings, as "My openings" counts them: chess.com spells them without hyphens.
   await page.route(/\/api\/v1\/training\/openings\?/, (route) =>
     route.fulfill({
       json: {
@@ -393,7 +393,7 @@ test('opening library: the user’s own games with an opening, and the coach for
         openings: [
           {
             color: 'black',
-            family: 'Caro-Kann Defense',
+            family: 'Caro Kann Defense',
             tally: { games: 14, wins: 5, draws: 0, losses: 9, unfinished: 0, score: 36 },
             departures: { you: 6, them: 8, none: 0 },
           },
@@ -406,7 +406,7 @@ test('opening library: the user’s own games with an opening, and the coach for
   await expect(summary).toContainText('You played it 14 times in your last 120 games, scoring 36%.')
   await expect(summary.getByRole('link', { name: 'Your games with it' })).toHaveAttribute(
     'href',
-    /\/training\/openings\?color=black&family=Caro-Kann(\+|%20)Defense/,
+    /\/training\/openings\?color=black&family=Caro(\+|%20)Kann(\+|%20)Defense/,
   )
 
   // The position on the board goes to the analysis board, with the coach's tab in front.

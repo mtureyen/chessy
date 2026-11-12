@@ -83,3 +83,20 @@ export function moveLabel(ply: number, san: string): string {
   const number = Math.ceil(ply / 2)
   return ply % 2 === 1 ? `${number}.${san}` : `${number}...${san}`
 }
+
+/**
+ * Whether two opening names mean the same opening. The platforms spell them differently:
+ * chess.com's names come without apostrophes and hyphens ("Kings Gambit", "Caro Kann Defense")
+ * and sometimes with "Opening" at the end ("Ruy Lopez Opening").
+ */
+export function sameOpening(a: string, b: string): boolean {
+  const plain = (name: string) =>
+    name
+      .toLowerCase()
+      .replace(/-/g, ' ')
+      .replace(/[^a-z ]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/ opening$/, '')
+  return plain(a) === plain(b)
+}

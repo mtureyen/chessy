@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { gamesText, percents, results, scoreOf, trapText } from './format'
+import { gamesText, percents, results, sameOpening, scoreOf, trapText } from './format'
 
 const stats = {
   'under-1200': [10, 0, 5] as [number, number, number],
@@ -43,5 +43,21 @@ describe('library format', () => {
     ).toBe(
       'After 1.e4 e5 2.Nf3 Nc6 3.Bc4 Nf6 4.Ng5 d5 5.exd5 Nxd5 6.Nxf7 Kxf7 7.Qf3+, 36% of Black players under 1600 play Ke8. White then scores 78%.',
     )
+  })
+})
+
+describe('sameOpening', () => {
+  it('sees through the platforms’ spellings', () => {
+    expect(sameOpening('Caro Kann Defense', 'Caro-Kann Defense')).toBe(true)
+    expect(sameOpening('Kings Gambit', "King's Gambit")).toBe(true)
+    expect(sameOpening('Ruy Lopez Opening', 'Ruy Lopez')).toBe(true)
+    expect(sameOpening('Bishops Opening', "Bishop's Opening")).toBe(true)
+    expect(sameOpening('Nimzo Indian Defense', 'Nimzo-Indian Defense')).toBe(true)
+  })
+
+  it('keeps different openings apart', () => {
+    expect(sameOpening('Vienna Game', 'Vienna Gambit')).toBe(false)
+    expect(sameOpening('Sicilian Defense', 'Closed Sicilian Defense')).toBe(false)
+    expect(sameOpening('Kings Pawn Opening', "King's Gambit")).toBe(false)
   })
 })
