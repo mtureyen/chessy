@@ -55,7 +55,8 @@ export function endReason(
   result: GameResult,
 ): EndReason {
   if (status.kind === 'checkmate') return 'checkmate'
-  const tag = termination?.trim().toLowerCase() ?? ''
+  // chess.com names the winner first ("checkmate_bro won on time"): the name says nothing.
+  const tag = (termination?.trim().toLowerCase() ?? '').replace(/^\S+ won\b/, '')
   const draw = result === '1/2-1/2'
   if (tag.includes('checkmate')) return 'checkmate'
   if (tag.includes('resign')) return 'resignation'
