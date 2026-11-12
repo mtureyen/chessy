@@ -135,3 +135,6 @@ export {
   type LibraryGroup,
   type OpeningStyle,
 } from './domain/library/startSet'
+export { allThemes } from './domain/tactics/tagThemes'
+export type { TacticLine } from './domain/tactics/puzzle'
+export { THEMES, type Theme } from './domain/tactics/themes'
