@@ -55,13 +55,14 @@ const STEP_WIDTHS = [12, 8, 6]
 
 /**
  * The next moves of a line from the position after `ply` moves, in order: the next one strong, the
- * ones after it fainter and numbered. The user's moves are green, the other side's grey.
+ * ones after it fainter and numbered. The user's moves are green, the other side's grey. All of
+ * them are faint when something else on the board comes first (`allFaint`).
  */
 export function nextStepArrows(
   line: readonly string[],
   ply: number,
   side: 'white' | 'black',
-  steps = NEXT_STEPS,
+  { steps = NEXT_STEPS, allFaint = false }: { steps?: number; allFaint?: boolean } = {},
 ): BoardDrawing {
   const game = createGame()
   for (const san of line.slice(0, ply)) game.play(san)
@@ -76,7 +77,7 @@ export function nextStepArrows(
         to: move.to,
         color: yours ? 'green' : 'grey',
         width: STEP_WIDTHS[Math.min(i, STEP_WIDTHS.length - 1)]!,
-        ...(i > 0 && { faint: true }),
+        ...((i > 0 || allFaint) && { faint: true }),
         ...(coming.length > 1 && { label: String(i + 1) }),
       },
     ]

@@ -65,6 +65,11 @@ describe('nextStepArrows', () => {
     ])
   })
 
+  it('draws all of them faint when something else comes first', () => {
+    const { arrows } = nextStepArrows(line, 1, 'black', { allFaint: true })
+    expect(arrows.map((a) => a.faint)).toEqual([true, true, true])
+  })
+
   it('colours by whose move it is', () => {
     const colours = nextStepArrows(line, 0, 'white').arrows.map((a) => `${a.label}${a.color}`)
     expect(colours).toEqual(['3green', '2grey', '1green'])
