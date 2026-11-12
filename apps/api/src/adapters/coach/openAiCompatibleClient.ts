@@ -40,6 +40,9 @@ interface Chunk {
   usage?: { prompt_tokens?: number; completion_tokens?: number } | null
 }
 
+/** How long a provider may take to say which models it has. */
+const STATUS_TIMEOUT_MS = 5000
+
 /**
  * Any model behind the OpenAI chat-completions API: Ollama, LM Studio, llama.cpp, vLLM locally;
  * OpenAI, OpenRouter, Groq, Mistral, DeepSeek and others in the cloud. Plain HTTP, streamed.
@@ -60,7 +63,12 @@ export class OpenAiCompatibleClient implements LlmClient {
     const { baseUrl, model, unreachableHint, missingModelHint } = this.options
     let res: Response
     try {
-      res = await this.fetch(`${baseUrl}/models`, { headers: this.headers() })
+      res = await this.fetch(`${baseUrl}/models`, {
+        headers: this.headers(),
+        // A server that accepts the connection and then says nothing must not hold up the list
+        // of every coach.
+        signal: AbortSignal.timeout(STATUS_TIMEOUT_MS),
+      })
     } catch {
       return {
         available: false,
@@ -71,7 +79,14 @@ export class OpenAiCompatibleClient implements LlmClient {
       return { available: false, reason: `${baseUrl} rejected the API key` }
     }
     if (!res.ok) return { available: false, reason: `${baseUrl}: HTTP ${res.status}` }
-    const { data = [] } = (await res.json()) as { data?: { id: string }[] }
+    let data: { id: string }[]
+    try {
+      const body = (await res.json()) as { data?: { id: string }[] }
+      data = Array.isArray(body.data) ? body.data : []
+    } catch {
+      // A web page or a proxy's error at that address, not a model server.
+      return { available: false, reason: `${baseUrl} didn't answer like a model server` }
+    }
     if (!data.some((entry) => entry.id === model)) {
       return {
         available: false,

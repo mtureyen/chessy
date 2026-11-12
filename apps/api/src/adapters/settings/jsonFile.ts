@@ -1,12 +1,32 @@
 import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
-/** A local JSON file's value; a missing or unreadable file gives undefined. */
+/** The file is there but can't be read as JSON (or not at all). */
+export class UnreadableFileError extends Error {
+  constructor(path: string, cause: unknown) {
+    super(
+      `${path} can't be read (${cause instanceof Error ? cause.message : String(cause)}). Fix or remove the file.`,
+    )
+    this.name = 'UnreadableFileError'
+  }
+}
+
+/**
+ * A local JSON file's value; undefined when there is no such file. A file that is there but
+ * can't be read throws: taking it for an empty one, the next save would write over what it holds.
+ */
 export async function readJson<T>(path: string): Promise<T | undefined> {
+  let text: string
   try {
-    return JSON.parse(await readFile(path, 'utf8')) as T
-  } catch {
-    return undefined
+    text = await readFile(path, 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+    throw new UnreadableFileError(path, error)
+  }
+  try {
+    return JSON.parse(text) as T
+  } catch (error) {
+    throw new UnreadableFileError(path, error)
   }
 }
 

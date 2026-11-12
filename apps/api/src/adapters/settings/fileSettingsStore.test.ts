@@ -1,4 +1,4 @@
-import { mkdtempSync, statSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -16,9 +16,12 @@ describe('FileSettingsStore', () => {
     expect(statSync(path).mode & 0o777).toBe(0o600)
   })
 
-  it('treats an unreadable file as no settings', async () => {
+  it('refuses a file it cannot read, so its keys are not written over', async () => {
     const path = join(mkdtempSync(join(tmpdir(), 'pawnia-settings-')), 'settings.json')
-    writeFileSync(path, '{ not json')
-    expect(await new FileSettingsStore(path).load()).toEqual({})
+    // A file cut off mid-write, or edited by hand with a slip: the keys may still be in it.
+    const damaged = '{ "coach": { "claudeApi": { "apiKey": "sk-ant-secret-key-1234" }'
+    writeFileSync(path, damaged)
+    await expect(new FileSettingsStore(path).load()).rejects.toThrow(/can't be read/)
+    expect(readFileSync(path, 'utf8')).toBe(damaged)
   })
 })
