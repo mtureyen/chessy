@@ -1,9 +1,10 @@
 import type { RepertoireLineBody } from '@pawnia/contracts'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
 import { lineText } from '@/features/stats/format'
+import { guideNotes } from '../library/learnLine'
 import { LineTrainer } from '../library/LineTrainer'
 import { TrainingTabs } from '../TrainingTabs'
 import '@/features/stats/Stats.css'
@@ -11,6 +12,46 @@ import '../Training.css'
 import '../library/Library.css'
 
 const NO_NOTES = new Map<number, string>()
+
+/**
+ * One line of a review, played from memory. Where a move is missed, the coach's note from the
+ * opening's guide says what it is for (lines from the library, once their guide is written).
+ */
+function ReviewLine({
+  line,
+  onExit,
+  onDone,
+  onNext,
+}: {
+  line: RepertoireLineBody
+  onExit: () => void
+  onDone: (passed: boolean) => void
+  onNext: () => void
+}) {
+  const { openingLibrary } = useServices()
+  const guide = useQuery({
+    queryKey: ['opening-library', line.openingId, 'guide'],
+    queryFn: () => openingLibrary.guide(line.openingId!),
+    enabled: line.openingId !== undefined,
+  })
+  const notes = useMemo(
+    () => (guide.data ? guideNotes(line.moves, guide.data.moves) : NO_NOTES),
+    [guide.data, line.moves],
+  )
+  return (
+    <LineTrainer
+      line={line.moves}
+      side={line.side}
+      title={line.title}
+      notes={notes}
+      start="play"
+      exitLabel="Stop the review"
+      onExit={onExit}
+      onDone={({ firstTry, moves }) => onDone(firstTry === moves)}
+      onNext={onNext}
+    />
+  )
+}
 
 /** /training/repertoire: the lines the user keeps, reviewed with growing gaps. */
 export function RepertoirePage() {
@@ -60,17 +101,11 @@ export function RepertoirePage() {
         <p className="stats-note">
           Review: line {session.at + 1} of {session.lines.length}
         </p>
-        <LineTrainer
+        <ReviewLine
           key={line.id}
-          line={line.moves}
-          side={line.side}
-          title={line.title}
-          notes={NO_NOTES}
-          start="play"
-          exitLabel="Stop the review"
+          line={line}
           onExit={finish}
-          onDone={({ firstTry, moves }) => {
-            const passed = firstTry === moves
+          onDone={(passed) => {
             setResults((r) => [...r, passed])
             void repertoire.review(line.id, passed)
           }}
