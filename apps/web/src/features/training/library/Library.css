@@ -357,3 +357,9 @@
   color: var(--accent);
   cursor: help;
 }
+
+.library-trap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
