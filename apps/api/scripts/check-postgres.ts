@@ -1,7 +1,8 @@
 /**
  * Checks the database adapters against a real PostgreSQL through Bun's client, which the unit
- * tests can't (they run on PGlite under Node): games, reviews and the profile must come back
- * unchanged and be stored as JSON objects, not strings, and the history's queries must read them.
+ * tests can't (they run on PGlite under Node): games, reviews, the profile and what the coach
+ * wrote must come back unchanged and be stored as JSON objects, not strings, and the history's
+ * queries must read them.
  *
  *   DATABASE_URL=postgres://pawnia:pawnia@localhost:5433/pawnia bun run db:check
  *
@@ -10,15 +11,27 @@
 import { deepEquals } from 'bun'
 import { sampleReview } from '@pawnia/history/testing'
 import { sampleGame } from '@pawnia/library/testing'
-import { inArray, sql } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { openDatabase } from '../src/adapters/db/database'
 import { PostgresGameRepository } from '../src/adapters/db/gameRepository'
 import { PostgresGameHistory } from '../src/adapters/db/gameHistory'
+import { PostgresGuideStore } from '../src/adapters/db/guideStore'
 import { lineHash } from '../src/adapters/db/lineHash'
 import { PostgresProfileStore } from '../src/adapters/db/profileStore'
+import { PostgresRepertoireStore } from '../src/adapters/db/repertoireStore'
 import { PostgresReviewRepository } from '../src/adapters/db/reviewRepository'
-import { games, profiles, reviews, walkthroughs } from '../src/adapters/db/schema'
+import {
+  coachTries,
+  games,
+  openingGuides,
+  openingLineNotes,
+  profiles,
+  repertoireLines,
+  reviews,
+  walkthroughs,
+} from '../src/adapters/db/schema'
 import { PostgresTrainingStore, progressKey } from '../src/adapters/db/trainingStore'
+import { PostgresTryStore } from '../src/adapters/db/tryStore'
 import { PostgresWalkthroughStore } from '../src/adapters/db/walkthroughStore'
 
 const url = process.env.DATABASE_URL
@@ -45,6 +58,18 @@ const profile = {
   createdAt: '2000-01-01T00:00:00.000Z',
   // Older than any real profile, so the app's "latest profile" stays the user's.
   updatedAt: '2000-01-01T00:00:00.000Z',
+}
+// An opening the library doesn't have, and a line nobody keeps: nothing real is replaced.
+const openingId = `check-${run}`
+const repertoireLine = {
+  id: crypto.randomUUID(),
+  side: 'black' as const,
+  title: 'check',
+  moves: ['h3', 'a6', 'h4', 'a5', 'Rh3', 'Ra6'],
+  source: 'library' as const,
+  level: 0,
+  dueAt: '2026-11-07T12:00:00.000Z',
+  addedAt: '2026-11-06T12:00:00.000Z',
 }
 const failures: string[] = []
 const check = (what: string, ok: boolean) => {
@@ -104,6 +129,43 @@ try {
     }),
   )
 
+  const judged = { verdict: 'wrong' as const, san: 'Qb1#', fen: ending, comment: 'check' }
+  const tried = { reviewedAt: '2026-11-06T12:00:00.000Z', judged }
+  const tries = new PostgresTryStore(db)
+  await tries.save(review.line, 1, 'b2b1', tried)
+  check(
+    'a verdict on a tried move comes back unchanged',
+    deepEquals(await tries.find(review.line, 1, 'b2b1'), tried),
+  )
+
+  const guides = new PostgresGuideStore(db)
+  const noted = [{ ply: 1, san: 'e4', note: 'check', draw: { arrows: [], squares: [] } }]
+  const written = { agent: 'check', writtenAt: '2026-11-06T12:00:00.000Z' }
+  const guide = { story: 'check', ideas: 'check', opponents: 'check', moves: noted, ...written }
+  await guides.save(openingId, guide)
+  check('an opening guide comes back unchanged', deepEquals(await guides.find(openingId), guide))
+  const notes = { moves: noted, ...written }
+  await guides.saveLine(openingId, 'e4', notes)
+  check(
+    'the notes on a line come back unchanged',
+    deepEquals(await guides.findLine(openingId, 'e4'), notes),
+  )
+
+  const repertoire = new PostgresRepertoireStore(db)
+  await repertoire.add(repertoireLine)
+  await repertoire.saveProgress(repertoireLine.id, {
+    level: 1,
+    dueAt: '2026-11-08T12:00:00.000Z',
+  })
+  check(
+    'a repertoire line comes back with its progress',
+    deepEquals(await repertoire.find(repertoireLine.id), {
+      ...repertoireLine,
+      level: 1,
+      dueAt: '2026-11-08T12:00:00.000Z',
+    }),
+  )
+
   const types = await db.execute<{ table: string; type: string }>(sql`
     select 'games' as "table", jsonb_typeof(data) as type from ${games} where id = ${game.id}
     union all
@@ -111,7 +173,14 @@ try {
     union all
     select 'profiles', jsonb_typeof(data) from ${profiles} where id = ${profile.id}
     union all
-    select 'walkthroughs', jsonb_typeof(data) from ${walkthroughs} where line_hash = ${lineHash(review.line)}`)
+    select 'walkthroughs', jsonb_typeof(data) from ${walkthroughs} where line_hash = ${lineHash(review.line)}
+    union all
+    select 'coach_tries', jsonb_typeof(data) from ${coachTries} where line_hash = ${lineHash(review.line)}
+    union all
+    select 'opening_guides', jsonb_typeof(data) from ${openingGuides} where opening_id = ${openingId}
+    union all
+    select 'opening_line_notes', jsonb_typeof(data) from ${openingLineNotes} where opening_id = ${openingId}`)
+  check('every kind of row was found to look at', (types as unknown as unknown[]).length === 7)
   for (const row of types as unknown as { table: string; type: string }[]) {
     check(`${row.table}: data stored as a JSON object (${row.type})`, row.type === 'object')
   }
@@ -119,6 +188,9 @@ try {
   await db.delete(games).where(inArray(games.id, [game.id, reviewed.id]))
   await db.delete(reviews).where(inArray(reviews.lineHash, [lineHash(review.line)]))
   await db.delete(profiles).where(inArray(profiles.id, [profile.id]))
+  await db.delete(openingGuides).where(eq(openingGuides.openingId, openingId))
+  await db.delete(openingLineNotes).where(eq(openingLineNotes.openingId, openingId))
+  await db.delete(repertoireLines).where(eq(repertoireLines.id, repertoireLine.id))
   await close()
 }
 if (failures.length > 0) {

@@ -16,6 +16,8 @@ const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 5174)
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // Some tests wait up to a minute for a review by the engine in the browser.
+  timeout: 90_000,
   forbidOnly: CI,
   retries: CI ? 2 : 0,
   reporter: CI ? 'github' : 'list',
@@ -42,7 +44,9 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'bun run start',
+      // Without the developer's apps/api/.env: what isn't set below must not come from there
+      // (a coach with a real key, another database).
+      command: 'bun --no-env-file src/main.ts',
       cwd: '../api',
       env: {
         PORT: String(API_PORT),
@@ -50,6 +54,7 @@ export default defineConfig({
         DATABASE_URL: 'pglite:memory',
         SETTINGS_PATH,
         // No coach request may leave this machine: Claude off, Ollama where nothing listens.
+        // Another provider would have to be named in the shell that runs the tests.
         COACH_CLAUDE_API: 'off',
         COACH_CLAUDE_HEADLESS: 'off',
         COACH_OLLAMA_URL: 'http://127.0.0.1:9/v1',

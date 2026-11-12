@@ -14,10 +14,12 @@
     },
     "test": {
       "dependsOn": ["transit"],
-      "outputs": []
+      "outputs": [],
+      "env": ["STOCKFISH_INTEGRATION", "MAIA_INTEGRATION", "STOCKFISH_PATH", "MAIA_MODEL_PATH"]
     },
     "e2e": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["E2E_API_PORT", "E2E_WEB_PORT", "CI", "PLAYWRIGHT_*"]
     },
     "dev": {
       "cache": false,
