@@ -141,20 +141,7 @@ class ChessopsGame implements GameState {
   }
 
   legalMoves(): Move[] {
-    const pos = this.cur.pos
-    const moves: Move[] = []
-    for (const [from, dests] of pos.allDests()) {
-      const isPawn = pos.board.getRole(from) === 'pawn'
-      for (const to of dests) {
-        if (isPawn && isBackRank(to)) {
-          for (const promotion of PROMOTION_ROLES)
-            moves.push(toStandardMove(pos, { from, to, promotion }))
-        } else {
-          moves.push(toStandardMove(pos, { from, to }))
-        }
-      }
-    }
-    return moves
+    return legalMovesOf(this.cur.pos)
   }
 
   dests(): Map<SquareName, SquareName[]> {
@@ -296,6 +283,23 @@ class ChessopsGame implements GameState {
     if (n !== this.root) throw new Error('Node does not belong to this game')
     return node as Node
   }
+}
+
+/** All legal moves of a position, castling as the king's move and each promotion on its own. */
+export function legalMovesOf(pos: Chess): Move[] {
+  const moves: Move[] = []
+  for (const [from, dests] of pos.allDests()) {
+    const isPawn = pos.board.getRole(from) === 'pawn'
+    for (const to of dests) {
+      if (isPawn && isBackRank(to)) {
+        for (const promotion of PROMOTION_ROLES)
+          moves.push(toStandardMove(pos, { from, to, promotion }))
+      } else {
+        moves.push(toStandardMove(pos, { from, to }))
+      }
+    }
+  }
+  return moves
 }
 
 function moveToFront(parent: Node, child: Node): void {
