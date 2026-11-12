@@ -4,16 +4,20 @@ import { expect, test } from '@playwright/test'
 test.use({ storageState: { cookies: [], origins: [] } })
 
 // The E2E server's database lives for the whole run, and a browser without a profile takes the
-// server's: each test starts as if the server had none (saving still goes through).
+// server's. So the profile of these tests never reaches it: a stand-in keeps it for the test,
+// and every other test's browser goes on finding none. (That the server keeps a profile is
+// tested with the API.)
+let saved: unknown = null
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/v1/profile', (route) =>
-    route.request().method() === 'GET'
-      ? route.fulfill({ json: { profile: null } })
-      : route.continue(),
-  )
+  saved = null
+  await page.route('**/api/v1/profile', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { profile: saved } })
+    saved = (route.request().postDataJSON() as { profile: unknown }).profile
+    return route.fulfill({ json: { stored: true } })
+  })
 })
 
-test('set up a profile: account checked against the platform, kept here and on the server', async ({
+test('set up a profile: account checked against the platform, kept here and sent to the server', async ({
   page,
 }) => {
   await page.goto('/')
@@ -43,10 +47,7 @@ test('set up a profile: account checked against the platform, kept here and on t
 
   await page.reload()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Hikaru')
-  const kept = await (await page.request.get('/api/v1/profile')).json()
-  expect(kept).toMatchObject({
-    profile: { accounts: [{ source: 'chesscom', username: 'Hikaru' }] },
-  })
+  expect(saved).toMatchObject({ accounts: [{ source: 'chesscom', username: 'Hikaru' }] })
 })
 
 test('the welcome banner can be closed for good', async ({ page }) => {
