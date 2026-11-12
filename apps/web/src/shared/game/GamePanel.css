@@ -1,11 +1,21 @@
 .layout {
-  --board-size: min(calc(100vh - 6rem), calc(100vw - 24rem - 3rem), 760px);
+  --player-bar-height: 0rem;
+  --board-size: min(
+    calc(100vh - 6rem - 2 * var(--player-bar-height)),
+    calc(100vw - 24rem - 3rem),
+    760px
+  );
   display: grid;
   grid-template-columns: var(--board-size) 22rem;
   gap: 1.5rem;
   justify-content: center;
   align-items: start;
   padding: 0 1.25rem 1.25rem;
+}
+
+/* Player bars above and below the board: the board gives up their height. */
+.layout.has-players {
+  --player-bar-height: 2.25rem;
 }
 
 .board-column {
@@ -15,7 +25,7 @@
 .panel {
   display: flex;
   flex-direction: column;
-  height: var(--board-size);
+  height: calc(var(--board-size) + 2 * var(--player-bar-height));
   min-height: 28rem;
   background: var(--surface);
   border-radius: 6px;
@@ -141,6 +151,11 @@
   .layout {
     --board-size: min(calc(100vw - 2rem), 760px);
     grid-template-columns: var(--board-size);
+  }
+
+  /* Two lines: the name and clock, and the pieces taken. */
+  .layout.has-players {
+    --player-bar-height: 3.3rem;
   }
 
   .panel {

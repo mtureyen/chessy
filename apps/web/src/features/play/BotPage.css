@@ -93,11 +93,20 @@
 
 .bot-opponent,
 .bot-you {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.bot-player {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid var(--border);
+}
+
+/* On a line of their own, under the name: the level and a clock leave no room next to it. */
+.bot-opponent .taken,
+.bot-you .taken {
+  margin: 0.2rem 0 -0.15rem 1rem;
 }
 
 .bot-opponent-name {

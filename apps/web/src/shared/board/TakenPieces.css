@@ -1,0 +1,45 @@
+.taken {
+  --taken-size: 1.45rem;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.taken-group {
+  display: flex;
+}
+
+.taken-piece {
+  width: var(--taken-size);
+  height: var(--taken-size);
+  background: center / contain no-repeat;
+}
+
+/* Pieces of one type overlap, so that fifteen of them make a short row. */
+.taken-piece + .taken-piece {
+  margin-left: calc(var(--taken-size) * -0.62);
+}
+
+.taken-group + .taken-group {
+  margin-left: calc(var(--taken-size) * -0.12);
+}
+
+/*
+ * A thin outline in the opposite tone: black pieces would vanish on the dark page, and some
+ * sets' white pieces on the light one.
+ */
+.taken-piece-black {
+  filter: drop-shadow(0 0 0.6px rgb(255 255 255 / 0.85))
+    drop-shadow(0 0 0.6px rgb(255 255 255 / 0.85));
+}
+
+.taken-piece-white {
+  filter: drop-shadow(0 0 0.6px rgb(0 0 0 / 0.7));
+}
+
+.taken-lead {
+  margin-left: 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
