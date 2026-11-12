@@ -1,9 +1,79 @@
 import * as detect from './detectors'
+import { cutEngineLine } from './engineLine'
 import { replayLine, type TacticLine, type TacticPuzzle } from './puzzle'
 import type { Theme } from './themes'
 
 /**
+ * The themes that are relied on: `tagThemes` returns only these.
+ *
+ * On lichess' own puzzles every detector gives lichess' labels (99.6 % or more of what each one
+ * tags, on 41,501 puzzles kept apart for the report; two rare themes less). What separates them
+ * is how they do on an engine's line instead of a puzzle's solution, which is what a game review
+ * has, and whether they name something to practise. Agreement with lichess' labels on the cut
+ * engine lines of 4,000 of those puzzles (`bun run --cwd apps/api themes:validate --engine`):
+ *  - the mates 100 %, sacrifice 98 %, hanging piece 95 %, pin 92 %, fork and discovered attack
+ *    91 %, attraction 88 %, advanced pawn 85 %, deflection 83 %;
+ *  - intermezzo 81 %, double check 78 %, skewer 75 %, trapped piece 69 %, promotion 54 %. These
+ *    are in all the same: the lines they disagree on were read by hand (on the puzzles used for
+ *    tuning) and nearly all hold the theme. The engine's line runs a move or two past the
+ *    puzzle's solution, to the capture that completes the skewer, the trapped piece being taken
+ *    or the pawn that actually queens, and lichess' labels end where its solution ends.
+ * Left out:
+ *  - capturingDefender (65 %): on engine lines it mostly fires after the main capture, for
+ *    whatever that piece happened to guard;
+ *  - interference, xRayAttack, clearance, underPromotion: too rare to judge on engine lines;
+ *  - quietMove, defensiveMove, castling, enPassant: they describe a move, not a pattern;
+ *  - exposedKing, kingsideAttack, queensideAttack, attackingF2F7 and the endgame kinds: they
+ *    say where a tactic happens, not what it is;
+ *  - mate: every mate already has its `mateIn…`.
+ */
+export const TRUSTED_THEMES: readonly Theme[] = [
+  'mateIn1',
+  'mateIn2',
+  'mateIn3',
+  'mateIn4',
+  'mateIn5',
+  'smotheredMate',
+  'backRankMate',
+  'anastasiaMate',
+  'hookMate',
+  'arabianMate',
+  'bodenMate',
+  'doubleBishopMate',
+  'dovetailMate',
+  'attraction',
+  'deflection',
+  'advancedPawn',
+  'doubleCheck',
+  'sacrifice',
+  'fork',
+  'hangingPiece',
+  'trappedPiece',
+  'discoveredAttack',
+  'skewer',
+  'intermezzo',
+  'pin',
+  'promotion',
+]
+
+/**
+ * The themes of a tactic, in lichess' vocabulary and order: the ones in `TRUSTED_THEMES`.
+ * The line is the tactic itself, like a puzzle's solution; for an engine's line, which runs on
+ * past the tactic, use `engineLineThemes`.
+ */
+export function tagThemes(line: TacticLine): Theme[] {
+  return allThemes(line).filter((theme) => TRUSTED_THEMES.includes(theme))
+}
+
+/** The themes of the tactic inside an engine line; none if the line wins nothing tangible. */
+export function engineLineThemes(line: TacticLine): Theme[] {
+  const tactic = cutEngineLine(line)
+  return tactic ? tagThemes(tactic) : []
+}
+
+/**
  * Every theme lichess' tagger would give a line, in its order. Empty if the line can't be played.
+ * For anything shown to a user, take `tagThemes`: not all of these are reliable.
  */
 export function allThemes(line: TacticLine): Theme[] {
   const puzzle = replayLine(line)

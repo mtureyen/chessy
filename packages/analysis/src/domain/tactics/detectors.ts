@@ -5,6 +5,7 @@
  * The port keeps the original's rules, quirks included, because its labels are what a theme found
  * here is matched against: a detector that is "more right" than lichess' would point at puzzles
  * that train something else. Where the original leans on an accident of Python, a comment says so.
+ * `tagThemes` decides which of these are relied on; see there.
  */
 import {
   squareAt,
