@@ -112,3 +112,10 @@ export {
   type LookupGames,
   type LookupOptions,
 } from './usecases/lookupGames'
+export {
+  mistakeThemes,
+  tallyThemes,
+  type MistakeThemes,
+  type ThemeExample,
+  type ThemeTally,
+} from './domain/mistakeThemes'

@@ -3,7 +3,8 @@ import type { Color } from '@pawnia/chess'
 import type { GameLine } from './line'
 import type { PlayerGame } from './playerGames'
 
-const MISTAKES: readonly ReviewedMove['classification'][] = ['mistake', 'miss', 'blunder']
+/** The classes of move that count as a mistake of the user's. */
+export const MISTAKES: readonly ReviewedMove['classification'][] = ['mistake', 'miss', 'blunder']
 /** Winning chances (%) the best move must be ahead of the next one: a puzzle has one answer. */
 const CLEAR_BEST_GAP = 10
 /** Moves of the answer's line shown once it is solved. */
