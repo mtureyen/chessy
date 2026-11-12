@@ -153,6 +153,16 @@ export const libraryPositionRoute = createRoute({
   },
 })
 
+const GuideColor = z.enum(['green', 'red', 'blue', 'yellow'])
+
+/** The idea of a move as a picture on the position after it: arrows and marked squares. */
+export const GuideDrawingSchema = z
+  .object({
+    arrows: z.array(z.object({ from: z.string(), to: z.string(), color: GuideColor })),
+    squares: z.array(z.object({ square: z.string(), color: GuideColor })),
+  })
+  .openapi('GuideDrawing')
+
 export const OpeningGuideSchema = z
   .object({
     /** Where the name comes from and the history (Markdown). */
@@ -167,6 +177,8 @@ export const OpeningGuideSchema = z
         ply: z.number().int(),
         san: z.string(),
         note: z.string(),
+        /** Where the coach drew the move's idea. */
+        draw: GuideDrawingSchema.optional(),
       }),
     ),
     agent: z.string().openapi({ description: 'The coach that wrote it' }),

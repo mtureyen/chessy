@@ -42,6 +42,7 @@ export {
   OPENING_GUIDE_PROMPT,
   openingGuideText,
   parseOpeningGuide,
+  type GuideDrawing,
   type OpeningGuide,
   type OpeningGuideFacts,
 } from './domain/openingGuide'

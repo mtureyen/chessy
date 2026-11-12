@@ -11,6 +11,7 @@ import {
   type CoachAgent,
   type OpeningGuideFacts,
 } from '@pawnia/coach'
+import { createGame } from '@pawnia/chess'
 import type { OpeningGuideBody } from '@pawnia/contracts'
 
 /** Where guides are kept: the server's database. */
@@ -57,10 +58,11 @@ export class OpeningGuides {
       story: written.story,
       ideas: written.ideas,
       opponents: written.opponents,
-      moves: written.moves.map(({ ply, note }) => ({
+      moves: written.moves.map(({ ply, note, draw }) => ({
         ply,
         san: facts.line.find((m) => m.ply === ply)!.move.replace(/^\d+\.(\.\.)?/, ''),
         note,
+        ...(draw && { draw }),
       })),
       agent: agent.label,
       writtenAt: this.now().toISOString(),
@@ -107,7 +109,7 @@ export class OpeningGuides {
       name: opening.name,
       side: opening.side,
       main: numbered(main),
-      line: line.map((san, i) => ({ ply: i + 1, move: moveLabel(i + 1, san) })),
+      line: withPositions(line),
       variations,
       replies,
       scores,
@@ -121,6 +123,15 @@ export class OpeningGuides {
       }),
     }
   }
+}
+
+/** The line's moves, numbered, each with the position after it: what the coach draws on. */
+export function withPositions(line: readonly string[]): OpeningGuideFacts['line'] {
+  const game = createGame()
+  return line.map((san, i) => {
+    game.play(san)
+    return { ply: i + 1, move: moveLabel(i + 1, san), fen: game.fen() }
+  })
 }
 
 /** The main moves, then the most played named continuation, up to GUIDE_PLIES. */
