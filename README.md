@@ -178,6 +178,19 @@ this repo) and reports how many we find and how many other moves we call brillia
 Maia results are cached in `apps/api/.bench/`, so after the first run a rule change is measured
 in seconds. Even games are for tuning, odd ones for checking (`--split tune|check`).
 
+### Tactic themes
+
+`packages/analysis` names the tactic in a line (fork, pin, back-rank mate, …) with the themes of
+lichess' puzzles; its detectors are a port of lichess' own tagger. `packages/history` reads the
+mistakes of your reviewed games with it: the themes you missed and the ones you walked into.
+
+`bun run --cwd apps/api themes:validate` measures the tagger against lichess' labels on about
+160,000 puzzles from the start of its puzzle database (8 MB, downloaded once into
+`apps/api/.bench/`). Every fourth puzzle is held out for the report; `--set tune` takes the rest.
+`--engine 2000` asks the same of Stockfish's line in each puzzle's position, cut the way a
+review's lines are, since that is what a game review has to go on (needs the native engine).
+The themes that hold up there are the ones `tagThemes` returns.
+
 ## Contributing
 
 Branch, commit and PR conventions: [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -186,7 +199,8 @@ Branch, commit and PR conventions: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 pawnia is licensed under the [GNU Affero General Public License v3.0](LICENSE). It builds on
 GPL-3.0 libraries (chessops, chessground, Stockfish) and on Maia-3 by the University of Toronto
-Computational Social Science Lab (AGPL-3.0).
+Computational Social Science Lab (AGPL-3.0). The tactic theme detectors are ported from
+[lichess-puzzler](https://github.com/ornicar/lichess-puzzler) (AGPL-3.0).
 
 The board's piece sets come from lichess under their own licences (GPL, AGPL, Apache 2.0, MIT,
 CC BY 4.0, CC0); authors and licences are listed in
