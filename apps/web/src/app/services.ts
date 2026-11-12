@@ -112,7 +112,7 @@ export interface Services {
   /** The opening library: openings to study, their lines, real games and traps. */
   openingLibrary: Pick<
     RemoteOpeningLibrary,
-    'list' | 'opening' | 'position' | 'guide' | 'writeGuide'
+    'list' | 'opening' | 'position' | 'guide' | 'writeGuide' | 'lineNotes' | 'writeLineNotes'
   >
   /** The user's mistakes as puzzles. */
   training: {
@@ -252,6 +252,8 @@ export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {})
         position: (moves) => library.position(moves),
         guide: (id) => library.guide(id),
         writeGuide: (id, regenerate) => library.writeGuide(id, regenerate),
+        lineNotes: (id, moves) => library.lineNotes(id, moves),
+        writeLineNotes: (id, moves, regenerate) => library.writeLineNotes(id, moves, regenerate),
       }
     })(),
     stats: (() => {

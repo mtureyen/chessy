@@ -217,6 +217,19 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
     queryKey: ['opening-library', opening.id, 'guide'],
     queryFn: () => openingLibrary.guide(opening.id),
   })
+  // The coach's notes on the very line being learned, where they were written: they come before
+  // the guide's, which are about the main line only.
+  const studied = drill?.line ?? learning
+  const lineNotesKey = ['opening-library', opening.id, 'line-notes', studied?.join(' ')]
+  const lineNotes = useQuery({
+    queryKey: lineNotesKey,
+    queryFn: () => openingLibrary.lineNotes(opening.id, studied!),
+    enabled: studied !== undefined,
+  })
+  const noted = lineNotes.data?.moves ?? guide.data?.moves ?? []
+  const explain = async () => {
+    client.setQueryData(lineNotesKey, await openingLibrary.writeLineNotes(opening.id, studied!))
+  }
   /** A line's name: the named line it is, or the opening and its moves. */
   const titleOf = (line: string[]) =>
     opening.tree.find((n) => n.name && n.moves.join(' ') === line.join(' '))?.name ??
@@ -240,8 +253,10 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
         side={drill.side}
         title={title}
         // The guide's notes on the way there, the trap's own where it springs.
-        notes={new Map([...guideNotes(drill.line, guide.data?.moves ?? []), ...drill.notes])}
+        notes={new Map([...guideNotes(drill.line, noted), ...drill.notes])}
+        drawings={guideDrawings(drill.line, noted)}
         pitfalls={drill.pitfalls}
+        onExplain={explain}
         onAdd={() =>
           add({
             side: drill.side,
@@ -264,8 +279,9 @@ function OpeningView({ opening }: { opening: LibraryOpeningBody }) {
         side={opening.side}
         title={titleOf(learning)}
         onAdd={() => keep(learning)}
-        notes={guideNotes(learning, guide.data?.moves ?? [])}
-        drawings={guideDrawings(learning, guide.data?.moves ?? [])}
+        notes={guideNotes(learning, noted)}
+        drawings={guideDrawings(learning, noted)}
+        onExplain={explain}
         onExit={() => {
           setPath(learning)
           setLearning(undefined)

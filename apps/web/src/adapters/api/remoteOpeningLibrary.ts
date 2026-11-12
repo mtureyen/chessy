@@ -1,4 +1,5 @@
 import type {
+  LineNotesBody,
   LibraryOpeningBody,
   LibraryPositionBody,
   OpeningGuideBody,
@@ -33,6 +34,31 @@ export class RemoteOpeningLibrary {
 
   writeGuide(id: string, regenerate?: boolean) {
     return writeOpeningGuide(this.api, id, regenerate)
+  }
+
+  /** The coach's notes on one line of an opening; null when none are written yet. */
+  async lineNotes(id: string, moves: readonly string[]): Promise<LineNotesBody | null> {
+    const res = await this.api.api.v1['opening-library'][':id']['line-notes'].$get({
+      param: { id },
+      query: { moves: moves.join(',') },
+    })
+    if (res.status === 404) return null
+    if (res.status !== 200) throw new Error(await problemText(res))
+    return (await res.json()) as LineNotesBody
+  }
+
+  /** Has the coach write the notes on a line (or write them again). */
+  async writeLineNotes(
+    id: string,
+    moves: readonly string[],
+    regenerate = false,
+  ): Promise<LineNotesBody> {
+    const res = await this.api.api.v1['opening-library'][':id']['line-notes'].$post({
+      param: { id },
+      json: { moves: [...moves], ...(regenerate && { regenerate }) },
+    })
+    if (res.status !== 200) throw new Error(await problemText(res))
+    return (await res.json()) as LineNotesBody
   }
 
   /** What real games played after these moves; null when the library has no games there. */
