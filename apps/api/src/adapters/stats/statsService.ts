@@ -1,4 +1,5 @@
-import type { PlayerStatsBody } from '@pawnia/contracts'
+import type { CancelSignal, CoachAgent } from '@pawnia/coach'
+import type { PlayerStatsBody, PlayerSummaryBody } from '@pawnia/contracts'
 import type { GameSpeed, SourceId } from '@pawnia/library'
 
 // Types only: app.ts (and through it the web app's typed client) sees this file, not the code
@@ -19,4 +20,17 @@ export interface StatsService {
   mine(query: StatsQuery): Promise<PlayerStatsBody>
   /** Read live from the platform. Throws what GameSource does (UserNotFoundError, …). */
   player(source: SourceId, username: string, query: StatsQuery): Promise<PlayerStatsBody>
+}
+
+/** The coach's reading of the stats page's numbers, as the routes see it. */
+export interface PlayerSummaryService {
+  /**
+   * The coach's summary of these numbers; nothing is kept. Asked for the same numbers while
+   * that one is written, it waits for it. Throws when the coach gives nothing usable.
+   */
+  write(
+    stats: PlayerStatsBody,
+    agent: CoachAgent,
+    signal?: CancelSignal,
+  ): Promise<PlayerSummaryBody>
 }

@@ -7,7 +7,13 @@ import {
 } from '@pawnia/library'
 import { buildBookData, createOpeningBook, type ReviewedMove } from '@pawnia/analysis'
 import { CoachEventSchema, type TrainingResultBody } from '@pawnia/contracts'
-import { InMemoryConversationStore, LoopAgent } from '@pawnia/coach'
+import {
+  InMemoryConversationStore,
+  LoopAgent,
+  OPPONENT_SUMMARY_PROMPT,
+  OWN_SUMMARY_PROMPT,
+  type ChatMessage,
+} from '@pawnia/coach'
 import { scriptedClient } from '@pawnia/coach/testing'
 import { sampleReview } from '@pawnia/history/testing'
 import { sampleGame, sampleSourceGame } from '@pawnia/library/testing'
@@ -38,6 +44,8 @@ import { StoredRepertoire } from './adapters/repertoire/storedRepertoire'
 import { OpeningPractice } from './adapters/openings/practice'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
+import { PlayerSummaries } from './adapters/stats/playerSummaries'
+import type { StatsService } from './adapters/stats/statsService'
 import type { TrainingService } from './adapters/training/trainingService'
 import { createApp } from './app'
 
@@ -245,6 +253,7 @@ const app = createApp({
   now: () => 61_000,
   sources,
   stats: new LiveStats({ library, sources }),
+  summaries: new PlayerSummaries(),
   openings: new StoredOpenings(library, async () => smallBook),
   practice,
   openingLibrary,
@@ -309,6 +318,7 @@ describe('api', () => {
       '/sources/{source}/users/{username}/history',
       '/stats/me',
       '/stats/players/{source}/{username}',
+      '/stats/summaries',
       '/training',
       '/training/openings',
       '/training/openings/practice',
@@ -627,6 +637,7 @@ describe('library routes', () => {
       reviewQueue,
       training,
       stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
+      summaries: new PlayerSummaries(),
       openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
       practice,
       openingLibrary,
@@ -835,6 +846,158 @@ describe('stats routes', () => {
   })
 })
 
+describe('player summary routes', () => {
+  const QUALITY = {
+    reviewedGames: 2,
+    averageAccuracy: 71,
+    phases: {
+      opening: { moves: 20, errors: { inaccuracy: 1, mistake: 0, miss: 0, blunder: 0 } },
+      middlegame: { moves: 30, errors: { inaccuracy: 2, mistake: 2, miss: 1, blunder: 3 } },
+      endgame: { moves: 10, errors: { inaccuracy: 0, mistake: 1, miss: 0, blunder: 1 } },
+    },
+    errorsPerGame: { inaccuracy: 1.5, mistake: 1.5, miss: 0.5, blunder: 2 },
+    accuracy: [],
+  }
+  const live = new LiveStats({ library, sources })
+  /** The user's own numbers: alice's games as if they were the user's, with reviews. */
+  const stats: StatsService = {
+    async mine(query) {
+      if (query.last === 13) throw new Error('No database configured (DATABASE_URL)')
+      const theirs = await live.player('lichess', 'alice', query)
+      return {
+        ...theirs,
+        player: { kind: 'me', displayName: 'Sly', accounts: [] },
+        quality: QUALITY,
+      }
+    },
+    player: (source, username, query) => live.player(source, username, query),
+  }
+  const SUMMARY = { summary: 'You open with **1.e4**.', focus: 'Blunders: 2 per game.' }
+
+  /** An app whose only coach answers with these texts, one per request. */
+  const makeSummaryApp = (replies: string[], { available = true } = {}) => {
+    const scripted = scriptedClient(replies.map((text) => ({ text })))
+    const agent = new LoopAgent({
+      id: 'scripted',
+      label: 'Scripted coach',
+      client: available
+        ? scripted.client
+        : { ...scripted.client, status: async () => ({ available: false, reason: 'No key' }) },
+      tools: [],
+      conversations: new InMemoryConversationStore(),
+    })
+    const target = createApp({
+      engine,
+      humanMoves,
+      library,
+      reviewQueue,
+      training,
+      coach: { agents: () => [agent] },
+      walkthroughs,
+      settings,
+      version: '9.9.9',
+      startedAt: 1_000,
+      sources,
+      stats,
+      summaries: new PlayerSummaries(() => new Date('2026-11-14T12:00:00.000Z')),
+      openings: new StoredOpenings(library, async () => smallBook),
+      practice,
+      openingLibrary,
+      guides,
+      puzzles,
+      repertoire,
+    })
+    return { summaryApp: target, requests: scripted.requests }
+  }
+  const write = (target: ReturnType<typeof createApp>, body: object) =>
+    target.request('/api/v1/stats/summaries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ last: 5, tz: 'Europe/Berlin', ...body }),
+    })
+  const alice = { kind: 'lookup', source: 'lichess', username: 'alice' }
+  /** What the coach was handed: the facts, as text. */
+  const sentText = (request: { messages: ChatMessage[] } | undefined) => {
+    const message = request?.messages[0]
+    return message && 'text' in message ? message.text : ''
+  }
+
+  it('reads the user’s own numbers with move quality, and says the one thing to work on', async () => {
+    const { summaryApp, requests } = makeSummaryApp([JSON.stringify(SUMMARY)])
+    const res = await write(summaryApp, { player: { kind: 'me' } })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      kind: 'me',
+      ...SUMMARY,
+      agent: 'Scripted coach',
+      writtenAt: '2026-11-14T12:00:00.000Z',
+    })
+    expect(requests).toHaveLength(1)
+    expect(requests[0]?.system).toBe(OWN_SUMMARY_PROMPT)
+    expect(requests[0]?.tools).toEqual([])
+    const facts = JSON.parse(sentText(requests[0])) as Record<string, unknown>
+    expect(facts).toMatchObject({
+      kind: 'own',
+      name: 'Sly',
+      record: { games: 2, wins: 2 },
+      firstMoves: { asWhite: [{ move: '1.e4', share: 100 }] },
+      timeOfDay: { timeZone: 'Europe/Berlin' },
+      moveQuality: { reviewedGames: 2, perGame: { blunders: 2 } },
+    })
+  })
+
+  it('reads a looked-up player’s numbers without any move quality, to prepare for them', async () => {
+    const { summaryApp, requests } = makeSummaryApp([JSON.stringify(SUMMARY)])
+    const res = await write(summaryApp, { player: alice })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ kind: 'lookup', focus: SUMMARY.focus })
+    expect(requests[0]?.system).toBe(OPPONENT_SUMMARY_PROMPT)
+    const text = sentText(requests[0])
+    expect(JSON.parse(text)).toMatchObject({ kind: 'opponent', name: 'alice', platform: 'lichess' })
+    expect(text).not.toMatch(/moveQuality|accuracy|blunder/i)
+  })
+
+  it('writes once when the same summary is asked for twice at the same time', async () => {
+    const { summaryApp, requests } = makeSummaryApp([
+      JSON.stringify(SUMMARY),
+      JSON.stringify(SUMMARY),
+    ])
+    const [first, second] = await Promise.all([
+      write(summaryApp, { player: alice }),
+      write(summaryApp, { player: { ...alice, username: 'ALICE' } }),
+    ])
+    expect([first.status, second.status]).toEqual([200, 200])
+    expect(await first.json()).toEqual(await second.json())
+    expect(requests).toHaveLength(1)
+    // Done, a new ask is a new writing (nothing is kept).
+    expect((await write(summaryApp, { player: alice })).status).toBe(200)
+    expect(requests).toHaveLength(2)
+  })
+
+  it('answers 404 for an unknown player, agent or no games, 502 for an unusable answer and 503 without a coach', async () => {
+    const { summaryApp } = makeSummaryApp(['no json', 'still no json'])
+    expect((await write(summaryApp, { player: { ...alice, username: 'ghost' } })).status).toBe(404)
+    expect((await write(summaryApp, { player: alice, agent: 'nobody' })).status).toBe(404)
+    const empty = await write(summaryApp, {
+      player: { kind: 'lookup', source: 'chesscom', username: 'nobody' },
+    })
+    expect(empty.status).toBe(404)
+    expect(await empty.json()).toMatchObject({ title: 'No games' })
+    expect((await write(summaryApp, { player: alice })).status).toBe(502)
+    expect((await write(summaryApp, { player: { kind: 'me' }, last: 13 })).status).toBe(503)
+    expect((await write(summaryApp, { player: alice, tz: 'Mars/Olympus' })).status).toBe(400)
+    expect((await write(summaryApp, { player: { kind: 'friend' } })).status).toBe(400)
+
+    const { summaryApp: offline, requests } = makeSummaryApp([JSON.stringify(SUMMARY)], {
+      available: false,
+    })
+    const res = await write(offline, { player: alice })
+    expect(res.status).toBe(503)
+    expect(await res.json()).toMatchObject({ detail: 'No key' })
+    expect(requests).toHaveLength(0)
+  })
+})
+
 describe('opening routes', () => {
   it('lists the user’s openings and answers 404 for one they never played', async () => {
     const list = await app.request('/api/v1/training/openings?last=300')
@@ -1005,6 +1168,7 @@ describe('puzzle routes', () => {
       startedAt: 0,
       sources,
       stats: new LiveStats({ library, sources }),
+      summaries: new PlayerSummaries(),
       openings: new StoredOpenings(library, async () => smallBook),
       practice,
       openingLibrary,
@@ -1053,6 +1217,7 @@ describe('opening guide routes', () => {
       startedAt: 1_000,
       sources,
       stats: new LiveStats({ library, sources }),
+      summaries: new PlayerSummaries(),
       openings: new StoredOpenings(library, async () => smallBook),
       practice,
       openingLibrary,
@@ -1370,6 +1535,7 @@ describe('coach routes', () => {
         reviewQueue,
         training,
         stats: new LiveStats({ library, sources }),
+        summaries: new PlayerSummaries(),
         openings: new StoredOpenings(library, async () => smallBook),
         practice,
         openingLibrary,
@@ -1498,6 +1664,7 @@ describe('local host names only', () => {
       reviewQueue,
       training,
       stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
+      summaries: new PlayerSummaries(),
       openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
       practice,
       openingLibrary,
@@ -1530,6 +1697,7 @@ describe('local host names only', () => {
       reviewQueue,
       training,
       stats: new LiveStats({ library: new DatabaseLibraryService(undefined), sources }),
+      summaries: new PlayerSummaries(),
       openings: new StoredOpenings(new DatabaseLibraryService(undefined), async () => undefined),
       practice,
       openingLibrary,
