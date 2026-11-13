@@ -110,7 +110,7 @@ test('stats: the record, openings, endings and move quality of the last games', 
   page,
 }) => {
   const asked = await scriptedServer(page)
-  const summary = page.getByRole('region', { name: 'Summary' })
+  const summary = page.getByRole('region', { name: 'Summary', exact: true })
   await expect(summary).toContainText('Sly')
   await expect(summary).toContainText('sly on chess.com')
   await expect(summary).toContainText('Last 3 games')
@@ -229,7 +229,7 @@ test('stats: look anyone up, with what stands out, and open one of their games',
   await search.getByRole('button', { name: 'Look up' }).click()
 
   await expect(page).toHaveURL(/\/stats\?source=chesscom&user=knightowl88/)
-  const summary = page.getByRole('region', { name: 'Summary' })
+  const summary = page.getByRole('region', { name: 'Summary', exact: true })
   await expect(summary).toContainText('knightowl88')
   await expect(summary).toContainText('Blitz 1642')
   await expect(summary).toContainText('Last 4 games (all since')
@@ -249,7 +249,9 @@ test('stats: look anyone up, with what stands out, and open one of their games',
   await page.goto('/stats')
   await expect(page.locator('.stats-recent')).toContainText('knightowl88')
   await page.locator('.stats-recent').getByRole('link', { name: 'knightowl88' }).click()
-  await expect(page.getByRole('region', { name: 'Summary' })).toContainText('knightowl88')
+  await expect(page.getByRole('region', { name: 'Summary', exact: true })).toContainText(
+    'knightowl88',
+  )
 })
 
 test('stats: an unknown player is said so', async ({ page }) => {
@@ -271,4 +273,113 @@ test('stats: from a game in the library to the opponent’s stats', async ({ pag
     'href',
     '/stats?source=lichess&user=Night-King96',
   )
+})
+
+/** The coach's summary route, answered when the test says so. */
+async function scriptedCoach(page: Page) {
+  const asked: { player: Record<string, string>; last: number; speed?: string }[] = []
+  let release: () => void = () => {}
+  let held = Promise.resolve()
+  await page.route('**/api/v1/stats/summaries', async (route) => {
+    const body = route.request().postDataJSON() as (typeof asked)[number]
+    asked.push(body)
+    await held
+    const lookup = body.player.kind === 'lookup'
+    return route.fulfill({
+      json: {
+        kind: body.player.kind,
+        summary: lookup
+          ? 'knightowl88 opens **1.e4** in every White game.'
+          : `You play **1.e4** and the Vienna Game (written ${asked.length}).`,
+        focus: lookup
+          ? '- Prepare against the Vienna Game\n- Keep the clock busy: they lose on time'
+          : 'Blunders in the middlegame: 2 per game. Train on puzzles from your own mistakes.',
+        agent: 'Scripted coach',
+        writtenAt: '2026-11-14T12:00:00.000Z',
+      },
+    })
+  })
+  return {
+    asked,
+    /** Holds the answers back until `release` is called. */
+    hold: () => {
+      held = new Promise((resolve) => (release = resolve))
+      return () => release()
+    },
+  }
+}
+
+test('stats: the coach says how you play and what to work on, paid for once', async ({ page }) => {
+  const coach = await scriptedCoach(page)
+  await scriptedServer(page)
+  const section = page.getByRole('region', { name: 'Coach summary' })
+  await expect(section).toContainText('the one thing to work on first')
+  await expect(section).toContainText('With the Claude API as coach this is one paid request.')
+
+  // Writing, the page is left and shown again: the button stays busy, nothing is asked twice.
+  const release = coach.hold()
+  await section.getByRole('button', { name: 'Write the summary' }).click()
+  await expect(section.getByRole('button', { name: /writing… \(up to a minute\)/ })).toBeDisabled()
+  await page.getByRole('link', { name: 'Games', exact: true }).click()
+  await page.getByRole('link', { name: 'Stats', exact: true }).click()
+  await expect(section.getByRole('button', { name: /writing…/ })).toBeDisabled()
+  release()
+  await expect(section.getByRole('heading', { name: 'How you play' })).toBeVisible()
+  await expect(section.locator('strong')).toHaveText('1.e4')
+  await expect(section.getByRole('heading', { name: 'Work on first' })).toBeVisible()
+  await expect(section).toContainText('Blunders in the middlegame')
+  expect(coach.asked).toEqual([{ player: { kind: 'me' }, last: 30, tz: expect.any(String) }])
+
+  // Kept in the browser for these filters; other filters are another summary.
+  await page.getByRole('link', { name: 'Games', exact: true }).click()
+  await page.getByRole('link', { name: 'Stats', exact: true }).click()
+  await expect(section).toContainText('(written 1)')
+  await page.getByRole('group', { name: 'Last' }).getByRole('button', { name: '100' }).click()
+  await expect(section.getByRole('button', { name: 'Write the summary' })).toBeVisible()
+  await page
+    .getByRole('group', { name: 'Last' })
+    .getByRole('button', { name: '30', exact: true })
+    .click()
+  await expect(section).toContainText('(written 1)')
+
+  await section.getByRole('button', { name: 'Write it again' }).click()
+  await expect(section).toContainText('(written 2)')
+  expect(coach.asked).toHaveLength(2)
+})
+
+test('stats: the coach says how to meet a looked-up player, and errors are shown', async ({
+  page,
+}) => {
+  await lookupServer(page)
+  const coach = await scriptedCoach(page)
+  // Routes added later go first: the first writing fails, the next reaches the coach.
+  let failures = 1
+  await page.route('**/api/v1/stats/summaries', async (route) => {
+    if (failures-- > 0)
+      return route.fulfill({
+        status: 503,
+        contentType: 'application/problem+json',
+        json: { title: 'Coach unavailable', status: 503, detail: 'No coach is switched on' },
+      })
+    return route.fallback()
+  })
+  await page.goto('/stats?source=chesscom&user=knightowl88')
+  const section = page.getByRole('region', { name: 'Coach summary' })
+  await expect(section).toContainText('how knightowl88 plays and how to meet them')
+  await expect(section).toContainText('says nothing about how well they move')
+
+  await section.getByRole('button', { name: 'Write the summary' }).click()
+  await expect(section.getByRole('alert')).toHaveText('No coach is switched on')
+  await section.getByRole('button', { name: 'Write the summary' }).click()
+  await expect(section.getByRole('heading', { name: 'How knightowl88 plays' })).toBeVisible()
+  await expect(section.getByRole('heading', { name: 'How to meet them' })).toBeVisible()
+  await expect(section.getByRole('listitem')).toHaveCount(2)
+  await expect(section.getByRole('alert')).toHaveCount(0)
+  expect(coach.asked).toEqual([
+    {
+      player: { kind: 'lookup', source: 'chesscom', username: 'knightowl88' },
+      last: 100,
+      tz: expect.any(String),
+    },
+  ])
 })
