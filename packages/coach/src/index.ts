@@ -55,4 +55,18 @@ export {
   type LineNotesFacts,
 } from './domain/lineNotes'
 export { writeLineNotes } from './usecases/writeLineNotes'
+export {
+  MIN_OPENING_GAMES,
+  OPPONENT_SUMMARY_PROMPT,
+  OWN_SUMMARY_PROMPT,
+  parsePlayerSummary,
+  playerSummaryPrompt,
+  playerSummaryText,
+  type PlayerSummary,
+  type PlayerSummaryFacts,
+  type SummaryErrors,
+  type SummaryMoveQuality,
+  type SummaryTally,
+} from './domain/playerSummary'
+export { writePlayerSummary } from './usecases/writePlayerSummary'
 export { CoachCancelledError, MAX_TOOL_ROUNDS, runToolLoop } from './usecases/runToolLoop'
