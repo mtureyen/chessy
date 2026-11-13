@@ -104,7 +104,7 @@ export interface Services {
   /** The review of the user's recent games, which runs on the server. */
   reviewQueue: Pick<RemoteReviewQueue, 'status' | 'start' | 'pause' | 'resume'>
   /** The stats page's numbers: the user's own, or anyone's on a platform. */
-  stats: Pick<RemoteStats, 'mine' | 'player'>
+  stats: Pick<RemoteStats, 'mine' | 'player' | 'summary'>
   /** The user's repertoire: lines to keep, reviewed with growing gaps. */
   repertoire: Pick<RemoteRepertoire, 'list' | 'add' | 'remove' | 'review'>
   /** The opening library: openings to study, their lines, real games and traps. */
@@ -259,6 +259,7 @@ export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {})
       return {
         mine: (query) => stats.mine(query),
         player: (source, username, query) => stats.player(source, username, query),
+        summary: (player, query) => stats.summary(player, query),
       }
     })(),
     training: {

@@ -643,6 +643,52 @@ details > summary::-webkit-details-marker {
   padding: 0.15rem 0;
 }
 
+/* The coach's reading of the numbers. */
+.stats-coach {
+  border-left: 3px solid var(--accent);
+}
+
+.stats-coach h3 {
+  margin: 0.4rem 0 0.3rem;
+}
+
+.stats-coach p,
+.stats-coach li {
+  line-height: 1.5;
+}
+
+.stats-coach > p:not(.stats-note) {
+  margin: 0 0 0.5rem;
+}
+
+.stats-coach-write {
+  margin: 0.2rem 0 0.6rem;
+  padding: 0.45rem 1rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stats-coach-again {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.stats-coach-write:disabled,
+.stats-coach-again:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
 /* A looked-up game opens like a link. */
 .stats-game-link {
   padding: 0;

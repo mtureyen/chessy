@@ -2,6 +2,7 @@ import type { PlayerStatsBody } from '@pawnia/contracts'
 import { openingFamily } from '@pawnia/history'
 import type { ReactNode } from 'react'
 import { LineChart, ShareBar, WdlBar } from './charts'
+import { CoachSummary } from './CoachSummary'
 import {
   DAY_PART_LABELS,
   END_LABELS,
@@ -29,6 +30,7 @@ export type GameLink = (game: GameRow, children: ReactNode) => ReactNode
 export function StatsView({ stats, gameLink }: { stats: Stats; gameLink: GameLink }) {
   return (
     <div className="stats-sections">
+      <CoachSummary stats={stats} />
       <Ratings stats={stats} />
       <Section title="Openings">
         <div className="stats-columns">

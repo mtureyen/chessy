@@ -1,4 +1,4 @@
-import type { PlayerStatsBody, Problem } from '@pawnia/contracts'
+import type { PlayerStatsBody, PlayerSummaryBody, Problem } from '@pawnia/contracts'
 import type { SourceId } from '@pawnia/library'
 import type { ApiClient } from './client'
 
@@ -9,6 +9,9 @@ export interface StatsQuery {
   last: number
   speed?: StatsSpeed
 }
+
+/** Whose numbers: the user's own, or someone's on a platform. */
+export type StatsPlayer = { kind: 'me' } | { kind: 'lookup'; source: SourceId; username: string }
 
 /** The stats page's numbers from the API: the user's own, or anyone's on a platform. */
 export class RemoteStats {
@@ -36,6 +39,18 @@ export class RemoteStats {
     })
     if (res.status !== 200) throw new Error(await problemText(res))
     return (await res.json()) as PlayerStatsBody
+  }
+
+  /** Has the coach say what these numbers mean: one model turn, so one paid request with the API. */
+  async summary(
+    player: StatsPlayer,
+    { last, speed }: { last: number; speed?: PlayerStatsBody['window']['speed'] },
+  ): Promise<PlayerSummaryBody> {
+    const res = await this.api.api.v1.stats.summaries.$post({
+      json: { player, last, tz: this.timeZone, ...(speed && { speed }) },
+    })
+    if (res.status !== 200) throw new Error(await problemText(res))
+    return (await res.json()) as PlayerSummaryBody
   }
 }
 
