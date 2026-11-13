@@ -19,6 +19,7 @@ import { OpeningPractice } from './adapters/openings/practice'
 import { StoredRepertoire } from './adapters/repertoire/storedRepertoire'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
 import { LiveStats } from './adapters/stats/liveStats'
+import { PlayerSummaries } from './adapters/stats/playerSummaries'
 import { StoredTraining } from './adapters/training/storedTraining'
 import { openDatabase } from './adapters/db/database'
 import { FileSettingsService } from './adapters/settings/fileSettingsService'
@@ -100,6 +101,7 @@ const app = createApp({
   reviewQueue,
   training: new StoredTraining(library, progressKey),
   stats: new LiveStats({ library, sources }),
+  summaries: new PlayerSummaries(),
   openings: new StoredOpenings(library, book),
   practice: new OpeningPractice(book, createServerReviewer(reviewing)),
   openingLibrary: new FileOpeningLibrary(libraryData),

@@ -18,7 +18,7 @@ import type { PuzzleLibraryService } from './adapters/puzzles/puzzleLibraryServi
 import type { OpeningService } from './adapters/openings/openingService'
 import type { OpeningPractice } from './adapters/openings/practice'
 import type { RepertoireService } from './adapters/repertoire/repertoireService'
-import type { StatsService } from './adapters/stats/statsService'
+import type { PlayerSummaryService, StatsService } from './adapters/stats/statsService'
 import type { TrainingService } from './adapters/training/trainingService'
 import type { LibraryService } from './adapters/db/libraryService'
 import type { EngineService } from './adapters/engine/service'
@@ -52,6 +52,8 @@ export interface AppDeps {
   training: TrainingService
   /** The stats page: the user's own numbers, and anyone's on a platform. */
   stats: StatsService
+  /** The coach's reading of the stats page's numbers. */
+  summaries: PlayerSummaryService
   /** The user's openings, for training them. */
   openings: OpeningService
   /** Judges moves while the user practises an opening. */
@@ -91,6 +93,7 @@ export function createApp({
   reviewQueue,
   training,
   stats,
+  summaries,
   openings,
   practice,
   openingLibrary,
@@ -114,7 +117,7 @@ export function createApp({
     .route('/', libraryRoutes({ library, now }))
     .route('/', reviewQueueRoutes({ reviewQueue }))
     .route('/', trainingRoutes({ training }))
-    .route('/', statsRoutes({ stats }))
+    .route('/', statsRoutes({ stats, summaries, coach }))
     .route('/', openingRoutes({ openings, practice }))
     .route('/', openingLibraryRoutes({ library: openingLibrary, guides, coach }))
     .route('/', puzzleRoutes({ puzzles }))
