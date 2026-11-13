@@ -167,6 +167,17 @@ const isTimeZone = (zone: string) => {
   }
 }
 
+const UsernameSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9_-]{2,30}$/)
+  .openapi({ example: 'DrNykterstein' })
+
+const TimeZoneSchema = z
+  .string()
+  .refine(isTimeZone, 'an IANA time zone like Europe/Berlin')
+  .default('UTC')
+  .openapi({ example: 'Europe/Berlin', description: 'For times of day and weekdays' })
+
 const query = (defaultLast: number) =>
   z.object({
     last: z.coerce
@@ -177,11 +188,7 @@ const query = (defaultLast: number) =>
       .default(defaultLast)
       .openapi({ description: 'The newest this many finished games' }),
     speed: SpeedSchema.optional(),
-    tz: z
-      .string()
-      .refine(isTimeZone, 'an IANA time zone like Europe/Berlin')
-      .default('UTC')
-      .openapi({ example: 'Europe/Berlin', description: 'For times of day and weekdays' }),
+    tz: TimeZoneSchema,
   })
 
 const problem = (description: string) => ({
@@ -217,13 +224,7 @@ export const playerStatsRoute = createRoute({
   description:
     'Read live from the platform (at most 12 months back), not stored; cached for a few minutes.',
   request: {
-    params: z.object({
-      source: SourceIdSchema,
-      username: z
-        .string()
-        .regex(/^[A-Za-z0-9_-]{2,30}$/)
-        .openapi({ example: 'DrNykterstein' }),
-    }),
+    params: z.object({ source: SourceIdSchema, username: UsernameSchema }),
     query: query(100),
   },
   responses: {
@@ -232,5 +233,63 @@ export const playerStatsRoute = createRoute({
     404: problem('The user does not exist on that platform'),
     429: problem('The platform asked us to slow down; see Retry-After'),
     502: problem('The platform could not be reached or failed'),
+  },
+})
+
+/** The coach's reading of a player's numbers. */
+export const PlayerSummarySchema = z
+  .object({
+    kind: z.enum(['me', 'lookup']),
+    /** How the player plays, from the numbers (Markdown). */
+    summary: z.string(),
+    /** Own stats: the one thing to work on first. A looked-up player: how to meet them (Markdown). */
+    focus: z.string(),
+    agent: z.string().openapi({ description: 'The coach that wrote it' }),
+    writtenAt: z.string().datetime(),
+  })
+  .openapi('PlayerSummary')
+
+export type PlayerSummaryBody = z.infer<typeof PlayerSummarySchema>
+
+export const writePlayerSummaryRoute = createRoute({
+  method: 'post',
+  path: '/stats/summaries',
+  tags: ['stats'],
+  summary: 'Has the coach say what a player’s numbers mean (not kept)',
+  description:
+    'From the same numbers as the stats routes, with the same filters, in one model turn without tools. For the user: how they play and the one thing to work on first; for anyone else: how they play and how to meet them, without move quality (their games are not reviewed). Costs one model turn with the Claude API; nothing is stored.',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            player: z.discriminatedUnion('kind', [
+              z.object({ kind: z.literal('me') }),
+              z.object({
+                kind: z.literal('lookup'),
+                source: SourceIdSchema,
+                username: UsernameSchema,
+              }),
+            ]),
+            last: z.number().int().min(1).max(300),
+            speed: SpeedSchema.optional(),
+            tz: TimeZoneSchema,
+            agent: z.string().max(50).optional(),
+          }),
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: 'The summary',
+      content: { 'application/json': { schema: PlayerSummarySchema } },
+    },
+    400: problem('Invalid player, last, speed or time zone'),
+    404: problem('No such player or agent, or no games to read'),
+    429: problem('The platform asked us to slow down; see Retry-After'),
+    502: problem('The platform failed, or the coach gave no usable summary'),
+    503: problem('No coach available, or no game database'),
   },
 })
